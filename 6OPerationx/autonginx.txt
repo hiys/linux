@@ -1,0 +1,1804 @@
+﻿
+====================auto--------------------
+[root@auto ~]# cat auto
+#!bin/bash
+password=123456;
+for i in `seq 3`
+do
+ hostn=rh7_node$i;
+ systn='';
+ eth0='';eth1='';
+ case $i in
+  1)
+    let eth0=100,eth1=10;
+    systn=clinet;;
+  2)
+    let eth0=5,eth1=5;
+    systn=proxy;;
+  3)
+    let eth0=3,eth1=100;
+    systn=web1;;
+ esac
+ ipexp(){
+  expect  /root/clone.sh
+  if [ $? -eq 0  -o  $? -eq 1 ];then
+    virsh start $hostn;
+  else 
+    echo "clone failed";
+    exit ;
+  fi
+  expect /root/console.sh $hostn $password $systn $eth0 $eth1  
+ }
+ case $1 in
+ clone)
+   ipexp &
+   wait % $i;;
+ start)
+   virsh start $hostn;;
+ stop)
+   virsh shutdown $hostn;;
+ scp)
+   expect /root/autoscp.sh  $eth0 
+   if [ $? -eq 0  -o  $? -eq 1 ];then
+     echo "scp is over";
+   else
+     echo "scp failed";
+   fi;;
+ *)
+   echo Error;;
+ esac
+done
+echo Amazing !
+[root@auto ~]# 
+===============clone.sh=====----------=====
+[root@auto ~]# cat clone.sh 
+#!/usr/bin/expect -f
+set timeout -1
+spawn clone-auto7
+expect "vms:"  {send "1\r"}
+expect "#"  {send "echo Cloning success\r"}
+expect "#"  {send "exit\r"}
+
+===================console.sh============------
+[root@auto ~]# cat console.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  hostn     [lindex $argv 0]
+set  password  [lindex $argv 1]
+set  systn     [lindex $argv 2]
+set  eth0      [lindex $argv 3]
+set  eth1      [lindex $argv 4]
+spawn  virsh console $hostn
+expect "换码符为 ^]"  {send "\n"}
+expect "login:"   {send "root\r"}
+expect "密码："     {send "$password\r"}
+expect "#"  {send "echo 123 |passwd  --stdin root\r"}
+expect "#"  {send "echo $systn >/etc/hostname\r"}
+expect "#"  {send "nmcli connection modify eth0 ipv4.method manual ipv4.addresses 192.168.4.$eth0/24  ipv4.gateway 192.168.4.254 connection.autoconnect yes \r"}
+expect "#"  {send "nmcli connection up eth0 \r"}
+expect "#"  {send "nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.2.$eth1/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes \r"} 
+expect "#"  {send "nmcli connection up eth1 \r"}
+expect "#"  {send "ifconfig | grep 'inet '\r"}
+expect "#"  {send "echo '\[rhel7\]
+\nname=rhel7.4
+\nenabled=1
+\ngpgcheck=0
+\nbaseurl=ftp://192.168.4.254/rhel7
+\n\[rhel7-2\]
+\nname=rhel7.4
+\nbaseurl=ftp://192.168.2.254/rhel7
+\ngpgcheck=0
+\nenabled=1 '>/etc/yum.repos.d/rhel7.repo\r"}
+expect "#"  {send "yum clean all >/dev/null && yum repolist |tail -4\r"}
+expect "#"  {send "systemctl isolate graphical\r"}
+expect "#"  {send "sleep 5 && date\r"}
+expect "#"  {send "exit\r"}
+
+===================autoscp.sh---------------------
+[root@auto ~]# cat autoscp.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  eth0        [lindex $argv 0]
+spawn  scp -o StrictHostKeyChecking=no /root/桌面/lnmp_soft.tar.gz  root@192.168.4.$eth0:/root/
+expect "password:" {send "123\r" }
+expect "#"  {send "sleep 5 && date\r"}
+[root@auto ~]# 
+
+==========================================
+[root@auto ~]# cat auto
+#!bin/bash
+password=123456;
+for i in `seq 3`
+do
+ hostn=rh7_node$i;
+ systn='';
+ eth0='';eth1='';
+ case $i in
+  1)
+    let eth0=100,eth1=10;
+    systn=clinet;;
+  2)
+    let eth0=5,eth1=5;
+    systn=proxy;;
+  3)
+    let eth0=3,eth1=100;
+    systn=web1;;
+ esac
+ ipexp(){
+  expect  /root/clone.sh
+  if [ $? -eq 0  -o  $? -eq 1 ];then
+    virsh start $hostn;
+  else 
+    echo "clone failed";
+    exit ;
+  fi
+  expect /root/console.sh $hostn $password $systn $eth0 $eth1  
+ }
+ case $1 in
+ clone)
+   ipexp &
+   wait % $i;;
+ start)
+   virsh start $hostn;;
+ stop)
+   virsh shutdown $hostn;;
+ scp)
+   expect /root/autoscp.sh  $eth0 
+   if [ $? -eq 0  -o  $? -eq 1 ];then
+     echo "scp is over";
+   else
+     echo "scp failed";
+   fi;;
+ setnginx)
+   expect /root/setnginx.sh $eth0
+   echo "setting up nginx";;
+ *)
+   echo Error;;
+ esac
+done
+echo Amazing !
+[root@auto ~]# cat setnginx.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  eth0        [lindex $argv 0]
+spawn ssh -o StrictHostKeyChecking=no  -X  root@192.168.4.$eth0:/root/
+expect "password:" {send "123\r" }
+expect "#" {send "tar -xf /root/lnmp_soft.tar.gz\r"}
+expect "#" {send "yum -y install  elinks telnet httpd-tools  gcc pcre-devel openssl-devel mariadb-devel   mariadb mariadb-server memcached php-pecl-memcache  php php-mysql zlib-devel /root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm \r"}
+expect "#" {send "sleep 5 && date\r"}
+expect "#" {send "rpm -q q elinks telnet httpd-tools gcc  pcre-devel openssl-devel mariadb-devel mariadb mariadb-server memcached php-pecl-memcache  php php-mysql php-fpm zlib-devel \r"}
+expect "#" {send "nginx -s stop\r"}
+expect "#" {send "rm  -rf /usr/local/nginx\r"}
+expect "#" {send "useradd -s /sbin/nologin nginx\r"}
+expect "#" {send "tar -xzf /root/lnmp_soft/nginx-1.12.2.tar.gz\r"}
+expect "#" {send "cd nginx-1.12.2/;ls\r"}
+expect "#" {send "./configure  --prefix=/usr/local/nginx  --user=nginx  --group=nginx --with-http_ssl_module  --with-stream  --with-http_stub_status_module  --without-http_autoindex_module  --without-http_ssi_module\r"}
+expect "#" {send "sleep 5 && date\r"}
+expect "#" {send "make && make install\r"}
+expect "#" {send "ls\r"}
+expect "#" {send "echo 'export PATH=/usr/local/nginx/sbin/:$PATH' >>/etc/profile\r"}
+expect "#" {send "source /etc/profile\r"}
+expect "#" {send "which nginx\r"}
+expect "#" {send "nginx\r"}
+expect "#" {send "systemctl start mariadb && systemctl enable mariadb\r"}
+expect "#" {send "systemctl start php-fpm && systemctl enable php-fpm\r"}
+expect "#" {send "nginx -V\r"}
+expect "#" {send "hello world\r"}
+[root@auto ~]# cat clone.sh 
+#!/usr/bin/expect -f
+set timeout -1
+spawn clone-auto7
+expect "vms:"  {send "1\r"}
+expect "#"  {send "echo Cloning success\r"}
+expect "#"  {send "exit\r"}
+[root@auto ~]# cat console.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  hostn     [lindex $argv 0]
+set  password  [lindex $argv 1]
+set  systn     [lindex $argv 2]
+set  eth0      [lindex $argv 3]
+set  eth1      [lindex $argv 4]
+spawn  virsh console $hostn
+expect "换码符为 ^]"  {send "\n"}
+expect "login:"   {send "root\r"}
+expect "密码："     {send "$password\r"}
+expect "#"  {send "echo 123 |passwd  --stdin root\r"}
+expect "#"  {send "echo $systn >/etc/hostname\r"}
+expect "#"  {send "nmcli connection modify eth0 ipv4.method manual ipv4.addresses 192.168.4.$eth0/24  ipv4.gateway 192.168.4.254 connection.autoconnect yes \r"}
+expect "#"  {send "nmcli connection up eth0 \r"}
+expect "#"  {send "nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.2.$eth1/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes \r"} 
+expect "#"  {send "nmcli connection up eth1 \r"}
+expect "#"  {send "ifconfig | grep 'inet '\r"}
+expect "#"  {send "echo '\[rhel7\]
+\nname=rhel7.4
+\nenabled=1
+\ngpgcheck=0
+\nbaseurl=ftp://192.168.4.254/rhel7
+\n\[rhel7-2\]
+\nname=rhel7.4
+\nbaseurl=ftp://192.168.2.254/rhel7
+\ngpgcheck=0
+\nenabled=1 '>/etc/yum.repos.d/rhel7.repo\r"}
+expect "#"  {send "yum clean all >/dev/null && yum repolist |tail -4\r"}
+expect "#"  {send "systemctl isolate graphical\r"}
+expect "#"  {send "sleep 5 && date\r"}
+expect "#"  {send "exit\r"}
+[root@auto ~]# cat autoscp.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  eth0        [lindex $argv 0]
+spawn  scp -o StrictHostKeyChecking=no /root/桌面/lnmp_soft.tar.gz  root@192.168.4.$eth0:/root/
+expect "password:" {send "123\r" }
+expect "#"  {send "sleep 5 && date\r"}
+[root@auto ~]# 
+============================================
+/***开机自启动nginx方式( 1 )
+vim /usr/lib/systemd/system/nginx.service
+systemctl enable ngixn
+vim /etc/rc.local  开机自启动nginx方式二
+chmod +x /etc/rc.local
+ll /etc/rc.local
+ll /etc/rc.d/rc.local
+/usr/local/nginx/sbin/nginx
+***/
+[root@client ~]# systemctl is-enabled sshd
+enabled
+[root@client ~]#
+[root@client ~]# cat /usr/lib/systemd/system/sshd.service
+[Unit]
+#服务的简单描述
+Description=OpenSSH server daemon
+
+ #---Documentation= 服务文档
+Documentation=man:sshd(8) man:sshd_config(5)
+
+#After= : 依赖，仅当依赖的服务启动之后再启动自定义的服务单元
+After=network.target sshd-keygen.service
+
+Wants=sshd-keygen.service
+
+[Service]
+Type=notify
+EnvironmentFile=/etc/sysconfig/sshd
+ExecStart=/usr/sbin/sshd -D $OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+
+[Install]
+WantedBy=multi-user.target
+---------------------
+[root@client ~]# systemctl is-enabled php-fpm.service 
+enabled
+[root@client ~]# cat /usr/lib/systemd/system/php-fpm.service 
+[Unit]
+Description=The PHP FastCGI Process Manager
+
+#After= : 依赖，仅当依赖的服务启动之后再启动自定义的服务单元
+After=syslog.target network.target
+
+[Service]
+Type=notify
+PIDFile=/run/php-fpm/php-fpm.pid
+EnvironmentFile=/etc/sysconfig/php-fpm
+ExecStart=/usr/sbin/php-fpm --nodaemonize
+ExecReload=/bin/kill -USR2 $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+[root@client ~]# 
+=============================================
+CentOS 7的服务systemctl脚本存放在：/usr/lib/systemd/，有系统（system）和用户（user）之分，即：/usr/lib/systemd/system ，
+      /usr/lib/systemd/user
+ 每一个服务以.service结尾，一般会分为3部分：[Unit]、[Service]和[Install]，
+就以nginx为例,创建service:
+              在／usr/lib/systemd/system下创建nginx.service文件内容如下
+[看应用需求也可在 ／usr/lib/systemd/usr下创建：]
+ 
+[Unit]
+#服务的简单描述
+Description=nginx - high performance web server
+
+ # ----------Documentation= 服务文档
+Documentation=http://nginx.org/en/docs/ 
+ 
+#After= : 依赖，仅当依赖的服务启动之后再启动自定义的服务单元
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+ExecStartPre=/usr/sbin/nginx -t  -c /etc/nginx/nginx.conf
+
+#[root@client ~]# ls /usr/local/nginx/conf/nginx.conf
+/usr/local/nginx/conf/nginx.conf
+
+
+ExecStart=/usr/sbin/nginx-c/etc/nginx/nginx.conf
+ExecReload=/bin/kill-s
+ HUP $MAINPID
+ExecStop=/bin/kill-s
+ QUIT $MAINPID
+PrivateTmp=true
+[Install]
+WantedBy=multi-user.target
+
+ [Service]
+
+Type : 启动类型simple、forking、oneshot、notify、dbus
+
+Type=simple（默认值）：systemd认为该服务将立即启动。服务进程不会fork。如果该服务要启动其他服务，不要使用此类型启动，除非该服务是socket激活型。 
+
+Type=forking：systemd认为当该服务进程fork，且父进程退出后服务启动成功。对于常规的守护进程（daemon），除非你确定此启动方式无法满足需求，使用此类型启动即可。使用此启动类型应同时指定 PIDFile=，以便systemd能够跟踪服务的主进程。
+
+ Type=oneshot：这一选项适用于只执行一项任务、随后立即退出的服务。可能需要同时设置 RemainAfterExit=yes 使得 systemd 在服务进程退出之后仍然认为服务处于激活状态。 
+
+Type=notify：与 Type=simple 相同，但约定服务会在就绪后向 systemd 发送一个信号。这一通知的实现由 libsystemd-daemon.so 提供。 Type=dbus：若以此方式启动，当指定的 BusName 出现在DBus系统总线上时，systemd认为服务就绪。
+
+PIDFile ： pid文件路径 
+ExecStartPre ：启动前要做什么，上文中是测试配置文件 －t  
+ExecStart：启动 
+ExecReload：重载 
+ExecStop：停止 
+PrivateTmp：True表示给服务分配独立的临时空间
+
+
+[Install]
+
+WantedBy：服务安装的用户模式，从字面上看，就是想要使用这个服务的有是谁？上文中使用的是：multi-user.target ，就是指想要使用这个服务的目录是多用户。「以上全是个人理解，瞎猜的，如有不当，请大家多多指教」每一个.target实际上是链接到我们单位文件的集合,当我们执行：
+
+$sudo systemctl enable nginx.service
+
+就会在/etc/systemd/system/multi-user.target.wants/目录下新建一个/usr/lib/systemd/system/nginx.service 文件的链接。
+
+
+操作Service:
+#启动服务
+$sudo systemctl
+ start nginx.service
+#查看日志
+$sudo journalctl
+ -f -u nginx.service-
+ Logs begin at 四 2015-06-25 17:32:20 CST. --
+6月
+ 25 10:28:24 Leco.lan systemd[1]: Starting nginx - high performance web server...
+6月
+ 25 10:28:24 Leco.lan nginx[7976]: nginx: the configuration file/etc/nginx/nginx.conf
+ syntax is ok
+6月
+ 25 10:28:24 Leco.lan nginx[7976]: nginx: configuration file/etc/nginx/nginx.conftestis
+ successful
+6月
+ 25 10:28:24 Leco.lan systemd[1]: Started nginx - high performance web server.
+#重启
+$sudo systemctl
+ restart nginx.service
+#重载
+$sudo systemctl
+ reload nginx.service
+#停止
+$sudo systemctl
+ stop nginx.service
+
+
+
+
+
+
+
+
+
+
+
+
+systemd科普
+
+            
+                
+									
+					
+						(function(){
+							function setArticleH(btnReadmore,posi){
+								var winH = $(window).height();
+								var articleBox = $("div.article_content");
+								var artH = articleBox.height();
+								if(artH > winH*posi){
+									articleBox.css({
+										'height':winH*posi+'px',
+										'overflow':'hidden'
+									})
+									btnReadmore.click(function(){
+										articleBox.removeAttr("style");
+										$(this).parent().remove();
+									})
+								}else{
+									btnReadmore.parent().remove();
+								}
+							}
+							var btnReadmore = $("#btn-readmore");
+							if(btnReadmore.length>0){
+								if(currentUserName){
+									setArticleH(btnReadmore,3);
+								}else{
+									setArticleH(btnReadmore,1.2);
+								}
+							}
+						})()
+					
+					
+	
+
+
+		$(".MathJax").remove();
+		if($('div.markdown_views pre.prettyprint code.hljs').length > 0 ){
+				$('div.markdown_views')[0].className = 'markdown_views';
+		}
+
+        window.p4sdk_enable_courseBox=true        
+
+	  	
+		想对作者说点什么？
+		
+		我来说一句
+	
+			
+		
+		
+		
+		
+		
+	
+        
+            		
+		
+			
+				
+						nginx那些强大的不可不说的功能				
+				
+					
+							
+							
+								nic7968
+								
+							
+					
+					
+						06-10
+						
+							
+								
+							
+							741
+						
+					
+					
+							当我们打开手机访问点评客户端的时候，访问商户的请求是如何到达对应某台应用服务器的？
+当有很多XX宽带的用户投诉说我大点评某某域名无法打开但是我们却找不出任何问题的时候，我们就想到会不会是宽带运营商的问...					
+			
+					
+	
+						
+		
+			
+				
+						【一】nginx核心架构概述				
+				
+					
+							
+							
+								hmemoryl
+								
+							
+					
+					
+						07-23
+						
+							
+								
+							
+							1092
+						
+					
+					
+							毕业前，毕设完成后，我闲极无聊接触了一下socket编程，用C++的Qt框架写了玩具一样的TCP和UDP通信客户端。跟直系学长电话聊天时被建议深挖一下socket，尝试走走后端或者架构师路线。问该怎么...					
+			
+					
+	
+									
+					
+				
+			
+					
+		
+			
+				
+						linux常用文件位置实例说明之-/lib/systemd/system/目录				
+				
+					
+							
+							
+								diyiday
+								
+							
+					
+					
+						04-04
+						
+							
+								
+							
+							260
+						
+					
+					
+							linux系统结构/lib/systemd/system/目录 
+该目录自动存放启动文件的配置位置，里面一般包含有XXXXX.service 
+例如systemctl enable  supervis...					
+			
+					
+	
+						
+		
+			
+				
+						Systemd启动守护进程/代替Cron/日志管理				
+				
+					
+							
+							
+								lilongsy
+								
+							
+					
+					
+						12-07
+						
+							
+								
+							
+							752
+						
+					
+					
+							Systemd 是 Linux 系统工具，用来启动守护进程，已成为大多数发行版的标准配置。 
+本文介绍它的基本用法，分为上下两篇。今天介绍它的主要命令，下一篇介绍如何用于实战。一、由来历史上，Linu...					
+			
+					
+	
+						
+		
+			
+				
+						CentOS 7设置开机启动服务，添加自定义系统服务				
+				
+					
+							
+							
+								chenxiabinffff
+								
+							
+					
+					
+						05-11
+						
+							
+								
+							
+							3.4万
+						
+					
+					
+							CentOS 7设置开机启动服务，添加自定义系统服务
+建立服务文件
+保存目录
+设置开机自启动
+其他命令
+1.建立服务文件文件路径vim /usr/lib/systemd/system/nginx.se...					
+			
+					
+	
+						
+		
+			
+				
+						CentOS 7 systemd添加自定义系统服务				
+				
+					
+							
+							
+								iamonlyme
+								
+							
+					
+					
+						09-14
+						
+							
+								
+							
+							4506
+						
+					
+					
+							CentOS 7继承了RHEL 7的新的特性，例如强大的systemd，而systemd的使用也使得以往系统服务的/etc/init.d的启动脚本的方式就此改变，也大幅提高了系统服务的运行效率。但服务...					
+			
+					
+	
+								
+    
+        
+            
+        
+        
+            火爆√骚动网游：好玩的女仆游戏，进入仅属于彼此的私密空间
+            中至科技 · 燨燚
+        
+   
+   
+
+
+			
+				var width = $("div.recommend-box").outerWidth() - 48;
+				NEWS_FEED({
+					w: width,
+					h: 60,
+					showid: 'Afihld',
+					placeholderId: 'a_d_feed_0',
+					inject: 'define',
+					define: {
+						imagePosition: 'left',
+						imageBorderRadius: 0,
+						imageWidth: 90,
+						imageHeight: 60,
+						imageFill: 'clip',
+						displayImage: true,
+						displayTitle: true,
+						titleFontSize: 20,
+						titleFontColor: '#333',
+						titleFontFamily: 'Microsoft Yahei',
+						titleFontWeight: 'bold',
+						titlePaddingTop: 0,
+						titlePaddingRight: 0,
+						titlePaddingBottom: 10,
+						titlePaddingLeft: 8,
+						displayDesc: true,
+						descFontSize: 14,
+						descPaddingLeft: 14,
+						descFontColor: '#6b6b6b',
+						descFontFamily: 'Microsoft Yahei',
+						paddingTop: 0,
+						paddingRight: 0,
+						paddingBottom: 0,
+						paddingLeft: 0,
+						backgroundColor: '#fff',
+						hoverColor: '#ca0c16'
+					}
+				})
+			
+						
+		
+			
+				
+						CentOS 7之Systemd详解之服务单元设置system.service				
+				
+					
+							
+							
+								yuesichiu
+								
+							
+					
+					
+						05-23
+						
+							
+								
+							
+							1.3万
+						
+					
+					
+							
+
+ 
+
+英文网址：https://www.freedesktop.org/software/systemd/man/systemd.service.html
+
+ 
+
+名称
+
+systemd.serv...					
+			
+					
+	
+						
+		
+			
+				
+						Nginx服务启动失败				
+				
+					
+							
+							
+								Anasta198110
+								
+							
+					
+					
+						06-19
+						
+							
+								
+							
+							347
+						
+					
+					
+							今天想要启动nginx服务时，发现起不起来。# systemctl start nginx
+Job for nginx.service failed because the control proce...					
+			
+					
+	
+						
+		
+			
+				
+						在系统服务目录里创建nginx.service文件				
+				
+					
+							
+							
+								webmaJusse
+								
+							
+					
+					
+						03-05
+						
+							
+								
+							
+							158
+						
+					
+					
+							vim /lib/systemd/system/nginx.service    [Unit]Description=nginxAfter=network.target  [Service]Type=...					
+			
+					
+	
+						
+		
+			
+				
+						ubuntu systemctl generated and enabled				
+				
+					
+							
+							
+								hsdfz0201
+								
+							
+					
+					
+						09-12
+						
+							
+								
+							
+							781
+						
+					
+					
+							问题描述不知道是否有同我一样作死（被逼无奈）的人，反复安装某一个软件，导致在systemctl enable service 的时候，无论如何都无法将服务设置成开机启动。 
+  我只是单纯的在安装gr...					
+			
+					
+	
+					
+			博主推荐
+			
+			
+				
+					
+					
+					
+					换一批
+				
+				
+				YoungerChina  关注 367篇文章fu_wayne  关注 9篇文章大神带我躺赢  关注 1篇文章
+			
+		
+
+
+            		
+		
+			
+				
+						Ansible（一）：Ansible安装及测试				
+				
+					
+							
+							
+								alphags
+								
+							
+					
+					
+						11-23
+						
+							
+								
+							
+							4330
+						
+					
+					
+							摘要本文主要内容是介绍Ansible的安装及测试，文章内容主要摘自Ansible的文档。背景公司近期开发分布式采集服务器，尽管当前测试仅由三台服务器组成，但是规划中会有近百台服务器一起工作。这就需要有...					
+			
+					
+	
+						
+		
+			
+				
+						编写systemd service文件				
+				
+					
+							
+							
+								djskl
+								
+							
+					
+					
+						06-28
+						
+							
+								
+							
+							1.6万
+						
+					
+					
+							转自：openSUSE:How to write a systemd service
+
+
+本教程简单的描述了如何从零开始编写一个 Systemd 服务文件、SysV init 脚本到 Syste...					
+			
+					
+	
+						
+		
+			
+				
+						CentOs7 安装Tengine 并设置成系统服务，开机自动启动。				
+				
+					
+							
+							
+								nimasike
+								
+							
+					
+					
+						07-12
+						
+							
+								
+							
+							5557
+						
+					
+					
+							本文使用Tengine-2.1.2.tar.gz  官方下载地址：http://tengine.taobao.org/download_cn.html。
+
+
+1、安装Tenqine
+1.1安装 pcr...					
+			
+					
+	
+				
+    
+        
+            
+        
+        
+            “人喝茶三年，茶养人一辈子”已被科学证实！
+            华铭茶业 · 燨燚
+        
+   
+   
+
+		
+		
+			
+				
+						如何在 CentOS 7 用 cPanel 配置 Nginx 反向代理				
+				
+					
+							
+							
+								linuxnews
+								
+							
+					
+					
+						09-15
+						
+							
+								
+							
+							623
+						
+					
+					
+							Nginx 是最快和最强大的 Web 服务器之一，以其高性能和低资源占用率而闻名。它既可以被安装为一个独立的 Web 服务器，也可以安装成反向代理 Web 服务器。在这篇文章，我将讨论在安装了 cPa...					
+			
+					
+	
+						
+		
+			
+				
+						Linux三剑客之awk命令详解及相关实例				
+				
+					
+							
+							
+								bbwangj
+								
+							
+					
+					
+						11-24
+						
+							
+								
+							
+							339
+						
+					
+					
+							简介
+
+awk是一个处理文本的编程语言工具，能用简短的程序处理标准输入或文件、数据排序、计算以及生成报表等等。
+在Linux系统下默认awk是gawk，它是awk的GNU版本。可以通过命令查看应用的版...					
+			
+					
+	
+						
+		
+			
+				
+						如何使用Rally+Docker测试OpenStack				
+				
+					
+							
+							
+								ztguang
+								
+							
+					
+					
+						04-18
+						
+							
+								
+							
+							1469
+						
+					
+					
+							http://geek.csdn.net/news/detail/67842
+
+
+
+一．为什么要用Rally Docker
+
+1.为什么要通过Docker使用Rally
+众所周知，软件产...					
+			
+					
+	
+						
+		
+			
+				
+						pl/sql编程（二）				
+				
+					
+							
+							
+								luman1991
+								
+							
+					
+					
+						08-24
+						
+							
+								
+							
+							3.8万
+						
+					
+					
+							第一点要理解以下四点：
+DDL：数据库模式定义语言，关键字：create
+DML：数据操纵语言，关键字：Insert、delete、update
+DCL：数据库控制语言 ，关键字：grant、rem...					
+			
+					
+	
+						
+		
+			
+				
+						前后端常见的几种鉴权方式				
+				
+					
+							
+							
+								wang839305939
+								
+							
+					
+					
+						01-03
+						
+							
+								
+							
+							9430
+						
+					
+					
+							常见的授权四种授权方式HTTP Basic Authentication，session-cookie,token(jwt)，OAuth(开放授权)...					
+			
+					
+	
+						
+		
+			
+				
+						Linux服务器启动过程详解				
+				
+					
+							
+							
+								chinalinuxzend
+								
+							
+					
+					
+						09-23
+						
+							
+								
+							
+							1642
+						
+					
+					
+							原贴：http://blog.chinaunix.net/u/23204/showart_199920.html                                            ...					
+			
+					
+	
+						
+		
+			
+				
+						Linux 添加Nginx 到 service 启动 （完整篇）				
+				
+					
+							
+							
+								Gavid0124
+								
+							
+					
+					
+						12-19
+						
+							
+								
+							
+							7820
+						
+					
+					
+							nginx wiki 中文站：http://wiki.nginx.org/Chs
+
+添加用户和组
+groupadd www  useradd -g www -M www  
+
+1.安装ngi...					
+			
+					
+	
+						
+		
+			
+				
+						Linux开机启动管理---systemd使用				
+				
+					
+							
+							
+								qq562029186
+								
+							
+					
+					
+						03-28
+						
+							
+								
+							
+							5991
+						
+					
+					
+							systemd使用					
+			
+					
+	
+						
+		
+			
+				
+						systemd 进程服务文件参数解析				
+				
+					
+							
+							
+								huashibuliao
+								
+							
+					
+					
+						05-17
+						
+							
+								
+							
+							917
+						
+					
+					
+							1.服务权限
+
+
+
+systemd有系统和用户区分；系统（/user/lib/systemd/system/）、用户（/etc/lib/systemd/user/）.一般系统管理员手工创建的单...					
+			
+					
+	
+						
+		
+			
+				
+						关于systemctl及systemd service的一些使用经验				
+				
+					
+							
+							
+								akin_zhou
+								
+							
+					
+					
+						12-21
+						
+							
+								
+							
+							1.1万
+						
+					
+					
+							systemctl的使用方法，编写业务系统的service，将业务系统加入到systemd服务之中，使用systemd service的相关管理方法进行管理...					
+			
+					
+	
+				
+    
+        
+            
+        
+        
+            四种方法缓解膝关节痛，每一招都有效，在家自己做就可以！
+            奔鸿 · 燨燚
+        
+   
+   
+
+		
+		
+			
+				
+						init,service和systemctl的区别				
+				
+					
+							
+							
+								lineuman
+								
+							
+					
+					
+						09-18
+						
+							
+								
+							
+							1.1万
+						
+					
+					
+							参考http://www.ruanyifeng.com/blog/2016/03/systemd-tutorial-commands.html1、service是一个脚本命令，分析service可知是...					
+			
+					
+	
+						
+		
+			
+				
+						编写systemd下服务脚本				
+				
+					
+							
+							
+								u010127879
+								
+							
+					
+					
+						07-21
+						
+							
+								
+							
+							1.8万
+						
+					
+					
+							编写systemd下服务脚本
+Red Hat Enterprise Linux 7（RHEL 7）已经将服务管理工具从SysVinit和Upstart迁移到了systemd上，相应的服务脚本也需要改...					
+			
+					
+	
+						
+		
+			
+				
+						Linux学习笔记——利用systemd实现服务自启动				
+				
+					
+							
+							
+								qq_25196769
+								
+							
+					
+					
+						08-31
+						
+							
+								
+							
+							241
+						
+					
+					
+							每个服务对应一个服务配置文件，若用户想添加服务，必须自己编写服务配置文件。
+
+（配置文件主要放在/usr/lib/systemd目录下，也可能在/etc/systemd/system目录下）
+以下为服...					
+			
+					
+	
+						
+		
+			
+				
+						Systemd的Unit文件; systemctl增加服务详细介绍				
+				
+					
+							
+							
+								shuaixingi
+								
+							
+					
+					
+						11-04
+						
+							
+								
+							
+							3955
+						
+					
+					
+							﻿﻿
+Systemd的Unit文件
+在 Systemd 的生态圈中（除了 CoreOS 外，目前的主流 Linux 系统，如 Arch、SUSE、Fedora、RedHat/CentOS 也都已经...					
+			
+					
+	
+						
+		
+			
+				
+						systemd初探-服务的Unit文件结构				
+				
+					
+							
+							
+								zongyimin
+								
+							
+					
+					
+						09-11
+						
+							
+								
+							
+							383
+						
+					
+					
+							systemd服务的Unit文件可以分为三个配置区段，其中Unit段和Install段是所有Unit文件通用的，用于配置服务（或其他系统资源）的描述、依赖和随系统启动方式，而Service断则是服务类...					
+			
+					
+	
+						
+		
+			
+				
+						Linux Centos 7  systemctl（systemd）新增加service服务，并且开机启动				
+				
+					
+							
+							
+								qq_25821067
+								
+							
+					
+					
+						01-21
+						
+							
+								
+							
+							4049
+						
+					
+					
+							centos 7中采用了systemd控制系统服务，更加简单，以前启动服务需要 service xxxx start|stop等。现在需要的是systemctl start|stop xxx。比如我配...					
+			
+					
+	
+						
+		
+			
+				
+						CentOS 7.x设置自定义开机启动,添加自定义系统服务				
+				
+					
+							
+							
+								looksun
+								
+							
+					
+					
+						02-15
+						
+							
+								
+							
+							1.1万
+						
+					
+					
+							Centos 系统服务脚本目录：
+
+/usr/lib/systemd/  有系统（system）和用户（user）之分，
+
+
+如需要开机没有登陆情况下就能运行的程序，存在系统服务（syste...					
+			
+					
+	
+				
+                
+            
+            
+                没有更多推荐了，返回首页
+            
+        
+    
+
+    
+		    
+    
+    
+        
+            
+                
+            
+        
+        
+            
+                lwplvx
+            
+                    
+                
+            
+                                关注
+                            
+                    
+            
+    
+                
+                        原创
+            6
+                    
+        
+            粉丝
+            0
+        
+        
+            喜欢
+            1
+        
+        
+            评论
+            1
+        
+    
+    
+        
+            等级：
+            
+                
+                    
+                        
+                    
+                
+            
+        
+        
+            访问：
+            
+                2万+            
+        
+        
+            积分：
+            
+                316            
+        
+        
+            排名：
+            26万+
+        
+    
+        
+        勋章：
+                        
+            
+                
+            
+            
+            
+                
+                    
+                        
+                            
+                        
+                        持之以恒
+                    
+                    
+                        授予每个自然月内发布4篇或4篇以上原创或翻译IT博文的用户。不积跬步无以至千里，不积小流无以成江海，程序人生的精彩需要坚持不懈地积累！
+                    
+                
+            
+        
+                            
+    
+		    
+    
+      
+                      
+                          (function() {
+                          var s = "_" + Math.random().toString(36).slice(2);
+                          document.write("<div id=" + s + "></div>");
+                          (window.slotbydup=window.slotbydup || []).push({
+                          id: "5865577",
+                          container: s,
+                          size: "300,250",
+                          display: "inlay-fix"
+                              });
+                          })();
+                      
+                          
+
+		    
+    最新文章
+    
+        
+                        
+                vue 自定义组件使用v-model
+            
+                        
+                工欲善其事必先利其器，VSCode Vue文件格式化
+            
+                        
+                c#之泛型详解(Generic)
+            
+                        
+                Spring Security inMemoryAuthentication 验证失败
+            
+                        
+                Spring 4 WebSocket发送到指定用户
+            
+                    
+    
+
+		    		    
+    个人分类
+    
+        
+                        
+                
+                    C# .net
+                    3篇
+                
+            
+                        
+                
+                    Linux
+                    5篇
+                
+            
+                        
+                
+                    nodejs
+                    2篇
+                
+            
+                        
+                
+                    javascript
+                    1篇
+                
+            
+                        
+                
+                    nginx
+                    3篇
+                
+            
+                        
+                
+                    Web服务器
+                    2篇
+                
+            
+                        
+                
+                    服务器
+                    3篇
+                
+            
+                        
+                
+                    MariaDB
+                    1篇
+                
+            
+                        
+                
+                    MySQL
+                    1篇
+                
+            
+                        
+                
+                    java
+                    3篇
+                
+            
+                        
+                
+                    vue
+                    2篇
+                
+            
+                        
+                
+                    vscode
+                    1篇
+                
+            
+                    
+    
+        
+        展开
+    
+    
+		    
+    归档
+    
+        
+                        
+            
+                
+                    2018年5月                    2篇
+                
+            
+                        
+            
+                
+                    2018年4月                    1篇
+                
+            
+                        
+            
+                
+                    2018年3月                    3篇
+                
+            
+                        
+            
+                
+                    2018年1月                    6篇
+                
+            
+                        
+            
+                
+                    2015年12月                    3篇
+                
+            
+                        
+            
+                
+                    2015年3月                    1篇
+                
+            
+                        
+            
+                
+                    2014年8月                    2篇
+                
+            
+                        
+            
+                
+                    2014年7月                    1篇
+                
+            
+                        
+            
+                
+                    2013年11月                    1篇
+                
+            
+                        
+            
+                
+                    2011年2月                    1篇
+                
+            
+                    
+    
+        
+        展开
+    
+    
+		    
+	热门文章
+	
+		
+							
+					windows2008 IIs部署MVC    +   mvc4 http错误403.14 forbidden
+					阅读量：5928
+				
+							
+					为什么每次进入命令都要重新source /etc/profile 才能生效？
+					阅读量：5627
+				
+							
+					c# sqlite 中文乱码
+					阅读量：2159
+				
+							
+					MSAGL samples  节点为 图片NodesWithImage 
+					阅读量：1602
+				
+							
+					Nodejs chrome 调试配置  webcrt学习笔记
+					阅读量：1521
+				
+					
+	
+
+		    
+    最新评论
+    
+        
+                        
+                Nginx 编译和安装
+                
+                    lwplvx：根据   http://blog.csdn.net/lwplvx/article/details/...
+
+---------------------
+
+本文来自 lwplvx 的CSDN 博客 ，全文地址请点击：https://blog.csdn.net/lwplvx/article/details/79170397?utm_source=copy 
+
+
+
+[root@client ~]# echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
+[root@client ~]# ls  /sbin/ |wc -l
+661
+[root@client ~]# ls /usr/sbin/ |wc -l
+661
+[root@client ~]# ls /usr/sbin/ |tail -1
+zramctl
+[root@client ~]# ls /sbin/ |tail -1
+zramctl
+[root@client ~]# ls /sbin/ |head -1
+abrt-auto-reporting
+[root@client ~]# ls /usr/sbin/ |head -1
+abrt-auto-reporting
+[root@client ~]# ll /usr/sbin/nginx
+lrwxrwxrwx. 1 root root 27 10月  2 16:14 /usr/sbin/nginx -> /usr/local/nginx/sbin/nginx
+[root@client ~]# ll /sbin/nginx 
+lrwxrwxrwx. 1 root root 27 10月  2 16:14 /sbin/nginx -> /usr/local/nginx/sbin/nginx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
