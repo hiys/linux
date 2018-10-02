@@ -1,0 +1,279 @@
+
+[root@VM5 ~]# ifconfig |awk '/inet /{print $2}' | sed -n "1,2p"
+192.168.4.100
+192.168.2.55
+
+[root@VM5 ~]# ll lnmp_soft.tar.gz 
+-rw-r--r--. 1 root root 78844240 9月  20 19:04 lnmp_soft.tar.gz
+[root@VM5 ~]# tar -xzf lnmp_soft.tar.gz
+[root@VM5 ~]# ls /root/lnmp_soft/ |wc -l
+24
+[root@VM5 ~]# ls /root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm 
+/root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm
+
+[root@VM5 ~]# ls /root/lnmp_soft/nginx*
+/root/lnmp_soft/nginx-1.10.3.tar.gz  /root/lnmp_soft/nginx.conf
+/root/lnmp_soft/nginx-1.12.2.tar.gz  /root/lnmp_soft/nginx.spec
+
+[root@VM5 ~]# yum  -y install elinks telnet httpd-tools \
+> gcc pcre-devel openssl-devel mariadb-devel  \
+> mariadb mariadb-server memcached php-pecl-memcache \
+> php php-mysql /root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm 
+
+[root@VM5 ~]# rpm -q elinks telnet httpd-tools gcc \
+> pcre-devel openssl-devel mariadb-devel \
+> mariadb mariadb-server memcached php-pecl-memcache \
+> php php-mysql php-fpm ;
+
+elinks-0.12-0.36.pre6.el7.x86_64
+telnet-0.17-64.el7.x86_64
+httpd-tools-2.4.6-67.el7.x86_64
+gcc-4.8.5-16.el7.x86_64
+pcre-devel-8.32-17.el7.x86_64
+
+openssl-devel-1.0.2k-8.el7.x86_64
+mariadb-devel-5.5.56-2.el7.x86_64
+mariadb-5.5.56-2.el7.x86_64
+mariadb-server-5.5.56-2.el7.x86_64
+memcached-1.4.15-10.el7_3.1.x86_64
+
+php-pecl-memcache-3.0.8-4.el7.x86_64
+php-5.4.16-42.el7.x86_64
+php-mysql-5.4.16-42.el7.x86_64
+php-fpm-5.4.16-42.el7.x86_64
+[root@VM5 ~]# useradd -s /sbin/nologin nginx
+[root@VM5 ~]# nginx -s stop
+bash: nginx: 未找到命令...
+[root@VM5 ~]# rm -rf /usr/local/nginx/
+
+[root@VM5 ~]# tar -xzf /root/lnmp_soft/nginx-1.10.3.tar.gz 
+[root@VM5 ~]# tar -xzf /root/lnmp_soft/nginx-1.12.2.tar.gz 
+
+[root@VM5 ~]# ls
+anaconda-ks.cfg       lnmp_soft         nginx-1.10.3  公共  视频  文档  音乐
+initial-setup-ks.cfg  lnmp_soft.tar.gz  nginx-1.12.2  模板  图片  下载  桌面
+
+[root@VM5 ~]# cd nginx-1.10.3/;ls
+auto     CHANGES.ru  configure  html     man     src
+CHANGES  conf        contrib    LICENSE  README
+
+[root@VM5 nginx-1.10.3]# ./configure  --prefix=/usr/local/nginx  \
+> --user=nginx  --group=nginx  --with-http_ssl_module  \
+> --with-stream  --with-http_stub_status_module  \
+> --without-http_autoindex_module  \
+> --without-http_ssi_module 
+
+[root@VM5 nginx-1.10.3]# make && make install
+
+[root@VM5 nginx-1.10.3]# tail -1 /etc/profile
+unset -f pathmunge
+[root@VM5 nginx-1.10.3]# ln -s /usr/local/nginx/sbin/nginx  /sbin/
+
+[root@VM5 nginx-1.10.3]# ll /sbin/nginx 
+lrwxrwxrwx. 1 root root 27 9月  20 20:16 /sbin/nginx -> /usr/local/nginx/sbin/nginx
+
+[root@VM5 nginx-1.10.3]# nginx -V
+nginx version: nginx/1.10.3
+built by gcc 4.8.5 20150623 (Red Hat 4.8.5-16) (GCC) 
+built with OpenSSL 1.0.2k-fips  26 Jan 2017
+TLS SNI support enabled
+configure arguments: --prefix=/usr/local/nginx --user=nginx --group=nginx --with-http_ssl_module --with-stream --with-http_stub_status_module --without-http_autoindex_module --without-http_ssi_module
+
+[root@VM5 nginx-1.10.3]# ss -nptul |grep nginx
+[root@VM5 nginx-1.10.3]# nginx
+[root@VM5 nginx-1.10.3]# ss -nptul |grep nginx |column -t;
+tcp  LISTEN  0  128  *:80  *:*  users:(("nginx",pid=4942,fd=6),("nginx",pid=4941,fd=6))
+
+[root@VM5 nginx-1.10.3]# vim /usr/local/nginx/html/index.html
+<title>Welcome to 192.168.4.100 !</title>
+<body>
+<h1>Welcome to 192.168.4.100  !</h1>
+[root@VM5 nginx-1.10.3]# firefox http://192.168.4.100
+http://192.168.4.100/
+Welcome to 192.168.4.100 !
+
+[root@VM5 nginx-1.10.3]# cd /root/nginx-1.12.2/;ls
+auto     CHANGES.ru  configure  html     man     src
+CHANGES  conf        contrib    LICENSE  README
+
+[root@VM5 nginx-1.12.2]# ./configure  --prefix=/usr/local/nginx \
+> --user=nginx  --group=nginx  --with-http_ssl_module  \
+> --with-stream  --with-http_stub_status_module \
+> --without-http_autoindex_module  \
+> --without-http_ssi_module
+
+[root@VM5 nginx-1.12.2]# make
+
+-------------------------------------------------#升级软件版本号-----------------
+[root@VM5 nginx-1.12.2]# mv /usr/local/nginx/sbin/nginx{,old}
+[root@VM5 nginx-1.12.2]# ls /usr/local/nginx/sbin/nginx{,old}
+ls: 无法访问/usr/local/nginx/sbin/nginx: 没有那个文件或目录
+/usr/local/nginx/sbin/nginxold
+
+[root@VM5 nginx-1.12.2]# ls
+auto     CHANGES.ru  configure  html     Makefile  objs    src
+CHANGES  conf        contrib    LICENSE  man       README
+[root@VM5 nginx-1.12.2]# ls objs/
+autoconf.err  nginx    ngx_auto_config.h   ngx_modules.c  src
+Makefile      nginx.8  ngx_auto_headers.h  ngx_modules.o
+
+[root@VM5 nginx-1.12.2]# cp objs/nginx  /usr/local/nginx/sbin/
+
+[root@VM5 nginx-1.12.2]# ls /usr/local/nginx/sbin/
+nginx  nginxold
+[root@VM5 nginx-1.12.2]# nginx -v
+nginx version: nginx/1.12.2
+
+[root@VM5 nginx-1.12.2]# nginx -s stop
+
+[root@VM5 nginx-1.12.2]# netstat -nptul |grep nginx
+[root@VM5 nginx-1.12.2]# nginx 
+[root@VM5 nginx-1.12.2]# netstat -nptul |grep nginx |column -t
+tcp  0  0  0.0.0.0:80  0.0.0.0:*  LISTEN  8031/nginx:  master
+
+[root@VM5 nginx-1.12.2]# firefox http://192.168.4.100
+
+Welcome to 192.168.4.100 !
+/**sed命令的常用选项如下：
+-n（屏蔽默认输出，默认sed会输出读取文档的全部内容）
+-r（让sed支持扩展正则）
+-i（sed直接修改源文件，默认sed只是通过内存临时修改文件，源文件无影响）**/
+[root@VM5 nginx-1.12.2]# sed -n '/<title>/p' /usr/local/nginx/html/index.html 
+<title>Welcome to 192.168.4.100 !</title>
+
+[root@VM5 nginx-1.12.2]# sed -rn '/<title>|<h1>/p' /usr/local/nginx/html/index.html 
+<title>Welcome to 192.168.4.100 !</title>
+<h1>Welcome to 192.168.4.100  !</h1>
+
+[root@VM5 nginx-1.12.2]# vim /usr/local/nginx/conf/nginx.conf
+ 35     server {
+ 36         listen       80;
+ 37         server_name  www.a.com;
+[root@VM5 nginx-1.12.2]# vim /etc/hosts
+[root@VM5 nginx-1.12.2]# tail -1 /etc/hosts
+192.168.4.100 www.a.com
+[root@VM5 nginx-1.12.2]# nginx -s reload
+[root@VM5 nginx-1.12.2]# firefox http://www.a.com
+[root@VM5 ~]# elinks -dump http://www.a.com |head -1
+                    Welcome to 192.168.4.100 !
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------------------------192.168.4.5,192.168.2.5--------------------------------------
+[root@room2pc18 ~]# ssh -X 192.168.4.5
+[root@VM6 ~]# ls
+anaconda-ks.cfg       lnmp_soft.tar.gz  模板  图片  下载  桌面
+initial-setup-ks.cfg  公共              视频  文档  音乐
+[root@VM6 ~]# ls /usr/local/nginx
+ls: 无法访问/usr/local/nginx: 没有那个文件或目录
+[root@VM6 ~]# grep nginx /etc/passwd
+nginx:x:1001:1001::/home/nginx:/sbin/nologin
+[root@VM6 ~]# ll lnmp_soft.tar.gz 
+-rw-r--r--. 1 root root 78844240 9月  20 19:03 lnmp_soft.tar.gz
+[root@VM6 ~]# tar -xzf lnmp_soft.tar.gz
+[root@VM6 ~]# ls /root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm 
+/root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm
+[root@VM6 ~]# ls /root/lnmp_soft/nginx-1.1*
+/root/lnmp_soft/nginx-1.10.3.tar.gz  /root/lnmp_soft/nginx-1.12.2.tar.gz
+[root@VM6 ~]# yum -y install elinks telnet httpd-tools \
+> gcc pcre-devel openssl-devel  mariadb-devel  \
+> mariadb  mariadb-server memcached php-pecl-memcache \
+> php php-mysql  /root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm ;
+
+[root@VM6 ~]# rpm -q elinks telnet httpd-tools gcc \
+> pcre-devel openssl-devel mariadb-devel \
+> mariadb mariadb-server memcached php-pecl-memcache \
+> php php-mysql php-fpm
+
+elinks-0.12-0.36.pre6.el7.x86_64
+telnet-0.17-64.el7.x86_64
+httpd-tools-2.4.6-67.el7.x86_64
+gcc-4.8.5-16.el7.x86_64
+pcre-devel-8.32-17.el7.x86_64
+
+openssl-devel-1.0.2k-8.el7.x86_64
+mariadb-devel-5.5.56-2.el7.x86_64
+mariadb-5.5.56-2.el7.x86_64
+mariadb-server-5.5.56-2.el7.x86_64
+memcached-1.4.15-10.el7_3.1.x86_64
+
+php-pecl-memcache-3.0.8-4.el7.x86_64
+php-5.4.16-42.el7.x86_64
+php-mysql-5.4.16-42.el7.x86_64
+php-fpm-5.4.16-42.el7.x86_64
+
+[root@VM6 ~]# rm -rf /usr/local/nginx
+         
+[root@VM6 ~]# tar -xzf /root/lnmp_soft/nginx-1.10.3.tar.gz 
+[root@VM6 ~]# tar -xzf /root/lnmp_soft/nginx-1.12.2.tar.gz 
+[root@VM6 ~]# cd nginx-1.10.3/;ls
+auto     CHANGES.ru  configure  html     man     src
+CHANGES  conf        contrib    LICENSE  README
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@room2pc18 ~]# cat /etc/resolv.conf 
+# Generated by NetworkManager
+search tedu.cn
+nameserver 176.121.0.100
+nameserver 202.96.128.86
+[root@room2pc18 ~]# vim /etc/resolv.conf
+[root@room2pc18 ~]# cat /etc/resolv.conf
+# Generated by NetworkManager
+search tedu.cn
+nameserver 176.121.0.100
+#nameserver 202.96.128.86
+[root@room2pc18 ~]#  route -n |awk 'NR==3{print $2}'
+176.121.202.1
+[root@room2pc18 ~]# ifconfig |awk '/inet /&&NR==2{print $2}'
+176.121.202.248
+
+
+
+
+
+
+
+
+
+
+
+
+
