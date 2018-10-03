@@ -1,0 +1,215 @@
+[root@web1 ~]# nginxd=/usr/local/nginx/sbin/nginx;prog=$(basename $nginxd);echo $prog
+nginx
+
+[root@client ~]# cat /etc/init.d/nginx
+#!/bin/bash
+nginxd=/usr/local/nginx/sbin/nginx
+nginx_config=/usr/local/nginx/conf/nginx.conf
+nginx_pid=/var/run/nginx.pid
+RETVAL=0
+prog=$(basename $nginxd)
+. /etc/rc.d/init.d/functions
+. /etc/sysconfig/network
+[ "${NETWORKING}" = "no" ] && exit 0
+[ -x $nginxd ] || exit 0
+start(){
+ if [ -f $nginx_pid ];then
+  echo "nginx already running...";
+  exit 1
+ fi
+ echo -n  $"Starting $prog:"
+ daemon $nginxd  -c  ${nginx_config}
+ RETVAL=$?
+ echo 
+ [ $RETVAL = 0 ] && touch /var/lock/subsys/nginx
+ return $RETVAL
+}
+stop(){
+ echo -n $"Stopping $prog:"
+ killproc  $nginxd
+ RETVAL=$?
+ echo
+ [ $RETVAL = 0 ] && rm  -f  /var/lock/subsys/nginx /var/run/nginx.pid
+}
+reload(){
+ echo -n $"Stopping $prog:"
+ killproc $nginxd -HUP
+ RETVAL=$?
+ echo
+}
+case $1 in
+start)
+ start;;
+stop)
+ stop;;
+reload)
+ reload;;
+restart)
+ stop;
+ start;;
+status)
+ status $prog
+ RETVAL=$?
+ ;;
+*)
+ echo $"Usage:$prog {start|stop|restart|reload|status|help}"
+ exit 2
+esac
+exit $RETVAL
+[root@client ~]# 
+[root@client ~]# ll /etc/init.d/nginx
+-rwxr-xr-x. 1 root root 942 10月  3 17:19 /etc/init.d/nginx
+
+[root@client ~]# tail -1 /etc/rc.local 
+/etc/init.d/nginx start
+
+[root@client ~]# systemctl status nginx
+● nginx.service - (null)
+   Loaded: loaded (/etc/rc.d/init.d/nginx; bad; vendor preset: disabled)
+   Active: active (running) since 三 2018-10-03 16:11:05 CST; 1h 13min ago
+...............
+
+[root@client ~]# systemctl stop nginx
+Warning: nginx.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+[root@client ~]# ss -anptul |grep nginx
+[root@client ~]# systemctl start nginx
+[root@client ~]# ss -anptul |grep nginx
+tcp    LISTEN     0      128       *:80                    *:*                   users:(("nginx",pid=2720,fd=6),("nginx",pid=2718,fd=6))
+[root@client ~]# systemctl reload nginx
+[root@client ~]# echo $?
+0
+[root@client ~]# systemctl restart nginx
+[root@client ~]# echo $?
+0
+[root@client ~]# ss -anptul |grep nginx
+tcp    LISTEN     0      128       *:80                    *:*                   users:(("nginx",pid=2795,fd=6),("nginx",pid=2793,fd=6))
+[root@client ~]# 
+
+========================================
+
+[root@proxy ~]# vim /etc/init.d/nginx
+[root@proxy ~]# cat /etc/init.d/nginx 
+#!/bin/bash
+nginxd=/usr/local/nginx/sbin/nginx
+nginx_config=/usr/local/nginx/conf/nginx.conf
+nginx_pid=/var/run/nginx.pid
+RETVAL=0
+prog=$(basename $nginxd)
+. /etc/rc.d/init.d/functions
+. /etc/sysconfig/network
+[ "${NETWORKING}" = "no" ] && exit 0
+[ -x $nginxd ] || exit 0
+start(){
+ if [ -f $nginx_pid ];then
+  echo "nginx already running...";
+  exit 1
+ fi
+ echo -n  $"Starting $prog:"
+ daemon $nginxd  -c  ${nginx_config}
+ RETVAL=$?
+ echo 
+ [ $RETVAL = 0 ] && touch /var/lock/subsys/nginx
+ return $RETVAL
+}
+stop(){
+ echo -n $"Stopping $prog:"
+ killproc  $nginxd
+ RETVAL=$?
+ echo
+ [ $RETVAL = 0 ] && rm  -f  /var/lock/subsys/nginx /var/run/nginx.pid
+}
+reload(){
+ echo -n $"Stopping $prog:"
+ killproc $nginxd -HUP
+ RETVAL=$?
+ echo
+}
+case $1 in
+start)
+ start;;
+stop)
+ stop;;
+reload)
+ reload;;
+restart)
+ stop;
+ start;;
+status)
+ status $prog
+ RETVAL=$?
+ ;;
+*)
+ echo $"Usage:$prog {start|stop|restart|reload|status|help}"
+ exit 2
+esac
+exit $RETVAL
+[root@proxy ~]# chmod a+x /etc/init.d/nginx
+[root@proxy ~]# ll /etc/init.d/nginx
+-rwxr-xr-x. 1 root root 942 10月  3 17:54 /etc/init.d/nginx
+
+[root@proxy ~]# vim /etc/rc.local 
+[root@proxy ~]# tail -1 /etc/rc.local
+/etc/init.d/nginx start
+
+[root@proxy ~]# reboot
+
+[root@room9pc01 ~]# ssh -X 192.168.4.5
+
+[root@proxy ~]# ss -anputl |grep nginx
+[root@proxy ~]# ss -anputl |grep 80
+[root@proxy ~]# /etc/init.d/nginx status
+● nginx.service - (null)
+   Loaded: loaded (/etc/rc.d/init.d/nginx; bad; vendor preset: disabled)
+   Active: inactive (dead)
+     Docs: man:systemd-sysv-generator(8)
+[root@proxy ~]# /etc/init.d/nginx start
+Starting nginx (via systemctl):                            [  确定  ]
+[root@proxy ~]# /etc/init.d/nginx status
+● nginx.service - (null)
+   Loaded: loaded (/etc/rc.d/init.d/nginx; bad; vendor preset: disabled)
+   Active: active (running) since 三 2018-10-03 17:58:22 CST; 7s ago
+     Docs: man:systemd-sysv-generator(8)
+  Process: 1624 ExecStart=/etc/rc.d/init.d/nginx start (code=exited, status=0/SUCCESS)
+   CGroup: /system.slice/nginx.service
+           ├─1632 nginx: master process /usr/local/nginx/sbin/nginx -c /usr/...
+           └─1634 nginx: worker process
+..................
+[root@proxy ~]# ss -anputl |grep 80
+tcp    LISTEN     0      128       *:80      *:*       users:(("nginx",pid=1634,fd=6),("nginx",pid=1632,fd=6))
+[root@proxy ~]# /etc/init.d/nginx stop
+Stopping nginx (via systemctl):                            [  确定  ]
+[root@proxy ~]# /etc/init.d/nginx status
+● nginx.service - (null)
+   Loaded: loaded (/etc/rc.d/init.d/nginx; bad; vendor preset: disabled)
+   Active: inactive (dead)
+     Docs: man:systemd-sysv-generator(8)
+.................
+[root@proxy ~]# /etc/init.d/nginx restart
+Restarting nginx (via systemctl):                          [  确定  ]
+[root@proxy ~]# /etc/init.d/nginx status
+● nginx.service - (null)
+   Loaded: loaded (/etc/rc.d/init.d/nginx; bad; vendor preset: disabled)
+   Active: active (running) since 三 2018-10-03 17:59:47 CST; 8s ago
+     Docs: man:systemd-sysv-generator(8)
+  Process: 1714 ExecStart=/etc/rc.d/init.d/nginx start (code=exited, status=0/SUCCESS)
+ ................
+[root@proxy ~]# ss -anputl |grep 80
+tcp    LISTEN     0      128       *:80      *:*      users:(("nginx",pid=1724,fd=6),("nginx",pid=1722,fd=6))
+[root@proxy ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
