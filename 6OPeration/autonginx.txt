@@ -1,0 +1,620 @@
+﻿
+====================auto--------------------
+[root@auto ~]# cat auto
+#!bin/bash
+password=123456;
+for i in `seq 3`
+do
+ hostn=rh7_node$i;
+ systn='';
+ eth0='';eth1='';
+ case $i in
+  1)
+    let eth0=100,eth1=10;
+    systn=clinet;;
+  2)
+    let eth0=5,eth1=5;
+    systn=proxy;;
+  3)
+    let eth0=3,eth1=100;
+    systn=web1;;
+ esac
+ ipexp(){
+  expect  /root/clone.sh
+  if [ $? -eq 0  -o  $? -eq 1 ];then
+    virsh start $hostn;
+  else 
+    echo "clone failed";
+    exit ;
+  fi
+  expect /root/console.sh $hostn $password $systn $eth0 $eth1  
+ }
+ case $1 in
+ clone)
+   ipexp &
+   wait % $i;;
+ start)
+   virsh start $hostn;;
+ stop)
+   virsh shutdown $hostn;;
+ scp)
+   expect /root/autoscp.sh  $eth0 
+   if [ $? -eq 0  -o  $? -eq 1 ];then
+     echo "scp is over";
+   else
+     echo "scp failed";
+   fi;;
+ *)
+   echo Error;;
+ esac
+done
+echo Amazing !
+[root@auto ~]# 
+===============clone.sh=====----------=====
+[root@auto ~]# cat clone.sh 
+#!/usr/bin/expect -f
+set timeout -1
+spawn clone-auto7
+expect "vms:"  {send "1\r"}
+expect "#"  {send "echo Cloning success\r"}
+expect "#"  {send "exit\r"}
+
+===================console.sh============------
+[root@auto ~]# cat console.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  hostn     [lindex $argv 0]
+set  password  [lindex $argv 1]
+set  systn     [lindex $argv 2]
+set  eth0      [lindex $argv 3]
+set  eth1      [lindex $argv 4]
+spawn  virsh console $hostn
+expect "换码符为 ^]"  {send "\n"}
+expect "login:"   {send "root\r"}
+expect "密码："     {send "$password\r"}
+expect "#"  {send "echo 123 |passwd  --stdin root\r"}
+expect "#"  {send "echo $systn >/etc/hostname\r"}
+expect "#"  {send "nmcli connection modify eth0 ipv4.method manual ipv4.addresses 192.168.4.$eth0/24  ipv4.gateway 192.168.4.254 connection.autoconnect yes \r"}
+expect "#"  {send "nmcli connection up eth0 \r"}
+expect "#"  {send "nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.2.$eth1/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes \r"} 
+expect "#"  {send "nmcli connection up eth1 \r"}
+expect "#"  {send "ifconfig | grep 'inet '\r"}
+expect "#"  {send "echo '\[rhel7\]
+\nname=rhel7.4
+\nenabled=1
+\ngpgcheck=0
+\nbaseurl=ftp://192.168.4.254/rhel7
+\n\[rhel7-2\]
+\nname=rhel7.4
+\nbaseurl=ftp://192.168.2.254/rhel7
+\ngpgcheck=0
+\nenabled=1 '>/etc/yum.repos.d/rhel7.repo\r"}
+expect "#"  {send "yum clean all >/dev/null && yum repolist |tail -4\r"}
+expect "#"  {send "systemctl isolate graphical\r"}
+expect "#"  {send "sleep 5 && date\r"}
+expect "#"  {send "exit\r"}
+
+===================autoscp.sh---------------------
+[root@auto ~]# cat autoscp.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  eth0        [lindex $argv 0]
+spawn  scp -o StrictHostKeyChecking=no /root/桌面/lnmp_soft.tar.gz  root@192.168.4.$eth0:/root/
+expect "password:" {send "123\r" }
+expect "#"  {send "sleep 5 && date\r"}
+[root@auto ~]# 
+
+==========================================
+[root@auto ~]# cat auto
+#!bin/bash
+password=123456;
+for i in `seq 3`
+do
+ hostn=rh7_node$i;
+ systn='';
+ eth0='';eth1='';
+ case $i in
+  1)
+    let eth0=100,eth1=10;
+    systn=clinet;;
+  2)
+    let eth0=5,eth1=5;
+    systn=proxy;;
+  3)
+    let eth0=3,eth1=100;
+    systn=web1;;
+ esac
+ ipexp(){
+  expect  /root/clone.sh
+  if [ $? -eq 0  -o  $? -eq 1 ];then
+    virsh start $hostn;
+  else 
+    echo "clone failed";
+    exit ;
+  fi
+  expect /root/console.sh $hostn $password $systn $eth0 $eth1  
+ }
+ case $1 in
+ clone)
+   ipexp &
+   wait % $i;;
+ start)
+   virsh start $hostn;;
+ stop)
+   virsh shutdown $hostn;;
+ scp)
+   expect /root/autoscp.sh  $eth0 
+   if [ $? -eq 0  -o  $? -eq 1 ];then
+     echo "scp is over";
+   else
+     echo "scp failed";
+   fi;;
+ setnginx)
+   expect /root/setnginx.sh $eth0
+   echo "setting up nginx";;
+ *)
+   echo Error;;
+ esac
+done
+echo Amazing !
+[root@auto ~]# cat setnginx.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  eth0        [lindex $argv 0]
+spawn ssh -o StrictHostKeyChecking=no  -X  root@192.168.4.$eth0:/root/
+expect "password:" {send "123\r" }
+expect "#" {send "tar -xf /root/lnmp_soft.tar.gz\r"}
+expect "#" {send "yum -y install  elinks telnet httpd-tools  gcc pcre-devel openssl-devel mariadb-devel   mariadb mariadb-server memcached php-pecl-memcache  php php-mysql zlib-devel /root/lnmp_soft/php-fpm-5.4.16-42.el7.x86_64.rpm \r"}
+expect "#" {send "sleep 5 && date\r"}
+expect "#" {send "rpm -q q elinks telnet httpd-tools gcc  pcre-devel openssl-devel mariadb-devel mariadb mariadb-server memcached php-pecl-memcache  php php-mysql php-fpm zlib-devel \r"}
+expect "#" {send "nginx -s stop\r"}
+expect "#" {send "rm  -rf /usr/local/nginx\r"}
+expect "#" {send "useradd -s /sbin/nologin nginx\r"}
+expect "#" {send "tar -xzf /root/lnmp_soft/nginx-1.12.2.tar.gz\r"}
+expect "#" {send "cd nginx-1.12.2/;ls\r"}
+expect "#" {send "./configure  --prefix=/usr/local/nginx  --user=nginx  --group=nginx --with-http_ssl_module  --with-stream  --with-http_stub_status_module  --without-http_autoindex_module  --without-http_ssi_module\r"}
+expect "#" {send "sleep 5 && date\r"}
+expect "#" {send "make && make install\r"}
+expect "#" {send "ls\r"}
+expect "#" {send "echo 'export PATH=/usr/local/nginx/sbin/:$PATH' >>/etc/profile\r"}
+expect "#" {send "source /etc/profile\r"}
+expect "#" {send "which nginx\r"}
+expect "#" {send "nginx\r"}
+expect "#" {send "systemctl start mariadb && systemctl enable mariadb\r"}
+expect "#" {send "systemctl start php-fpm && systemctl enable php-fpm\r"}
+expect "#" {send "nginx -V\r"}
+expect "#" {send "hello world\r"}
+[root@auto ~]# cat clone.sh 
+#!/usr/bin/expect -f
+set timeout -1
+spawn clone-auto7
+expect "vms:"  {send "1\r"}
+expect "#"  {send "echo Cloning success\r"}
+expect "#"  {send "exit\r"}
+[root@auto ~]# cat console.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  hostn     [lindex $argv 0]
+set  password  [lindex $argv 1]
+set  systn     [lindex $argv 2]
+set  eth0      [lindex $argv 3]
+set  eth1      [lindex $argv 4]
+spawn  virsh console $hostn
+expect "换码符为 ^]"  {send "\n"}
+expect "login:"   {send "root\r"}
+expect "密码："     {send "$password\r"}
+expect "#"  {send "echo 123 |passwd  --stdin root\r"}
+expect "#"  {send "echo $systn >/etc/hostname\r"}
+expect "#"  {send "nmcli connection modify eth0 ipv4.method manual ipv4.addresses 192.168.4.$eth0/24  ipv4.gateway 192.168.4.254 connection.autoconnect yes \r"}
+expect "#"  {send "nmcli connection up eth0 \r"}
+expect "#"  {send "nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.2.$eth1/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes \r"} 
+expect "#"  {send "nmcli connection up eth1 \r"}
+expect "#"  {send "ifconfig | grep 'inet '\r"}
+expect "#"  {send "echo '\[rhel7\]
+\nname=rhel7.4
+\nenabled=1
+\ngpgcheck=0
+\nbaseurl=ftp://192.168.4.254/rhel7
+\n\[rhel7-2\]
+\nname=rhel7.4
+\nbaseurl=ftp://192.168.2.254/rhel7
+\ngpgcheck=0
+\nenabled=1 '>/etc/yum.repos.d/rhel7.repo\r"}
+expect "#"  {send "yum clean all >/dev/null && yum repolist |tail -4\r"}
+expect "#"  {send "systemctl isolate graphical\r"}
+expect "#"  {send "sleep 5 && date\r"}
+expect "#"  {send "exit\r"}
+[root@auto ~]# cat autoscp.sh 
+#!/usr/bin/expect -f
+set  timeout  -1
+set  eth0        [lindex $argv 0]
+spawn  scp -o StrictHostKeyChecking=no /root/桌面/lnmp_soft.tar.gz  root@192.168.4.$eth0:/root/
+expect "password:" {send "123\r" }
+expect "#"  {send "sleep 5 && date\r"}
+[root@auto ~]# 
+============================================
+/***开机自启动nginx方式( 1 )
+vim /usr/lib/systemd/system/nginx.service
+systemctl enable ngixn
+vim /etc/rc.local  开机自启动nginx方式二
+chmod +x /etc/rc.local
+ll /etc/rc.local
+ll /etc/rc.d/rc.local
+/usr/local/nginx/sbin/nginx
+***/
+[root@client ~]# systemctl is-enabled sshd
+enabled
+[root@client ~]#
+[root@client ~]# cat /usr/lib/systemd/system/sshd.service
+[Unit]
+#服务的简单描述
+Description=OpenSSH server daemon
+
+ #---Documentation= 服务文档
+Documentation=man:sshd(8) man:sshd_config(5)
+
+#After= : 依赖，仅当依赖的服务启动之后再启动自定义的服务单元
+After=network.target sshd-keygen.service
+
+Wants=sshd-keygen.service
+
+[Service]
+Type=notify
+EnvironmentFile=/etc/sysconfig/sshd
+ExecStart=/usr/sbin/sshd -D $OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+
+[Install]
+WantedBy=multi-user.target
+---------------------
+[root@client ~]# systemctl is-enabled php-fpm.service 
+enabled
+[root@client ~]# cat /usr/lib/systemd/system/php-fpm.service 
+[Unit]
+Description=The PHP FastCGI Process Manager
+
+#After= : 依赖，仅当依赖的服务启动之后再启动自定义的服务单元
+After=syslog.target network.target
+
+[Service]
+Type=notify
+PIDFile=/run/php-fpm/php-fpm.pid
+EnvironmentFile=/etc/sysconfig/php-fpm
+ExecStart=/usr/sbin/php-fpm --nodaemonize
+ExecReload=/bin/kill -USR2 $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+[root@client ~]# 
+=============================================
+CentOS 7的服务systemctl脚本存放在：/usr/lib/systemd/，
+有系统（system）和用户（user）之分，即：/usr/lib/systemd/system ，
+    /usr/lib/systemd/user
+ 每一个服务以.service结尾，一般会分为3部分：[Unit]、[Service]和[Install]，
+就以nginx为例,创建service:
+              在／usr/lib/systemd/system下创建nginx.service文件内容如下
+[看应用需求也可在 ／usr/lib/systemd/usr下创建：]
+ 
+[Unit]
+#服务的简单描述
+Description=nginx - high performance web server
+
+ # ----------Documentation= 服务文档
+Documentation=http://nginx.org/en/docs/ 
+ 
+#After= : 依赖，仅当依赖的服务启动之后再启动自定义的服务单元
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+/***
+Type : 启动类型simple、forking、oneshot、notify、dbus
+
+Type=simple（默认值）：systemd认为该服务将立即启动。服务进程不会fork。如果该服务要启动其他服务，不要使用此类型启动，除非该服务是socket激活型。 
+
+Type=forking：systemd认为当该服务进程fork，且父进程退出后服务启动成功。对于常规的守护进程（daemon），除非你确定此启动方式无法满足需求，使用此类型启动即可。使用此启动类型应同时指定 PIDFile=，以便systemd能够跟踪服务的主进程。
+
+ Type=oneshot：这一选项适用于只执行一项任务、随后立即退出的服务。可能需要同时设置 RemainAfterExit=yes 使得 systemd 在服务进程退出之后仍然认为服务处于激活状态。 
+
+Type=notify：与 Type=simple 相同，但约定服务会在就绪后向 systemd 发送一个信号。这一通知的实现由 libsystemd-daemon.so 提供。 Type=dbus：若以此方式启动，当指定的 BusName 出现在DBus系统总线上时，systemd认为服务就绪。
+***/
+PIDFile=/run/nginx.pid
+ExecStartPre=/usr/sbin/nginx -t  -c /etc/nginx/nginx.conf
+
+#[root@client ~]# ls /usr/local/nginx/conf/nginx.conf
+/usr/local/nginx/conf/nginx.conf
+
+
+ExecStart=/usr/sbin/nginx-c/etc/nginx/nginx.conf
+ExecReload=/bin/kill-s
+ HUP $MAINPID
+ExecStop=/bin/kill-s
+ QUIT $MAINPID
+PrivateTmp=true
+[Install]
+WantedBy=multi-user.target
+
+ [Service]
+
+
+PIDFile ： pid文件路径 
+ExecStartPre ：启动前要做什么，上文中是测试配置文件 －t  
+ExecStart：启动 
+ExecReload：重载 
+ExecStop：停止 
+PrivateTmp：True表示给服务分配独立的临时空间
+
+
+[Install]
+
+WantedBy：服务安装的用户模式，从字面上看，就是想要使用这个服务的有是谁？上文中使用的是：multi-user.target ，就是指想要使用这个服务的目录是多用户。「以上全是个人理解，瞎猜的，如有不当，请大家多多指教」每一个.target实际上是链接到我们单位文件的集合,当我们执行：
+
+$sudo systemctl enable nginx.service
+
+就会在/etc/systemd/system/multi-user.target.wants/目录下新建一个/usr/lib/systemd/system/nginx.service 文件的链接。
+
+
+操作Service:
+#启动服务
+$sudo systemctl
+ start nginx.service
+#查看日志
+$sudo journalctl
+ -f -u nginx.service-
+ Logs begin at 四 2015-06-25 17:32:20 CST. --
+6月
+ 25 10:28:24 Leco.lan systemd[1]: Starting nginx - high performance web server...
+6月
+ 25 10:28:24 Leco.lan nginx[7976]: nginx: the configuration file/etc/nginx/nginx.conf
+ syntax is ok
+6月
+ 25 10:28:24 Leco.lan nginx[7976]: nginx: configuration file/etc/nginx/nginx.conftestis
+ successful
+6月
+ 25 10:28:24 Leco.lan systemd[1]: Started nginx - high performance web server.
+#重启
+$sudo systemctl
+ restart nginx.service
+#重载
+$sudo systemctl
+ reload nginx.service
+#停止
+$sudo systemctl
+ stop nginx.service
+
+
+
+   echo -n $"Starting $prog: "
+
+   daemon $nginxd -c ${nginx_config}
+
+
+
+
+
+
+
+
+
+
+
+		
+
+
+
+==========================================
+[root@client ~]# echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
+[root@client ~]# ls  /sbin/ |wc -l
+661
+[root@client ~]# ls /usr/sbin/ |wc -l
+661
+[root@client ~]# ls /usr/sbin/ |tail -1
+zramctl
+[root@client ~]# ls /sbin/ |tail -1
+zramctl
+[root@client ~]# ls /sbin/ |head -1
+abrt-auto-reporting
+[root@client ~]# ls /usr/sbin/ |head -1
+abrt-auto-reporting
+[root@client ~]# ll /usr/sbin/nginx
+lrwxrwxrwx. 1 root root 27 10月  2 16:14 /usr/sbin/nginx -> /usr/local/nginx/sbin/nginx
+[root@client ~]# ll /sbin/nginx 
+lrwxrwxrwx. 1 root root 27 10月  2 16:14 /sbin/nginx -> /usr/local/nginx/sbin/nginx
+[root@client ~]# ls /etc/init.d/
+functions  netconsole  network  README  rhnsd
+[root@client ~]# vim /etc/init.d/nginx
+============================================
+[root@client ~]# cat  /etc/init.d/nginx 
+#!/bin/bash
+nginxd=/usr/local/nginx/sbin/nginx
+nginx_config=/usr/local/nginx/conf/nginx.conf
+nginx_pid=/var/run/nginx.pid
+RETVAL=0
+prog="nginx"
+. /etc/rc.d/init.d/functions
+. /etc/sysconfig/network
+[ "${NETWORKING}" = "no" ] && exit 0
+##[root@web1 ~]# x3="xxx3";[ ${x3} = "xxx3" ] && echo "${x3}==xxx3"
+##xxx3==xxx3
+##[root@web1 ~]# x3="xxx3";[ "${x3}" = "xxx3" ] && echo "${x3}==xxx3"
+##xxx3==xxx3
+[root@web1 ~]# 
+
+[ -x $nginxd ] || exit 0
+start(){
+ if [ -e $nginx_pid ];then
+  echo "nginx already running...";
+  exit 1
+ fi
+ echo -n  $"Starting $prog:"
+ daemon $nginxd  -c  ${nginx_config}
+ RETVAL=$?
+ echo 
+ [ $RETVAL = 0 ] && touch /var/lock/subsys/nginx
+ return $RETVAL
+}
+stop(){
+ echo -n $"Stopping $prog:"
+ killproc  $nginxd
+ RETVAL=$?
+ echo
+ [ $RETVAL = 0 ] && rm  -f  /var/lock/subsys/nginx /var/run/nginx.pid
+}
+reload(){
+ echo -n $"Stopping $prog:"
+ killproc $nginxd -HUP
+ RETVAL=$?
+ echo
+}
+case $1 in
+start)
+ start;;
+stop)
+ stop;;
+reload)
+ reload;;
+restart)
+ stop;
+ start;;
+status)
+ status $prog
+ RETVAL=$?
+ ;;
+*)
+ echo $"Usage:$prog {start|stop|restart|reload|status|help}"
+ exit 1
+esac
+exit $RETVAL
+=====================================
+[root@client ~]# chmod  +x /etc/init.d/nginx
+[root@client ~]# ll /etc/init.d/nginx
+-rwxr-xr-x. 1 root root 928 10月  3 15:25 /etc/init.d/nginx
+
+[root@client ~]# vim /etc/rc.local 
+[root@client ~]# tail -1 /etc/rc.local
+/etc/init.d/nginx start
+[root@client ~]# reboot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@proxy ~]# ll /usr/local/nginx/sbin/nginx 
+-rwxr-xr-x. 1 root root 6360176 10月  2 16:41 /usr/local/nginx/sbin/nginx
+[root@proxy ~]# vim /etc/rc.local 
+[root@proxy ~]# tail -1 /etc/rc.local
+/usr/local/nginx/sbin/nginx
+[root@proxy ~]# reboot
+
+
+
+
+
+
+
+
+[root@web2 ~]# nginx -t -c /usr/local/nginx/conf/nginx.conf    判断配置文件是否正确　
+nginx: the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+nginx: configuration file /usr/local/nginx/conf/nginx.conf test is successful
+[root@web2 ~]#
+[root@web2 ~]# cd /usr/local/nginx/conf/
+
+[root@web2 conf]# nginx -t     判断配置文件是否正确　
+nginx: the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+nginx: configuration file /usr/local/nginx/conf/nginx.conf test is successful
+[root@web2 conf]# which nginx
+/usr/sbin/nginx
+
+[root@web2 conf]# ps -ef |grep nginx
+root      2122     1  0 10:34 ?        00:00:00 nginx: master process nginx
+nginx     2123  2122  0 10:34 ?        00:00:00 nginx: worker process
+root      4463  2074  0 14:41 pts/0    00:00:00 grep --color=auto nginx
+[root@web2 conf]# 
+关闭　　查询nginx主进程号　　ps -ef | grep nginx　　
+从容停止   kill -QUIT 主进程号　　
+快速停止   kill -TERM 主进程号　　
+强制停止   kill -9 nginx　　
+若nginx.conf配置了pid文件路径，如果没有，则在logs目录下　
+　kill -信号类型 '/usr/local/nginx/logs/nginx.pid'
+重启
+　　更改配置重启nginx　　
+kill -HUP 主进程号或进程号文件路径
+#kill -HUP `cat ${nginx_pid}` 
+或者使用
+cd /usr/local/nginx/sbin
+./nginx -s reload
+---------------------
+
+[root@web1 ~]# cat /var/run/sshd.pid 
+1026
+[root@web1 ~]# ls /var/lock/subsys/
+network  rhnsd  rhsmcertd
+[root@web1 ~]# cat /var/run/nginx.pid
+cat: /var/run/nginx.pid: 没有那个文件或目录
+[root@web1 ~]# systemctl status sshd |sed -n  '/Active/p'
+   Active: active (running) since 三 2018-10-03 09:43:43 CST; 5h 44min ago
+
+[root@proxy ~]# prog=xxxx; echo $"Starting $prog:"
+Starting xxxx:
+[root@proxy ~]# prog=xxxx; echo "Starting $prog:"
+Starting xxxx:
+[root@proxy ~]# 
+[root@web1 ~]# useradd  -M  -s /sbin/nologin  mimi
+[root@web1 ~]# echo $?
+0
+[root@web1 ~]# ls /home
+lisi  nginx
+[root@web1 ~]# id mimi
+uid=1002(mimi) gid=1002(mimi) 组=1002(mimi)
+[root@web1 ~]# grep mimi /etc/passwd
+mimi:x:1002:1002::/home/mimi:/sbin/nologin
+[root@web1 ~]# grep mimi /etc/group
+mimi:x:1002:
+[root@web1 ~]#
+
+[root@web1 ~]# user=UU;[ -n "$user" ] && echo "not null"
+not null
+
+[root@web1 ~]# user='';[ -z "$user" ] && echo "null"
+null
+
+DDL：数据库模式定义语言，关键字：create
+DML：数据操纵语言，关键字：Insert、delete、update
+DCL：数据库控制语言 ，关键字：grant、rem...					
+事务的四大特性（ACID）：
+atomic,原子性，事务是不可分割的，要么同时成功，要么同时失败；
+consistency,一致性，事务一旦结束，内存中的数据和数据库中的数据是保持一致;
+isolation,隔离性，事务之间互不干扰，一个事务的结束意味着下一个事务的开启；
+duration，持久性，事务一旦提交，则数据持久化到数据库中，永久保存
+
+在oracle中，操作事务的命令：
+1.commit，提交事务
+    把事务中所有的数据持久化到磁盘中
+
+2.rollback to 回滚点,回滚事务
+    把事务中所做的操作全部取消，回到初始化状态
+    
+3.savepoint 回滚点，设置回滚点
+    事务回滚时，回滚到起点	
+
