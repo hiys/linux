@@ -75,7 +75,7 @@ reload(){
  killproc  $nginxd  -HUP
  #kill  -HUP `cat ${nginx_pid}`
  RETVAL=$?
- ECHO
+ echo
 }
 case  $1  in
 start)
