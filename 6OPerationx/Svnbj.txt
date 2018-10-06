@@ -535,28 +535,3 @@ tuned.service
 
 
 
-
-
-
-
-
-
-
-
-
-================================================
-https://github.com/redhatedu/course/tree/master/shell
-https://github.com/  账户名  /仓库名字/
-https://github.com/hiyestar/redhat/
-hiyestar  -------组织账户机构名称hiyestargroup
-2119793139@qq.com　　　结算电子邮件　2119793139@qq.com
-fe3630yin
-添加邮箱地址３４２４９６９１１０＠ｑｑ．ｃｏｍ 
-----------------------------------------------------
-hiyest     -----组织账户机构名称         hiyestgroup
-m13530503630@163.com        结算电子邮件 m13530503630@163.com
-fe3630yin
-https://github.com/hiyest/redjava
-==========================================
-
-
