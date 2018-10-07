@@ -448,14 +448,84 @@ include /etc/ipsec.d/*.secrets
 [root@VM2 ~]# ss -anputl |grep pluto
 ................................
 udp  UNCONN   0   0   201.1.2.220:4500    *:*   users:(("pluto",pid=8840,fd=20))
+
 .....................................................
 udp  UNCONN   0   0   201.1.2.220:500     *:*   users:(("pluto",pid=8840,fd=19))
 .............................
+[root@VM2 ~]# pgrep -lx pluto  找出进程 的 PID 编号值
+2838 pluto
+[root@VM2 ~]# ss -anptul |grep pluto |tail -1
+udp    UNCONN   0      0   ::1:500  :::*    users:(("pluto",pid=2838,fd=27))
+[root@VM2 ~]# ps  -elf |grep pluto  查看进程静态快照
+4 S root  2838     1  0  80   0 - 48455 ep_pol 13:13 ?   00:00:00 /usr/libexec/ipsec/pluto --leak-detective --config /etc/ipsec.conf --nofork
+0 R root      5437  1685  0  80   0 - 28169 -  17:37 pts/0    00:00:00 grep --color=auto pluto
+[root@VM2 ~]# ps -aux |grep pluto  查看进程静态快照
+root   2838  0.0  0.6 193820  6428 ?  Ssl  13:13   0:00 /usr/libexec/ipsec/pluto --leak-detective --config /etc/ipsec.conf --nofork
+root      5448  0.0  0.0 112676   984 pts/0    R+   17:37   0:00 grep --color=auto pluto
+[root@VM2 ~]# pstree  -p   2838
+pluto(2838)───{pluto}(2842)
+/*****
+命令行 &：将命令行在后台运行
+Ctrl + z 组合键：挂起当前进程（暂停并转入后台）
+jobs：列出当前用户当前终端的后台任务
+bg 编号：启动指定编号的后台任务
+fg 编号：将指定编号的后台任务调入前台运行
+kill [-9] PID...：杀死指定PID值的进程
+kill [-9] %n：杀死第n个后台任务
+killall [-9] 进程名...：杀死指定名称的所有进程
+pkill：根据指定的名称或条件杀死进程
+
+常见的系统日志及各自用途：
+/var/log/messages，记录内核消息、各种服务的公共消息
+/var/log/dmesg，记录系统启动过程的各种消息
+/var/log/cron，记录与cron计划任务相关的消息
+/var/log/maillog，记录邮件收发相关的消息
+/var/log/secure，记录与访问限制相关的安全消息
+日志消息的优先级（高-->低）：
+EMERG（紧急）：级别0，系统不可用的情况
+ALERT（警报）：级别1，必须马上采取措施的情况
+CRIT（严重）：级别2，严重情形
+ERR（错误）：级别3，出现错误
+WARNING（警告）：级别4，值得警告的情形
+NOTICE（注意）：级别5，普通但值得引起注意的事件
+INFO（信息）：级别6，一般信息
+DEBUG（调试）：级别7，程序/服务调试消息
+RHEL7提供的journalctl日志工具的常见用法：
+journalctl | grep 关键词
+journalctl -u 服务名 -p 优先级
+journalctl -n 消息条数
+journalctl --since="yyyy-mm-dd HH:MM:SS" --until="yyyy-mm-dd HH:MM:SS"
+[root@VM2 ~]# jobs  -l
+[root@VM2 ~]# dmesg |grep  -i mouse
+[    1.357323] mousedev: PS/2 mouse device common for all mice
+[    1.357803] input: VirtualPS/2 VMware VMMouse as /devices/platform/i8042/serio1/input/input2
+[    1.357933] input: VirtualPS/2 VMware VMMouse as /devices/platform/i8042/serio1/input/input3
 [root@VM2 ~]# 
+[root@VM2 ~]# lastb  -2    查看失败登录的事件消息：
+(unknown ttyS0                         Tue Jan 30 12:35 - 12:35  (00:00)    
+(unknown ttyS0                         Tue Jan 30 12:35 - 12:35  (00:00)    
 
+btmp begins Tue Jan 30 12:35:46 2018
+[root@VM2 ~]# last -2   查看成功登录的事件消息：
+root     pts/0        192.168.4.254    Sun Oct  7 12:06   still logged in   
+reboot   system boot  3.10.0-693.el7.x Sun Oct  7 12:02 - 17:47  (05:44)    
 
+wtmp begins Tue Jan 30 12:24:54 2018
+[root@VM2 ~]# journalctl -p err -n 3  列出最近 3 条重要程度在 ERR 及以上的日志消息
+-- Logs begin at 日 2018-10-07 12:02:45 CST, end at 日 2018-10-07 17:50:01 CST. --
+10月 07 12:06:40 VM2 systemd[1]: Dependency failed for /dev/mapper/rhel-swap.
+10月 07 13:14:59 VM2 systemd[1]: Timed out waiting for device dev-mapper-rhel\x2dswap.d
+10月 07 13:14:59 VM2 systemd[1]: Dependency failed for /dev/mapper/rhel-swap.
 
-
+按Q键退出
+[root@VM2 ~]#  journalctl  --since  "2018-10-07 17:00"  --until  "2018-10-07 17:05" \
+> |head -5     列出 时间段 内新记录的日志
+-- Logs begin at 日 2018-10-07 12:02:45 CST, end at 日 2018-10-07 17:50:01 CST. --
+10月 07 17:00:01 VM2 systemd[1]: Started Session 35 of user root.
+10月 07 17:00:01 VM2 systemd[1]: Starting Session 35 of user root.
+10月 07 17:00:01 VM2 CROND[5078]: (root) CMD (/usr/lib64/sa/sa1 1 1)
+10月 07 17:01:01 VM2 systemd[1]: Started Session 36 of user root.
+[root@VM2 ~]# 
 
 https://www.csdn.net/
 /**设置Windows注册表（不修改注册表，连接VPN默认会报789错误），具体操作如下：
