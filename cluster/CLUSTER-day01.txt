@@ -254,9 +254,96 @@ client50 ~]# multipath -ll
 
 
 ++++++++++++++++++++++++++++
-休息到 10:30
-休息到 11:25
-休息到 15:10
-休息到 16:10
-休息到 17:35
+扩展ISCSI
+不可以同时挂载
+适合 HA集群  不适合LB
+在51主机配置允许52 和  53 使用 5G 存储数据
+/> /iscsi/iqn.2018-10.cn.tedu.storage51:vdb/tpg1/acls 
+create iqn.2018-10.cn.tedu.client53
+
+/> /iscsi/iqn.2018-10.cn.tedu.storage51:vdb/tpg1/acls 
+create iqn.2018-10.cn.tedu.client52
+
+分别在52和53主机上发现和登入设备 并把磁盘挂载到本机的网页目录下
+]# cat /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2018-10.cn.tedu.client53
+
+]# iscsiadm --mode discoverydb --type sendtargets --portal 192.168.4.51 --discover
+
+]#iscsiadm --mode node --targetname iqn.2018-10.cn.tedu.storage51:vdb --portal 192.168.4.51:3260 -l
+
+]#yum -y  install  httpd
+]#mount /dev/sda  /var/www/html/
+]#systemctl   start httpd
+
+52和53主机分别在自己的网页目录下创建自己的网页文件，但在客户端分别访问52和53主机上的网站服务时，都访问不到对方创建的网页文件。
+所有 ISCSI 不可以同时挂载   适合HA集群  不适合LB
+要想LB 集群 也可以使用 要格式化为 GFS 文件系统
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+NFS服务
+
+把51主机新添加的2G磁盘分区格式化为ext4文件系统后，
+
+
+挂载到本机的/sharedir目录下
+]# mkdir /sharedir
+
+[root@storage51 ~]# mount /dev/vdc1 /sharedir/
+
+[root@storage51 ~]# df -h /sharedir/
+/dev/vdc1       2.0G  6.0M  1.9G    1% /sharedir
+ 
+
+使用nfs服务共享本机的/sharedir 目录给网络中的所有主机使用 且有读写权限。
+   39  rpm -q nfs-utils
+   40  rpm -q rpcbind
+
+[root@storage51 ~]# vim /etc/exports
+/sharedir *(rw)
+:wq
+
+[root@storage51 ~]# chmod  o+w /sharedir/
+
+   52  systemctl  restart nfs-server.service 
+   53  systemctl  restart nfs-utils.service
+
+[root@storage51 ~]# showmount  -e localhost
+Export list for localhost:
+/sharedir *
+[root@storage51 ~]#
+
+分别配置网站服务服务器52 和 53 把共享目录mount 到本机的网页目录下。
+[root@host52 ~]# showmount -e  192.168.4.51
+Export list for 192.168.4.51:
+/sharedir *
+[root@host52 ~]# mount 192.168.4.51:/sharedir /var/www/html/
+[root@host52 ~]#
+
+[root@host53 ~]# showmount -e  192.168.4.51
+Export list for 192.168.4.51:
+/sharedir *
+
+[root@host53 ~]# mount 192.168.4.51:/sharedir /var/www/html/
+
+测试共享：
+在共享目录下创建文件 访问哪一台网站服务器都可以看到。
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
