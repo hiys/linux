@@ -1030,7 +1030,10 @@ vdb           252:16   0    5G  0 disk
 [root@node1 ~]# vim /etc/udev/rules.d/90-cephdisk.rules
 ACTION=="add", KERNEL=="vdb[12]", OWNER="ceph", GROUP="ceph" 
 
-ceph对象存储网关为应用提供 RESTful 类型的对象存储接口，其接口方式支持 S3（兼容 Amazon S3 RESTful API） 和 Swift（兼容 OpenStack Swift API） 两种类型。其中swift场景，比如可以在openstack中直接使用ceph对象存储网关作为swift的存储。也就是说ceph的RGW只能通过命令去操作或者通过第三方软件结合去操作，没有办法跟fs，rbd 一样直接使用它。
+ceph对象存储网关为应用提供 RESTful 类型的对象存储接口，
+其接口方式支持 S3（兼容 Amazon S3 RESTful API） 和 Swift（兼容 OpenStack Swift API） 两种类型。
+其中swift场景，比如可以在openstack中直接使用ceph对象存储网关作为swift的存储。
+也就是说ceph的RGW只能通过命令去操作或者通过第三方软件结合去操作，没有办法跟fs，rbd 一样直接使用它。
 
 
 
