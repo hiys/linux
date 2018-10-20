@@ -633,49 +633,7 @@ Transactions: NO
 Transactions: NO
           XA: NO
   Savepoints: NO
-*************************** 4. row ***************************
-      Engine: BLACKHOLE
-     Support: YES
-     Comment: /dev/null storage engine (anything you write to it disappears)
-Transactions: NO
-          XA: NO
-  Savepoints: NO
-*************************** 5. row ***************************
-      Engine: MyISAM
-     Support: DEFAULT
-     Comment: MyISAM storage engine
-Transactions: NO
-          XA: NO
-  Savepoints: NO
-*************************** 6. row ***************************
-      Engine: CSV
-     Support: YES
-     Comment: CSV storage engine
-Transactions: NO
-          XA: NO
-  Savepoints: NO
-*************************** 7. row ***************************
-      Engine: ARCHIVE
-     Support: YES
-     Comment: Archive storage engine
-Transactions: NO
-          XA: NO
-  Savepoints: NO
-*************************** 8. row ***************************
-      Engine: PERFORMANCE_SCHEMA
-     Support: YES
-     Comment: Performance Schema
-Transactions: NO
-          XA: NO
-  Savepoints: NO
-*************************** 9. row ***************************
-      Engine: FEDERATED
-     Support: NO
-     Comment: Federated MySQL storage engine
-Transactions: NULL
-          XA: NULL
-  Savepoints: NULL
-9 rows in set (0.00 sec)
+
 
 mysql> show databases;
 ERROR 2006 (HY000): MySQL server has gone away
@@ -683,7 +641,6 @@ No connection. Trying to reconnect...
 Connection id:    3
 Current database: *** NONE ***
 
-+--------------------+
 | Database           |
 +--------------------+
 | information_schema |
@@ -799,8 +756,16 @@ drwxr-x---. 2 mysql mysql     8192 10月 15 10:19 sys
 drwxr-x---. 2 mysql mysql       60 10月 15 15:29 teadb2
 
 [root@H50 ~]# rm -rf /var/lib/mysql/*
-[root@H50 ~]# ls /var/lib/mysql/
-[root@H50 ~]# innobackupex --apply-log /allbak/
+[root@H50 ~]# ls /var/lib/mysql/ 
+恢复数据
+
+通过XtraBackup工具备份的数据库目录，若要恢复到另一个MySQL服务器，需要先做一个“--apply-log --redo-only ”的准备操作。
+1）准备恢复“完整备份”
+完成准备以后，最终/backup可用来重建MySQL服务器。这种情况下，
+需要先做一个“--apply-log --redo-only ”的准备操作，以确保数据一致性：
+[root@dbsvr1 ~]#innobackupex  --user=root --password=12345678 --apply-log  --redo-only /backup/
+******************/
+[root@H50 ~]# innobackupex --apply-log /allbak/  
 
 InnoDB: Shutdown completed; log sequence number 3060776
 181020 17:09:09 completed OK!
@@ -846,6 +811,25 @@ mysql> insert into db5.a values(222),(202);
 
 mysql> system mkdir /fullbak;
 
+步骤二：innobackupex完整备份、增量备份操作
+
+--host 主机名
+
+--port 3306
+
+--user 用户名
+
+--password 密码
+
+--databases="库名"
+
+--databases="库1 库2"
+
+--databases="库.表"
+
+--no-timestamp 不用日期命名备份文件存储的子目录，使用备份的数据库名做备份目录名
+
+--no-timestmap 不使用日期命名备份目录名
 [root@H50 ~]# innobackupex  --user root --password 1234 \
 > --no-timestamp   /fullbak
 
@@ -904,6 +888,28 @@ backup-my.cnf   ibdata1.delta       stut     xtrabackup_binlog_info
 db4             ibdata1.meta        sys      xtrabackup_checkpoints
 db5             mysql               teadb2   xtrabackup_info
 ib_buffer_pool  performance_schema  testdb6  xtrabackup_logfile
+[root@H50 ~]# 
+[root@H50 ~]# cat /newdir1/xtrabackup_checkpoints 
+backup_type = incremental
+from_lsn = 3062723
+to_lsn = 3062723
+last_lsn = 3062732
+compact = 0
+recover_binlog_info = 0
+[root@H50 ~]# cat /newdir2/xtrabackup_checkpoints 
+backup_type = incremental
+from_lsn = 3062723
+to_lsn = 3068954
+last_lsn = 3068963
+compact = 0
+recover_binlog_info = 0
+[root@H50 ~]# cat /fullbak/xtrabackup_checkpoints 
+backup_type = full-backuped
+from_lsn = 0
+to_lsn = 3062723
+last_lsn = 3062732
+compact = 0
+recover_binlog_info = 0
 [root@H50 ~]# 
 
 
