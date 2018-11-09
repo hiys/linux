@@ -1,0 +1,1637 @@
+
+[root@H50 ~]# passwd  -d  admin3   #   删除已命名帐号的密码(只有根用户才能进行此操作)
+/****************
+[root@H57 ~]# passwd  -?
+用法: passwd [选项...] <帐号名称>
+  -k, --keep-tokens       保持身份验证令牌不过期
+  -d, --delete            删除已命名帐号的密码(只有根用户才能进行此操作)
+  -l, --lock              锁定指名帐户的密码(仅限 root 用户)
+  -u, --unlock            解锁指名账户的密码(仅限 root 用户)
+  -e, --expire            终止指名帐户的密码(仅限 root 用户)
+  -f, --force             强制执行操作
+  -x, --maximum=DAYS      密码的最长有效时限(只有根用户才能进行此操作)
+  -n, --minimum=DAYS      密码的最短有效时限(只有根用户才能进行此操作)
+  -w, --warning=DAYS      在密码过期前多少天开始提醒用户(只有根用户才能进行此操作)
+  -i, --inactive=DAYS     当密码过期后经过多少天该帐号会被禁用(只有根用户才能进行此操作)
+  -S, --status            报告已命名帐号的密码状态(只有根用户才能进行此操作)
+  --stdin                 从标准输入读取令牌(只有根用户才能进行此操作)
+
+Help options:
+  -?, --help              Show this help message
+  --usage                 Display brief usage message
+*****************************/
+[root@H50 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<8{print $2}'
+192.168.4.50
+192.168.2.50
+201.1.1.50
+201.1.2.50
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+0.0.0.0
+[root@H50 ~]# 
+Hiy53.es.es
+
+[root@H50 ~]# useradd  -M admin1   ##-M 不创建用户的主目录
+[root@H50 ~]# ls /home/
+lisi
+[root@H50 ~]# id admin1
+uid=1001(admin1) gid=1001(admin1) 组=1001(admin1)
+[root@H50 ~]# ls /etc/skel/
+[root@H50 ~]# ls -A /etc/skel/
+.bash_logout  .bash_profile  .bashrc  .mozilla
+[root@H50 ~]# ls -a /etc/skel/
+.  ..  .bash_logout  .bash_profile  .bashrc  .mozilla
+[root@H50 ~]# head -3 /etc/bashrc 
+# /etc/bashrc
+
+# System wide functions and aliases
+[root@H50 ~]# sed -n 5p /etc/bashrc 
+
+[root@H50 ~]# cat -n /etc/bashrc  |tail -4
+    89	    unset i
+    90	    unset -f pathmunge
+    91	fi
+    92	# vim:ts=4:sw=4
+[root@H50 ~]# 
+
+[root@H50 ~]# ls -a /home/
+.  ..  lisi
+[root@H50 ~]# ls -A /home/
+lisi
+[root@H50 ~]# id admin1
+uid=1001(admin1) gid=1001(admin1) 组=1001(admin1)
+
+[root@H50 ~]# userdel  -r  admin1
+
+userdel：未找到 admin1 的主目录“/home/admin1”
+
+[root@H50 ~]# usermod -d  /home/ admin1
+usermod：用户“admin1”不存在
+
+[root@H50 ~]# useradd  -M admin1
+[root@H50 ~]# usermod -d  /home/ admin1
+[root@H50 ~]# ls /home/
+lisi
+[root@H50 ~]# grep  admin1 /etc/passwd
+admin1:x:1001:1001::/home/:/bin/bash
+[root@H50 ~]# useradd  -M admin2
+[root@H50 ~]# grep  admin /etc/passwd
+admin1:x:1001:1001::/home/:/bin/bash
+admin2:x:1002:1002::/home/admin2:/bin/bash
+[root@H50 ~]# ls /home/
+lisi
+[root@H50 ~]# userdel  -r  admin1
+userdel：/home/ 并不属于 admin1，所以不会删除
+
+[root@H50 ~]# ls -ld  /home/
+drwxr-xr-x. 3 root root 18 1月  30 2018 /home/
+[root@H50 ~]# ls /home/
+lisi
+[root@H50 ~]# id admin
+id: admin: no such user
+[root@H50 ~]# id admin1
+id: admin1: no such user
+[root@H50 ~]# id admin2
+uid=1002(admin2) gid=1002(admin2) 组=1002(admin2)
+[root@H50 ~]# echo 123 |passwd  --stdin  admin2
+更改用户 admin2 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+
+##chage [选项] 登录
+  -d, --lastday 最近日期        将最近一次密码设置时间设为“最近日期”
+##chage -d 0 该命令设置用户上次修改密码的时间为纪元时间（1970年1月1日），这样会使得该命令立刻过期
+
+[root@H50 ~]# chage -d 0 admin2   #强制新建用户第一次登陆时修改密码
+[root@H50 ~]# echo $?
+0
+[root@H50 ~]# chage -l admin2   ##chage –l  账户名称 //查看账户信息
+
+最近一次密码修改时间					：密码必须更改
+密码过期时间					：密码必须更改
+密码失效时间					：密码必须更改
+帐户过期时间						：从不
+两次改变密码之间相距的最小天数		：0
+两次改变密码之间相距的最大天数		：99999
+在密码过期之前警告的天数	：7
+[root@H50 ~]# grep admin /etc/shadow
+admin2:
+$6$XgYwsNQ.$fT87JlzuaoA0pd1478zHNm5d9F0lvfEzi8JaVz2QUb4nVa4tkxbyC0Gdv.cST2Krb3LK.eBB2gd31iPcO4d6L.:
+0:0:99999:7:::
+
+[root@H50 ~]# cal
+     十一月 2018    
+日 一 二 三 四 五 六
+             1  2  3
+ 4  5  6  7  8  9 10
+11 12 13 14 15 16 17
+18 19 20 21 22 23 24
+25 26 27 28 29 30
+
+/***
+失效的用户将无法登录
+使用chage命令将用户zhangsan的账户设为当前已失效（比如已经过去的某个时间）：
+chage -E 2011/11/30  admin2
+**/
+          ## chage –E 时间 账户名称    //修改账户有效期
+[root@H50 ~]# chage -E 2018/11/30  admin2    //修改失效日期
+
+[root@H50 ~]# grep admin /etc/shadow
+admin2:
+$6$XgYwsNQ.$fT87JlzuaoA0pd1478zHNm5d9F0lvfEzi8JaVz2QUb4nVa4tkxbyC0Gdv.cST2Krb3LK.eBB2gd31iPcO4d6L.:0
+:0:99999:7::17865:
+[root@H50 ~]# chage -l admin2    ##chage –l  账户名称 //查看账户信息//查看账户年龄信息
+
+最近一次密码修改时间					：密码必须更改
+密码过期时间					：密码必须更改
+密码失效时间					：密码必须更改
+帐户过期时间						：11月 30, 2018
+两次改变密码之间相距的最小天数		：0
+两次改变密码之间相距的最大天数		：99999
+在密码过期之前警告的天数	：7
+[root@H50 ~]# 
+/&&&&&&&*************
+[root@H57 ~]# echo "9999/365" |bc
+27   年
+[root@H57 ~]# echo "80*365" |bc
+29200
+[root@H57 ~]# echo "9999%365" |bc
+144   余144天
+[root@H57 ~]# echo "9899%365" |bc
+44   余 44天
+
+***********************
+定义默认有效期
+/etc/login.defs这个配置文件，决定了账户密码的默认有效期。
+对新建的用户有效
+*************************/
+
+[root@H50 ~]# grep -v  '^#'  /etc/login.defs   #定义默认有效期##############
+
+MAIL_DIR	/var/spool/mail
+
+PASS_MAX_DAYS	99999     //密码最长有效期
+PASS_MIN_DAYS	0           //密码最短有效期
+PASS_MIN_LEN	5            //密码最短长度
+PASS_WARN_AGE	7           //密码过期前几天提示警告信息
+
+UID_MIN                  1000   //UID最小值
+UID_MAX                 60000   //UID最大值
+SYS_UID_MIN               201
+SYS_UID_MAX               999
+
+GID_MIN                  1000
+GID_MAX                 60000
+SYS_GID_MIN               201
+SYS_GID_MAX               999
+
+
+CREATE_HOME	yes
+
+UMASK           077
+
+USERGROUPS_ENAB yes
+
+ENCRYPT_METHOD SHA512 
+
+[root@H50 ~]# 
+[root@H50 ~]# chage -h
+用法：chage [选项] 登录
+
+选项：
+  -d, --lastday 最近日期        将最近一次密码设置时间设为“最近日期”
+  -E, --expiredate 过期日期     将帐户过期时间设为“过期日期”
+  -h, --help                    显示此帮助信息并推出
+  -I, --inactive INACITVE       过期 INACTIVE 天数后，设定密码为失效状态
+  -l, --list                    显示帐户年龄信息
+  -m, --mindays 最小天数        将两次改变密码之间相距的最小天数设为“最小天数”
+  -M, --maxdays 最大天数        将两次改变密码之间相距的最大天数设为“最大天数”
+  -R, --root CHROOT_DIR         chroot 到的目录
+  -W, --warndays 警告天数       将过期警告天数设为“警告天数”
+
+[root@H50 ~]# useradd -h
+用法：useradd [选项] 登录
+      useradd -D
+      useradd -D [选项]
+
+选项：
+  -b, --base-dir BASE_DIR	新账户的主目录的基目录
+  -c, --comment COMMENT         新账户的 GECOS 字段
+  -d, --home-dir HOME_DIR       新账户的主目录
+  -D, --defaults		显示或更改默认的 useradd 配置
+ -e, --expiredate EXPIRE_DATE  新账户的过期日期
+  -f, --inactive INACTIVE       新账户的密码不活动期
+  -g, --gid GROUP		新账户主组的名称或 ID
+  -G, --groups GROUPS	新账户的附加组列表
+  -h, --help                    显示此帮助信息并推出
+  -k, --skel SKEL_DIR	使用此目录作为骨架目录
+  -K, --key KEY=VALUE           不使用 /etc/login.defs 中的默认值
+  -l, --no-log-init	不要将此用户添加到最近登录和登录失败数据库
+  -m, --create-home	创建用户的主目录
+  -M, --no-create-home		不创建用户的主目录
+  -N, --no-user-group	不创建同名的组
+  -o, --non-unique		允许使用重复的 UID 创建用户
+  -p, --password PASSWORD		加密后的新账户密码
+  -r, --system                  创建一个系统账户
+  -R, --root CHROOT_DIR         chroot 到的目录
+  -s, --shell SHELL		新账户的登录 shell
+  -u, --uid UID			新账户的用户 ID
+  -U, --user-group		创建与用户同名的组
+  -Z, --selinux-user SEUSER		为 SELinux 用户映射使用指定 SEUSER
+
+[root@H50 ~]# useradd  admin3
+[root@H50 ~]# ls /home
+admin3  lisi
+[root@H50 ~]# ls -a /etc/skel/ 
+.  ..  .bash_logout  .bash_profile  .bashrc  .mozilla
+[root@H50 ~]# ls -a  /home/
+.  ..  admin3  lisi
+[root@H50 ~]# ls -a  /home/admin3/
+.  ..  .bash_logout  .bash_profile  .bashrc  .mozilla
+[root@H50 ~]# 
+[root@H50 ~]# vim /etc/skel/txt.txt
+[root@H50 ~]# useradd admin4
+[root@H50 ~]# ls -a /home/admin4/
+.  ..  .bash_logout  .bash_profile  .bashrc  .mozilla  txt.txt
+[root@H50 ~]# cat /home/admin4/txt.txt 
+aa
+bb
+cc
+dd
+[root@H50 ~]# su - admin4
+[admin4@H50 ~]$ pwd
+/home/admin4
+[admin4@H50 ~]$ ls
+txt.txt
+[admin4@H50 ~]$ exit
+登出
+[root@H50 ~]# ls /home
+admin3  admin4  lisi
+[root@H50 ~]# echo 123 |passwd --stdin admin3
+更改用户 admin3 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# echo 123 |passwd --stdin admin4
+更改用户 admin4 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+
+[root@H50 ~]# passwd  -S admin4   # 查看密码是否被锁定的状态   报告已命名帐号的密码状态(只有根用户才能进行此操作)
+
+admin4 PS 2018-11-05 0 99999 7 -1 (密码已设置，使用 SHA512 算法。)
+
+[root@H50 ~]# grep admin  /etc/shadow
+admin2:
+$6$XgYwsNQ.$fT87JlzuaoA0pd1478zHNm5d9F0lvfEzi8JaVz2QUb4nVa4tkxbyC0Gdv.cST2Krb3LK.eBB2gd31iPcO4d6L.:
+0:0:99999:7::17865:
+
+admin3:
+$6$g.K/0Sbh$C/Mh/CVh3Zfp594roeJzKq6Rxqn.yhaabZIH7PR5q/LFodxjKQkB3HV5rHo.GHi8.cdhsEtzGMnNIAYStywZA.:
+17840:0:99999:7:::
+
+admin4:
+$6$p8xNmbPs$UXQHalts8qDf6xb3D4.iTe0CM1zFOHznHQuffKxh9aHufRF1SumXWX7zAGC4k0tntPjkVQtU0NNTC/o42mJyl.:
+17840:0:99999:7:::
+
+[root@H50 ~]# passwd  -l admin3  //锁定用户账号admin3：临时锁定用户的账户，使其无法登录，
+锁定用户 admin3 的密码 。
+passwd: 操作成功
+
+[root@H50 ~]# grep admin  /etc/shadow
+admin2:
+$6$XgYwsNQ.$fT87JlzuaoA0pd1478zHNm5d9F0lvfEzi8JaVz2QUb4nVa4tkxbyC0Gdv.cST2Krb3LK.eBB2gd31iPcO4d6L.:
+0:0:99999:7::17865:
+
+admin3:        ## 注意观察"!!"感叹号,临时锁定用户的账户,特有的标志!!
+!!$6$g.K/0Sbh$C/Mh/CVh3Zfp594roeJzKq6Rxqn.yhaabZIH7PR5q/LFodxjKQkB3HV5rHo.GHi8.cdhsEtzGMnNIAYStywZA.:
+17840:0:99999:7:::
+
+admin4:   ## 注意观察 没有 "!!"感叹号,用户的账户 没有被锁定的意思 !!
+$6$p8xNmbPs$UXQHalts8qDf6xb3D4.iTe0CM1zFOHznHQuffKxh9aHufRF1SumXWX7zAGC4k0tntPjkVQtU0NNTC/o42mJyl.:
+17840:0:99999:7:::
+
+[root@H50 ~]# passwd  -u  admin3   //解锁用户账号
+解锁用户 admin3 的密码。
+passwd: 操作成功
+
+[root@H50 ~]# grep admin  /etc/shadow  # # 查看密码是否被锁定的状态 passwd  -S  用户名
+admin2:
+$6$XgYwsNQ.$fT87JlzuaoA0pd1478zHNm5d9F0lvfEzi8JaVz2QUb4nVa4tkxbyC0Gdv.cST2Krb3LK.eBB2gd31iPcO4d6L.:
+0:0:99999:7::17865:
+
+admin3:      ## 注意观察 没有 "!!"感叹号,解锁用户账号后 ," !!"消失了
+$6$g.K/0Sbh$C/Mh/CVh3Zfp594roeJzKq6Rxqn.yhaabZIH7PR5q/LFodxjKQkB3HV5rHo.GHi8.cdhsEtzGMnNIAYStywZA.:
+17840:0:99999:7:::
+
+admin4:
+$6$p8xNmbPs$UXQHalts8qDf6xb3D4.iTe0CM1zFOHznHQuffKxh9aHufRF1SumXWX7zAGC4k0tntPjkVQtU0NNTC/o42mJyl.:
+17840:0:99999:7:::
+
+/****************
+[root@H57 ~]# passwd  -?
+用法: passwd [选项...] <帐号名称>
+  -k, --keep-tokens       保持身份验证令牌不过期
+  -d, --delete            删除已命名帐号的密码(只有根用户才能进行此操作)
+  -l, --lock              锁定指名帐户的密码(仅限 root 用户)
+  -u, --unlock            解锁指名账户的密码(仅限 root 用户)
+  -e, --expire            终止指名帐户的密码(仅限 root 用户)
+  -f, --force             强制执行操作
+  -x, --maximum=DAYS      密码的最长有效时限(只有根用户才能进行此操作)
+  -n, --minimum=DAYS      密码的最短有效时限(只有根用户才能进行此操作)
+  -w, --warning=DAYS      在密码过期前多少天开始提醒用户(只有根用户才能进行此操作)
+  -i, --inactive=DAYS     当密码过期后经过多少天该帐号会被禁用(只有根用户才能进行此操作)
+  -S, --status            报告已命名帐号的密码状态(只有根用户才能进行此操作)
+  --stdin                 从标准输入读取令牌(只有根用户才能进行此操作)
+
+Help options:
+  -?, --help              Show this help message
+  --usage                 Display brief usage message
+*****************************/
+
+[root@H50 ~]# passwd  -d  admin3   #   删除已命名帐号的密码(只有根用户才能进行此操作)
+清除用户的密码 admin3。
+passwd: 操作成功
+[root@H50 ~]# grep admin  /etc/shadow
+admin2:$6$XgYwsNQ.$fT87JlzuaoA0pd1478zHNm5d9F0lvfEzi8JaVz2QUb4nVa4tkxbyC0Gdv.cST2Krb3LK.eBB2gd31iPcO4d6L.:0:0:99999:7::17865:
+admin3::17840:0:99999:7:::
+admin4:$6$p8xNmbPs$UXQHalts8qDf6xb3D4.iTe0CM1zFOHznHQuffKxh9aHufRF1SumXWX7zAGC4k0tntPjkVQtU0NNTC/o42mJyl.:17840:0:99999:7:::
+[root@H50 ~]# id root
+uid=0(root) gid=0(root) 组=0(root)
+[root@H50 ~]# passwd  -d root
+清除用户的密码 root。
+passwd: 操作成功
+[root@H50 ~]# grep root /etc/shadow
+root::17840:0:99999:7:::
+[root@H50 ~]# vim  /etc/bashrc 
+[root@H50 ~]# unalias ls
+[root@H50 ~]# echo $?
+0
+[root@H50 ~]# vim /root/.bashrc 
+[root@H50 ~]# ps  -l
+F S   UID   PID  PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD
+4 S     0  1508  1504  0  80   0 - 29109 do_wai pts/0    00:00:00 bash
+0 R     0  3072  1508  0  80   0 - 37235 -      pts/0    00:00:00 ps
+[root@H50 ~]# 
+[root@H50 ~]# uname  -r
+3.10.0-693.el7.x86_64
+[root@H50 ~]# cat /etc/redhat-release   ### 系统 版本 信息
+Red Hat Enterprise Linux Server release 7.4 (Maipo)
+
+&&&&&&&&&&&&&&&& 伪装登陆提示 ****   /etc/issue  **************************
+[root@H50 ~]# cat /etc/issue
+\S
+Kernel \r on an \m
+
+[root@H50 ~]# uname  -r  ## 系统内核信息
+3.10.0-693.el7.x86_64
+
+[root@H50 ~]# vim  /etc/issue  # 修改tty登录的提示信息，隐藏系统版本
+
+[root@H50 ~]# cat /etc/issue
+\S
+Kernel \r on an \m
+
+hello boy  ##临时添加的验证实验
+
+/*****************
+[root@hiys ~]# virsh console  Va50
+连接到域 Va50
+换码符为 ^]
+
+Red Hat Enterprise Linux Server 7.4 (Maipo)
+Kernel 3.10.0-693.el7.x86_64 on an x86_64
+
+hello boy
+H50 login: root
+密码：
+Last login: Mon Nov  5 11:56:02 on pts/0
+[root@H50 ~]# exit
+登出
+
+Red Hat Enterprise Linux Server 7.4 (Maipo)
+Kernel 3.10.0-693.el7.x86_64 on an x86_64
+
+hello boy   ##临时添加的验证实验
+H50 login:  ctrl + shift + ] 退出
+[root@hiys ~]# 
+***************/
+
+
+[root@H50 ~]# echo 123 |passwd --stdin root
+更改用户 root 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# 
+
+[root@H50 ~]# ls /etc/resolv.conf 
+/etc/resolv.conf
+[root@H50 ~]# cat /etc/resolv.conf
+
+[root@H50 ~]# ls -ld  /etc/resolv.conf
+-rw-rw-r--. 1 root root 1 1月  30 2018 /etc/resolv.conf
+[root@H50 ~]#
+
+[root@H50 ~]# ls /etc/resolv.conf 
+/etc/resolv.conf
+[root@H50 ~]# cat /etc/resolv.conf
+
+[root@H50 ~]# ls -ld  /etc/resolv.conf
+-rw-rw-r--. 1 root root 1 1月  30 2018 /etc/resolv.conf
+[root@H50 ~]# ll /etc/passwd
+-rw-r--r--. 1 root root 2241 11月  5 09:51 /etc/passwd
+
+#####################  ext3/ext4 的文件属性控制  chattr  lsattr   
+
+[root@H50 ~]# lsattr  /etc/passwd
+---------------- /etc/passwd
+
+[root@H50 ~]# chattr  +a  /etc/passwd  //锁定后文件仅可追加
+[root@H50 ~]# lsattr  /etc/passwd
+-----a---------- /etc/passwd
+[root@H50 ~]# cat txt.txt 
+show dbs
+db
+exit
+[root@H50 ~]# chattr +a txt.txt    //锁定后文件仅可追加
+[root@H50 ~]# echo "ddd" > txt.txt
+-bash: txt.txt: 不允许的操作
+[root@H50 ~]# echo "ddd" >> txt.txt
+[root@H50 ~]# cat txt.txt 
+show dbs
+db
+exit
+ddd
+[root@H50 ~]# cp txt.txt  a.txt
+[root@H50 ~]# lsattr  a.txt
+---------------- a.txt
+[root@H50 ~]# chattr +i a.txt     //锁定文件（无法修改、删除等）不可变immutable
+[root@H50 ~]# lsattr  a.txt
+----i----------- a.txt
+[root@H50 ~]# cat a.txt
+show dbs
+db
+exit
+ddd
+[root@H50 ~]# rm -f a.txt
+rm: 无法删除"a.txt": 不允许的操作
+[root@H50 ~]# mv a.txt /home/
+mv: 无法将"a.txt" 移动至"/home/a.txt": 不允许的操作
+[root@H50 ~]# echo "eee" > a.txt 
+-bash: a.txt: 权限不够
+[root@H50 ~]# ls -l  txt.txt 
+-rw-r--r--. 1 root root 21 11月  5 10:24 txt.txt
+[root@H50 ~]# chmod 644 a.txt 
+chmod: 更改"a.txt" 的权限: 不允许的操作
+
+[root@H50 ~]# lsattr  a.txt
+----i----------- a.txt
+[root@H50 ~]# chattr -i a.txt  //解锁文件
+
+[root@H50 ~]# chmod 644 a.txt 
+[root@H50 ~]# ls -l a.txt
+-rw-r--r--. 1 root root 21 11月  5 10:24 a.txt
+[root@H50 ~]# cat a.txt
+show dbs
+db
+exit
+ddd
+[root@H50 ~]# echo "eee" > a.txt 
+[root@H50 ~]# cat a.txt
+eee
+[root@H50 ~]# lsattr  a.txt      //查看文件特殊属性
+---------------- a.txt
+[root@H50 ~]# ll  a.txt
+-rw-r--r--. 1 root root 4 11月  5 10:28 a.txt
+[root@H50 ~]# chattr +i  a.txt
+[root@H50 ~]# lsattr  a.txt
+----i----------- a.txt
+[root@H50 ~]# echo "eee" > a.txt 
+-bash: a.txt: 权限不够
+[root@H50 ~]# ll a.txt
+-rw-r--r--. 1 root root 4 11月  5 10:28 a.txt
+
+[root@H50 ~]# chattr +a a.txt     //锁定后文件仅可追加
+[root@H50 ~]# lsattr  a.txt
+----ia---------- a.txt
+[root@H50 ~]# echo "eee" > a.txt 
+-bash: a.txt: 权限不够
+[root@H50 ~]# echo "eee" >> a.txt 
+-bash: a.txt: 权限不够
+[root@H50 ~]# chattr -i a.txt    //解锁文件
+[root@H50 ~]# echo "eee" >> a.txt 
+[root@H50 ~]# cat  a.txt
+eee
+eee
+[root@H50 ~]# echo "eee" > a.txt 
+-bash: a.txt: 不允许的操作
+[root@H50 ~]# cat  a.txt
+eee
+eee
+[root@H50 ~]# 
+
+[root@H50 ~]# ls /home/
+admin3	admin4	lisi
+[root@H50 ~]# useradd  admin5 
+useradd：无法打开 /etc/passwd
+[root@H50 ~]# lsattr  admin5
+lsattr: 没有那个文件或目录 当尝试对admin5进行stat调用时
+[root@H50 ~]# lsattr  /etc/passwd
+-----a---------- /etc/passwd
+[root@H50 ~]# chattr -a /etc/passwd
+[root@H50 ~]# lsattr  /etc/passwd
+---------------- /etc/passwd
+[root@H50 ~]# useradd  admin5 
+[root@H50 ~]# ls /home/
+admin3	admin4	admin5	lisi
+[root@H50 ~]# 
+
+[root@H50 ~]# service mysqld status  ## 红帽6版本命令
+Redirecting to /bin/systemctl status mysqld.service
+● mysqld.service - MySQL Server
+   Loaded: loaded (/usr/lib/systemd/system/mysqld.service; disabled; vendor preset: disabled)
+   Active: inactive (dead)
+     Docs: man:mysqld(8)
+           http://dev.mysql.com/doc/refman/en/using-systemd.html
+[root@H50 ~]# chkconfig  mysqld on
+注意：正在将请求转发到“systemctl enable mysqld.service”。
+Created symlink from /etc/systemd/system/multi-user.target.wants/mysqld.service to /usr/lib/systemd/system/mysqld.service.
+[root@H50 ~]# chkconfig  mysqld  off
+注意：正在将请求转发到“systemctl disable mysqld.service”。
+Removed symlink /etc/systemd/system/multi-user.target.wants/mysqld.service.
+[root@H50 ~]# chkconfig list    ## 红帽6版本命令
+[root@H50 ~]# chkconfig  mysqld on    ## 红帽6版本命令
+注意：正在将请求转发到“systemctl enable mysqld.service”。
+Created symlink from /etc/systemd/system/multi-user.target.wants/mysqld.service to /usr/lib/systemd/system/mysqld.service.
+[root@H50 ~]# chkconfig list    ## 红帽6版本命令
+[root@H50 ~]# echo $?
+1
+[root@H50 ~]# systemctl is-enabled  mysqld
+enabled
+[root@H50 ~]# 
+[root@H50 ~]# ls /home/
+admin3	admin4	admin5	lisi
+[root@H50 ~]# su - admin5
+[admin5@H50 ~]$ whoami
+admin5
+[admin5@H50 ~]$ su
+密码：
+[root@H50 admin5]# pwd
+/home/admin5
+[root@H50 admin5]# su - root
+上一次登录：一 11月  5 10:51:35 CST 2018pts/0 上
+[root@H50 ~]# 
+[root@H50 ~]# echo $PATH
+/usr/local/mongodb/bin/:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+[root@H50 ~]# su - admin5
+上一次登录：一 11月  5 10:51:24 CST 2018pts/0 上
+[admin5@H50 ~]$ echo $PATH
+/usr/local/mongodb/bin/:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/admin5/.local/bin:/home/admin5/bin
+[admin5@H50 ~]$ pwd
+/home/admin5
+[admin5@H50 ~]$ exit
+登出
+[root@H50 ~]# su  admin5
+[admin5@H50 root]$ echo $PATH
+/usr/local/mongodb/bin/:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+[admin5@H50 root]$ pwd
+/root
+[admin5@H50 root]$ exit
+exit
+[root@H50 ~]# 
+[root@H50 ~]# su  - admin5
+上一次登录：一 11月  5 10:57:43 CST 2018pts/0 上
+
+  用法1 : su [ - ]  [目标用户]  ## 若只写 su - 则表示默认切换到root 目标用户
+
+ 用法 2 : su [ - ]    -c     " 命令 "    [目标用户]
+ 用法 2 : su [ - ]   [目标用户]  -c    " 命令 " 
+
+[admin5@H50 ~]$ su - -c "systemctl is-active mysqld" root
+密码：  123 需要输入 root 用户[目标用户] 的密码
+inactive
+
+[admin5@H50 ~]$ su - -c  "systemctl start mysqld" root
+密码：  123 需要输入 root 用户[目标用户] 的密码
+
+[admin5@H50 ~]$ su - -c "systemctl is-active mysqld" root
+密码： 123 需要输入 root 用户[目标用户] 的密码
+active
+[admin5@H50 ~]$ su - root  -c "systemctl is-active mysqld" 
+密码：  需要输入 root 用户[目标用户] 的密码
+active
+[admin5@H50 ~]$ exit
+登出
+[root@H50 ~]# 
+
+[root@H50 ~]# ls /etc/security/
+access.conf       console.perms    limits.d        opasswd         time.conf
+chroot.conf       console.perms.d  namespace.conf  pam_env.conf
+console.apps      group.conf       namespace.d     pwquality.conf
+console.handlers  limits.conf      namespace.init  sepermit.conf
+
+[root@H50 ~]# tail -f /var/log/secure    # # 安全日志,记录su 验证,shell开启与关闭
+............................................
+Nov  5 11:03:31 H50 su: pam_unix(su-l:session): session closed for user root
+Nov  5 11:04:54 H50 su: pam_unix(su-l:session): session closed for user admin5
+
+                                       # su - admin3 切换登陆成功
+Nov  5 11:30:35 H50 su: pam_unix(su-l:session): session opened for user admin3 by root(uid=0)
+
+                           # $ exit 会话su 断开 成功
+Nov  5 11:31:04 H50 su: pam_unix(su-l:session): session closed for user admin3
+
+                                        # su - admin4 切换登陆成功
+Nov  5 11:31:18 H50 su: pam_unix(su:session): session opened for user admin4 by root(uid=0)
+
+                            # $ exit 会话su 断开 成功
+Nov  5 11:31:41 H50 su: pam_unix(su:session): session closed for user admin4
+quit
+exit
+^C
+[root@H50 ~]# 
+
+[root@H50 ~]# ls /home/
+admin3  admin4  admin5  lisi
+[root@H50 ~]# su - admin3
+上一次登录：一 11月  5 09:50:50 CST 2018tty1 上
+[admin3@H50 ~]$ pwd
+/home/admin3
+[admin3@H50 ~]$ echo $PATH
+/usr/local/mongodb/bin/:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/admin3/.local/bin:/home/admin3/bin
+[admin3@H50 ~]$ exit
+登出
+[root@H50 ~]# su  admin4
+[admin4@H50 root]$ pwd
+/root
+[admin4@H50 root]$ echo $PATH
+/usr/local/mongodb/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
+[admin4@H50 root]$ exit
+exit
+[root@H50 ~]# 
+
+[root@H50 ~]# tail -3 /var/log/secure    # # 安全日志,记录su 验证,shell开启与关闭
+
+Nov  5 11:31:04 H50 su: pam_unix(su-l:session): session closed for user admin3
+Nov  5 11:31:18 H50 su: pam_unix(su:session): session opened for user admin4 by root(uid=0)
+Nov  5 11:31:41 H50 su: pam_unix(su:session): session closed for user admin4
+[root@H50 ~]# 
+
+[root@H50 ~]# systemctl start  httpd.service 
+[root@H50 ~]# ls /var/www/html/
+[root@H50 ~]# echo "H50 index.html" > /var/www/html/index.html
+
+[root@H50 ~]# useradd tom ;echo 123 |passwd --stdin tom
+更改用户 tom 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# useradd bob ;echo 123 |passwd --stdin bob
+更改用户 bob 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# 
+           ###  使用sudo分配管理权限
+
+[root@H53 ~]# sudo -h
+sudo - 以其他用户身份执行一条命令
+
+usage: sudo -h | -K | -k | -V
+usage: sudo -v [-AknS] [-g group] [-h host] [-p prompt] [-u user]
+usage: sudo -l [-AknS] [-g group] [-h host] [-p prompt] [-U user] [-u user] [command]
+usage: sudo [-AbEHknPS] [-r role] [-t type] [-C num] [-g group] [-h host] [-p prompt] [-u user]
+            [VAR=value] [-i|-s] [<command>]
+usage: sudo -e [-AknS] [-r role] [-t type] [-C num] [-g group] [-h host] [-p prompt] [-u user] file
+            ...
+
+选项：
+  -A, --askpass               使用助手程序进行密码提示
+  -b, --background            在后台运行命令
+  -C, --close-from=num        关闭所有 >= num 的文件描述符
+  -E, --preserve-env          在执行命令时保留用户环境
+  -e, --edit                  编辑文件而非执行命令
+  -g, --group=group           以指定的用户组或 ID 执行命令
+  -H, --set-home              将 HOME 变量设为目标用户的主目录。
+  -h, --help                  显示帮助消息并退出
+  -h, --host=host             在主机上运行命令(如果插件支持)
+  -i, --login                 以目标用户身份运行一个登录
+                              shell；可同时指定一条命令
+  -K, --remove-timestamp      完全移除时间戳文件
+  -k, --reset-timestamp       无效的时间戳文件
+  -l, --list                 
+                              列出用户权限或检查某个特定命令；对于长格式，使用两次
+  -n, --non-interactive       非交互模式，不提示
+  -P, --preserve-groups       保留组向量，而非设置为目标的组向量
+  -p, --prompt=prompt         使用指定的密码提示
+  -r, --role=role             以指定的角色创建 SELinux 安全环境
+  -S, --stdin                 从标准输入读取密码
+  -s, --shell                 以目标用户运行 shell；可同时指定一条命令
+  -t, --type=type             以指定的类型创建 SELinux 安全环境
+  -U, --other-user=user       在列表模式中显示用户的权限
+  -u, --user=user             以指定用户或 ID 运行命令(或编辑文件)
+  -V, --version               显示版本信息并退出
+  -v, --validate              更新用户的时间戳而不执行命令
+  --                          停止处理命令行参数
+[root@H53 ~]# 
+
+    ## sudo  -u, --user=user             以指定用户或 ID 运行命令(或编辑文件)
+  # sudo  -u  目标用户root  " 命令 "  ##用法1
+    
+ # sudo    " 命令 "     ##用法 2 
+
+[root@H50 ~]# vim /etc/sudoers
+
+[root@H50 ~]# sed -n 80p /etc/sudoers
+Defaults    secure_path = /sbin:/bin:/usr/sbin:/usr/bin
+[root@H50 ~]# vim /etc/sudoers
+
+   用户        主机列表       命令列表
+ 92 root    ALL=(ALL)       ALL
+ 93 bob   localhost,H50=/usr/bin/systemctl  *  mysqld,/usr/bin/vim  /etc/my.cnf
+
+ %本地系统用户组  主机列表       命令列表
+ 99 %wheel    ALL=(ALL)       ALL
+
+[root@H50 ~]# sed -n 92,93p  /etc/sudoers
+root	ALL=(ALL) 	ALL
+bob   localhost,H50=/usr/bin/systemctl  *  mysqld,/usr/bin/vim  /etc/my.cnf
+[root@H50 ~]# id
+uid=0(root) gid=0(root) 组=0(root) 环境=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[root@H50 ~]# id bob
+uid=1007(bob) gid=1007(bob) 组=1007(bob)
+[root@H50 ~]# su - bob
+[bob@H50 ~]$ pwd
+/home/bob
+[bob@H50 ~]$ systemctl is-active mysqld
+active
+[bob@H50 ~]$ ls
+txt.txt
+[bob@H50 ~]$ sed -n 3p /etc/my.cnf
+
+[bob@H50 ~]$ sed -n 4p /etc/my.cnf
+[mysqld]
+[bob@H50 ~]$ exit
+登出
+[root@H50 ~]# su - bob
+上一次登录：一 11月  5 11:54:05 CST 2018pts/0 上
+[bob@H50 ~]$ su -l
+密码：
+上一次登录：一 11月  5 11:46:35 CST 2018从 192.168.4.254pts/1 上
+[root@H50 ~]# pwd
+/root
+[root@H50 ~]# su - bob
+上一次登录：一 11月  5 11:55:50 CST 2018pts/0 上
+[bob@H50 ~]$ sudo  /usr/bin/systemctl  stop mysqld
+
+我们信任您已经从系统管理员那里了解了日常注意事项。
+总结起来无外乎这三点：
+
+    #1) 尊重别人的隐私。
+    #2) 输入前要先考虑(后果和风险)。
+    #3) 权力越大，责任越大。
+
+[sudo] bob 的密码：123
+                      ##使用sudo分配管理权限
+    ## sudo  -u, --user=user             以指定用户或 ID 运行命令(或编辑文件)
+
+  # sudo  -u  目标用户root  " 命令 "  ##用法1
+    
+ # sudo    " 命令 "     ##用法 2 
+
+
+[bob@H50 ~]$ sudo  /usr/bin/systemctl is-active  mysqld
+inactive
+[bob@H50 ~]$ sudo  /usr/bin/systemctl start  mysqld
+[bob@H50 ~]$ sudo  /usr/bin/systemctl is-active  mysqld
+active
+[bob@H50 ~]$ sudo -l
+匹配 %2$s 上 %1$s 的默认条目：
+    !visiblepw, always_set_home, match_group_by_gid, env_reset, env_keep="COLORS
+    DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL PS1 PS2 QTDIR
+    USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION
+    LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER
+    LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET
+    XAUTHORITY", secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin
+
+用户 bob 可以在 H50 上运行以下命令：
+    (root) /usr/bin/systemctl * mysqld, /usr/bin/vim /etc/my.cnf
+[bob@H50 ~]$ vim  /etc/my.cnf
+[bob@H50 ~]$ vim /etc/resolv.conf 
+[bob@H50 ~]$ 
+
+
+[root@H50 ~]# which systemctl 
+/usr/bin/systemctl
+[root@H50 ~]# which vim
+/usr/bin/vim
+[root@H50 ~]# /usr/bin/vim  /etc/my.cnf
+[root@H50 ~]# ls /etc/resolv.conf 
+/etc/resolv.conf
+[root@H50 ~]# ssh -X bob@192.168.4.50 
+
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '192.168.4.50' (ECDSA) to the list of known hosts.
+bob@192.168.4.50's password: 
+Last login: Mon Nov  5 11:56:36 2018
+/usr/bin/xauth:  file /home/bob/.Xauthority does not exist
+[bob@H50 ~]$ cat /etc/resolv.conf 
+
+[bob@H50 ~]$ pwd
+/home/bob
+[bob@H50 ~]$ systemctl  is-active httpd
+active
+[bob@H50 ~]$  exit
+登出
+[root@H50 ~]# 
+[root@H50 ~]# ls /home/
+admin3  admin4  admin5  bob  lisi  tom
+
+[root@H50 ~]# vim /etc/sudoers
+
+ 92 root    ALL=(ALL)       ALL
+ 93 bob   localhost,H50=/usr/bin/systemctl  *  mysqld,/usr/bin/vim  /etc/my.cnf
+ 94 tom   localhost,H50=/usr/bin/systemctl  *  httpd,/usr/bin/vim  /etc/httpd/conf/htt    pd.conf
+:wq!
+[root@H50 ~]# sed -n 92,+2p  /etc/sudoers
+root	ALL=(ALL) 	ALL
+bob   localhost,H50=/usr/bin/systemctl  *  mysqld,/usr/bin/vim  /etc/my.cnf
+tom   localhost,H50=/usr/bin/systemctl  *  httpd,/usr/bin/vim  /etc/httpd/conf/httpd.conf
+[root@H50 ~]# 
+
+
+[root@hiys ~]# ssh -X tom@192.168.4.50
+tom@192.168.4.50's password: 123
+/usr/bin/xauth:  file /home/tom/.Xauthority does not exist
+[tom@H50 ~]$ pwd
+/home/tom
+
+                      ##使用sudo分配管理权限
+    ## sudo  -u, --user=user             以指定用户或 ID 运行命令(或编辑文件)
+
+  # sudo  -u  目标用户root  " 命令 "  ##用法1
+    
+ # sudo    " 命令 "     ##用法 2 
+
+[tom@H50 ~]$ sudo  /usr/bin/systemctl is-active httpd
+
+我们信任您已经从系统管理员那里了解了日常注意事项。
+总结起来无外乎这三点：
+
+    #1) 尊重别人的隐私。
+    #2) 输入前要先考虑(后果和风险)。
+    #3) 权力越大，责任越大。
+
+[sudo] tom 的密码：123
+active
+[tom@H50 ~]$ sudo  -l
+匹配 %2$s 上 %1$s 的默认条目：
+    !visiblepw, always_set_home, match_group_by_gid, env_reset, env_keep="COLORS
+    DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL PS1 PS2 QTDIR
+    USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION
+    LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER
+    LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET
+    XAUTHORITY", secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin
+
+用户 tom 可以在 H50 上运行以下命令：
+    (root) /usr/bin/systemctl * httpd, /usr/bin/vim /etc/httpd/conf/httpd.conf
+
+
+[tom@H50 ~]$ vim  /etc/httpd/conf/httpd.conf
+ 42 Listen 80
+
+[tom@H50 ~]$ netstat  -anpult |grep :80
+(No info could be read for "-p": geteuid()=1006 but you should be root.)
+tcp6       0      0 :::80                   :::*                    LISTEN      -                   
+[tom@H50 ~]$ exit
+
+ groupadd  webadmin
+ groupadd   dbadmin
+useradd lucy
+ useradd  lili
+ useradd jack
+useradd nb
+echo 123 |passwd --stdin  lucy
+echo 123 |passwd --stdin  lili
+ echo 123 |passwd --stdin  jack
+echo 123 |passwd --stdin  nb
+
+usermod  -G  webadmin  lucy
+usermod  -G  webadmin  lili
+grep wheel /etc/group
+gpasswd  -M "jack,nb" dbadmin
+grep dbadmin /etc/group
+
+ grep admin /etc/group
+
+[root@H50 ~]#  groupadd  webadmin
+[root@H50 ~]#  groupadd   dbadmin
+[root@H50 ~]# useradd lucy
+[root@H50 ~]#  useradd  lili
+[root@H50 ~]#  useradd jack
+[root@H50 ~]# useradd nb
+[root@H50 ~]# echo 123 |passwd --stdin  lucy
+更改用户 lucy 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# echo 123 |passwd --stdin  lili
+更改用户 lili 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]#  echo 123 |passwd --stdin  jack
+更改用户 jack 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# echo 123 |passwd --stdin  nb
+更改用户 nb 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# 
+[root@H50 ~]# usermod  -G  webadmin  lucy
+[root@H50 ~]# usermod  -G  webadmin  lili
+[root@H50 ~]# grep wheel /etc/group
+wheel:x:10:
+[root@H50 ~]# gpasswd  -M "jack,nb" dbadmin
+[root@H50 ~]# grep dbadmin /etc/group
+dbadmin:x:1009:jack,nb
+[root@H50 ~]# 
+[root@H50 ~]#  grep admin /etc/group
+admin2:x:1002:
+admin3:x:1003:
+admin4:x:1004:
+admin5:x:1005:
+webadmin:x:1008:lucy,lili
+dbadmin:x:1009:jack,nb
+[root@H50 ~]# vim  /etc/sudoers
+[root@H50 ~]# 
+
+ 10 ## Host Aliases
+ 13 # Host_Alias     FILESERVERS = fs1, fs2
+ 14 # Host_Alias     MAILSERVERS = smtp, smtp2
+
+ 20 # User_Alias ADMINS = jsmith, mikem
+
+
+ 26 ## Networking
+ 27 # Cmnd_Alias NETWORKING = /sbin/route, /sbin/ifconfig, /bin/ping, /sbin/dhclient, /usr/bin/net, /    sbin/iptables, /usr/bin/rfcomm, /usr/bin/wvdial, /sbin/iwconfig, /sbin/mii-tool
+
+ 29 ## Installation and management of software
+ 30 Cmnd_Alias SOFTWARE = /bin/rpm, /usr/bin/up2date, /usr/bin/yum
+
+ 92 root    ALL=(ALL)       ALL
+ 93 bob   localhost,H50=/usr/bin/systemctl  *  mysqld,/usr/bin/vim  /etc/my.cnf, SOFTWARE
+ 94 tom   localhost,H50=/usr/bin/systemctl  *  httpd,/usr/bin/vim  /etc/httpd/conf/httpd.conf
+
+100 %wheel  ALL=(ALL)       ALL
+
+101 %dbadmin   localhost,H50=/usr/bin/systemctl  * mysqld,/usr/bin/vim  /etc/my.cnf
+102 %webadmin  localhost,H50=/usr/bin/systemctl  * httpd,/usr/bin/vim /etc/httpd/conf/httpd.conf
+:wq!
+[root@hiys ~]# ssh -X bob@192.168.4.50
+bob@192.168.4.50's password: 
+Last login: Mon Nov  5 12:00:50 2018 from 192.168.4.50
+[bob@H50 ~]$ sudo -l
+[sudo] bob 的密码：
+匹配 %2$s 上 %1$s 的默认条目：
+    !visiblepw, always_set_home, match_group_by_gid, env_reset, env_keep="COLORS
+    DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL PS1 PS2 QTDIR
+    USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION
+    LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER
+    LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET
+    XAUTHORITY", secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin
+
+用户 bob 可以在 H50 上运行以下命令：
+    (root) /usr/bin/systemctl * mysqld, /usr/bin/vim /etc/my.cnf, /bin/rpm,
+        /usr/bin/up2date, /usr/bin/yum
+[bob@H50 ~]$ rpm -q elinks
+未安装软件包 elinks 
+[bob@H50 ~]$ yum -y install elinks |tail -3
+您需要 root 权限执行此命令。
+已加载插件：langpacks, product-id, search-disabled-repos, subscription-manager
+[bob@H50 ~]$ which yum
+/usr/bin/yum
+[bob@H50 ~]$ sudo /usr/bin/yum -y install elinks |tail -3
+  js.x86_64 1:1.8.5-19.el7         nss_compat_ossl.x86_64 0:0.9.6-8.el7        
+
+完毕！
+[bob@H50 ~]$ elinks -dump http://192.168.4.50
+   H50 index.html
+[bob@H50 ~]$ cat /var/www/html/index.html 
+H50 index.html
+[bob@H50 ~]$ exit
+登出
+Connection to 192.168.4.50 closed.
+[root@hiys ~]# 
+
+[root@H50 ~]# vim  /etc/sudoers
+
+114 #includedir /etc/sudoers.d
+115 Default logfile="/var/log/sudo"  ## 开启 sudo 提权 日志
+:wq!
+
+[root@H50 ~]# tail -1 /etc/sudoers
+
+Defaults logfile="/var/log/sudo"
+
+[root@H50 ~]# cat /var/log/sudo
+cat: /var/log/sudo: 没有那个文件或目录
+[root@H50 ~]# 
+
+[root@H50 ~]# ssh -X jack@192.168.4.50
+
+jack@192.168.4.50's password: 
+Last login: Mon Nov  5 15:00:52 2018 from 192.168.4.50
+[jack@H50 ~]$ sudo -l
+
+我们信任您已经从系统管理员那里了解了日常注意事项。
+总结起来无外乎这三点：
+
+    #1) 尊重别人的隐私。
+    #2) 输入前要先考虑(后果和风险)。
+    #3) 权力越大，责任越大。
+
+[sudo] jack 的密码：
+匹配 %2$s 上 %1$s 的默认条目：
+    !visiblepw, always_set_home, match_group_by_gid, env_reset, env_keep="COLORS DISPLAY HOSTNAME
+    HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL PS1 PS2 QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE",
+    env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY
+    LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS
+    _XKB_CHARSET XAUTHORITY", secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin, logfile=/var/log/sudo
+
+用户 jack 可以在 H50 上运行以下命令：
+    (root) /usr/bin/systemctl * mysqld, /usr/bin/vim /etc/my.cnf
+[jack@H50 ~]$ sudo systemctl is-active mysqld
+active
+[jack@H50 ~]$ sudo systemctl stop mysqld
+
+[jack@H50 ~]$ sudo systemctl start mysqld
+[jack@H50 ~]$ exit
+登出
+Connection to 192.168.4.50 closed.
+
+[root@H50 ~]# cat /var/log/sudo
+Nov  5 15:03:30 : jack : TTY=pts/2 ; PWD=/home/jack ; USER=root ; COMMAND=list
+Nov  5 15:03:52 : jack : TTY=pts/2 ; PWD=/home/jack ; USER=root ;
+    COMMAND=/bin/systemctl is-active mysqld
+Nov  5 15:04:07 : jack : TTY=pts/2 ; PWD=/home/jack ; USER=root ;
+    COMMAND=/bin/systemctl stop mysqld
+Nov  5 15:04:19 : jack : TTY=pts/2 ; PWD=/home/jack ; USER=root ;
+    COMMAND=/bin/systemctl start mysqld
+[root@H50 ~]# 
+
+[root@H50 ~]# vim /etc/ssh/sshd_config
+ 17 #Port 22
+ 18 Port  2222
+ 19 #AddressFamily any
+ 20 ListenAddress  192.168.4.50
+
+[root@H50 ~]# systemctl isolate graphical  && echo "ok"
+ok
+
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@hiys ~]# ssh -X  -p 22  root@192.168.4.50
+root@192.168.4.50's password: 
+
+[root@H50 ~]# netstat -anpult |grep  ssh
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1185/sshd           
+tcp        0      0 127.0.0.1:6010          0.0.0.0:*               LISTEN      8492/sshd: root@pts 
+tcp        0      0 127.0.0.1:6011          0.0.0.0:*               LISTEN      4986/sshd: root@pts 
+tcp        0      0 192.168.4.50:22         192.168.4.254:51186     ESTABLISHED 4986/sshd: root@pts 
+tcp        0      0 192.168.4.50:22         192.168.4.254:51340     ESTABLISHED 8492/sshd: root@pts 
+tcp6       0      0 :::22                   :::*                    LISTEN      1185/sshd           
+tcp6       0      0 ::1:6010                :::*                    LISTEN      8492/sshd: root@pts 
+tcp6       0      0 ::1:6011                :::*                    LISTEN      4986/sshd: root@pts 
+
+[root@H50 ~]# vim  /etc/ssh/sshd_config 
+ 17 Port 22
+ 18 #Port  2222
+ 19 #AddressFamily any
+ 20 #ListenAddress  192.168.4.50
+ 21 #ListenAddress 0.0.0.0
+
+
+ 39 #LoginGraceTime 2m
+ 40 #PermitRootLogin yes
+ 41 #StrictModes yes
+ 42 #MaxAuthTries 6
+ 43 #MaxSessions 10
+
+100 #AllowAgentForwarding yes
+101 #AllowTcpForwarding yes
+
+110 #UseLogin no
+111 #UsePrivilegeSeparation sandbox
+112 #PermitUserEnvironment no
+113 #Compression delayed
+114 #ClientAliveInterval 0
+115 #ClientAliveCountMax 3
+116 #ShowPatchLevel no
+117 #UseDNS no
+118 #PidFile /var/run/sshd.pid
+119 #MaxStartups 10:30:100
+140 #       PermitTTY no
+141 #       ForceCommand cvs server
+142 AllowUsers  bob  tom@192.168.4.254
+
+[root@H50 ~]# tail -1 /etc/ssh/sshd_config
+AllowUsers  bob  tom@192.168.4.254
+[root@H50 ~]# 
+
+[root@H50 ~]# tail -8 /etc/passwd
+admin5:x:1005:1005::/home/admin5:/bin/bash
+apache:x:48:48:Apache:/usr/share/httpd:/sbin/nologin
+tom:x:1006:1006::/home/tom:/bin/bash
+bob:x:1007:1007::/home/bob:/bin/bash
+lucy:x:1008:1010::/home/lucy:/bin/bash
+lili:x:1009:1011::/home/lili:/bin/bash
+jack:x:1010:1012::/home/jack:/bin/bash
+nb:x:1011:1013::/home/nb:/bin/bash
+[root@H50 ~]# 
+[root@H50 ~]# echo 123 |passwd --stdin bob
+更改用户 bob 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# echo 123 |passwd --stdin tom
+更改用户 tom 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@H50 ~]# 
+[root@H50 ~]# reboot
+PolicyKit daemon disconnected from the bus.
+We are no longer a registered authentication agent.
+Connection to 192.168.4.50 closed by remote host.
+Connection to 192.168.4.50 closed.
+[root@hiys ~]# ssh -X  -p 22  bob@192.168.4.50
+
+bob@192.168.4.50's password: 
+Last login: Mon Nov  5 14:48:47 2018 from 192.168.4.254
+
+[bob@H50 ~]$ pwd
+/home/bob
+[bob@H50 ~]$ exit
+登出
+Connection to 192.168.4.50 closed.
+
+/*********************141 #       ForceCommand cvs server
+142 AllowUsers  bob  tom@192.168.4.254
+***********白名单  **************/
+
+[root@hiys ~]# ssh -X  -p 22  root@192.168.4.50  ## 无法登陆原因root 不在AllowUsers白名单中
+root@192.168.4.50's password: 
+Permission denied, please try again.
+root@192.168.4.50's password: 
+Permission denied, please try again.
+root@192.168.4.50's password: 
+Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
+
+[root@hiys ~]# ssh -X  -p 22  bob@192.168.4.50
+bob@192.168.4.50's password: 
+Last login: Mon Nov  5 16:02:22 2018 from 192.168.4.254
+[bob@H50 ~]$ su - root
+密码：
+上一次登录：一 11月  5 15:41:36 CST 2018从 192.168.4.254pts/0 上
+最后一次失败的登录：一 11月  5 16:02:49 CST 2018从 192.168.4.254ssh:notty 上
+最有一次成功登录后有 3 次失败的登录尝试。
+[root@H50 ~]# vim /etc/ssh/sshd_config 
+[root@H50 ~]# cat -n /etc/ssh/sshd_config |sed -n 
+用法: sed [选项]... {脚本(如果没有其他脚本)} [输入文件]...
+
+  -n, --quiet, --silent
+                 取消自动打印模式空间
+  -e 脚本, --expression=脚本
+                 添加“脚本”到程序的运行列表
+  -f 脚本文件, --file=脚本文件
+                 添加“脚本文件”到程序的运行列表
+  --follow-symlinks
+                 直接修改文件时跟随软链接
+  -i[SUFFIX], --in-place[=SUFFIX]
+                 edit files in place (makes backup if SUFFIX supplied)
+  -c, --copy
+                 use copy instead of rename when shuffling files in -i mode
+  -b, --binary
+                 does nothing; for compatibility with WIN32/CYGWIN/MSDOS/EMX (
+                 open files in binary mode (CR+LFs are not treated specially))
+  -l N, --line-length=N
+                 指定“l”命令的换行期望长度
+  --posix
+                 关闭所有 GNU 扩展
+  -r, --regexp-extended
+                 在脚本中使用扩展正则表达式
+  -s, --separate
+                 将输入文件视为各个独立的文件而不是一个长的连续输入
+  -u, --unbuffered
+                 从输入文件读取最少的数据，更频繁的刷新输出
+  -z, --null-data
+                 separate lines by NUL characters
+  --help
+                 display this help and exit
+
+
+[root@H50 ~]# cat -n /etc/ssh/sshd_config |sed -n "$p"
+[root@H50 ~]# echo $?
+0
+[root@H50 ~]# cat -n /etc/ssh/sshd_config |sed -n "141,$p"
+sed：-e 表达式 #1，字符 4：意外的“,”
+[root@H50 ~]# cat -n /etc/ssh/sshd_config |sed -n "/PermitTTY/,$p"
+sed：-e 表达式 #1，字符 12：意外的“,”
+[root@H50 ~]# cat -n /etc/ssh/sshd_config |tail -2
+   141	#	ForceCommand cvs server
+   142	AllowUsers  bob root tom@192.168.4.254
+[root@H50 ~]# reboot
+Connection to 192.168.4.50 closed by remote host.
+Connection to 192.168.4.50 closed.
+[root@hiys ~]# 
+
+[root@hiys ~]# ssh -X  -p 22  root@192.168.4.50
+root@192.168.4.50's password: 
+
+
+[root@H50 ~]# vim /etc/ssh/sshd_config 
+
+141 #       ForceCommand cvs server
+142 #AllowUsers  bob root tom@192.168.4.254o  ##以空格分隔用户
+143 DenyGroups  webadmin
+144 DenyUsers   bob
+
+[root@H50 ~]# reboot
+Connection to 192.168.4.50 closed by remote host.
+Connection to 192.168.4.50 closed.
+
+[root@hiys ~]# ssh -X  -p 22  bob@192.168.4.50
+bob@192.168.4.50's password: 
+Permission denied, please try again.
+bob@192.168.4.50's password: 
+Permission denied, please try again.
+bob@192.168.4.50's password: 
+Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
+
+[root@hiys ~]# ssh -X  -p 22  lucy@192.168.4.50
+lucy@192.168.4.50's password: 
+Permission denied, please try again.
+lucy@192.168.4.50's password: 
+Permission denied, please try again.
+lucy@192.168.4.50's password: 
+Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
+
+[root@hiys ~]# ssh -X  -p 22  nb@192.168.4.50
+nb@192.168.4.50's password: 
+/usr/bin/xauth:  file /home/nb/.Xauthority does not exist
+[nb@H50 ~]$ pwd
+/home/nb
+[nb@H50 ~]$ exit
+登出
+Connection to 192.168.4.50 closed.
+
+[root@hiys ~]# ssh -X  -p 22  root@192.168.4.50
+root@192.168.4.50's password: 
+Last login: Mon Nov  5 16:18:42 2018 from 192.168.4.254
+[root@H50 ~]# grep admin /etc/group
+admin2:x:1002:
+admin3:x:1003:
+admin4:x:1004:
+admin5:x:1005:
+webadmin:x:1008:lucy,lili
+dbadmin:x:1009:jack,nb
+[root@H50 ~]# 
+
+[root@H50 ~]# vim /etc/ssh/sshd_config 
+[root@H50 ~]# systemctl restart  sshd
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@hiys ~]# ssh -X  root@192.168.4.50
+root@192.168.4.50's password: 
+Last login: Mon Nov  5 16:24:50 2018 from 192.168.4.254
+[root@H50 ~]# tail -3 /etc/ssh/sshd_config 
+#AllowUsers  bob root tom@192.168.4.254o
+#DenyGroups  webadmin
+#DenyUsers   bob
+[root@H50 ~]# 
+
+
+========================== ssh-keygen  ==========================
+[root@H50 ~]# ls  /root/.ssh/
+known_hosts
+[root@H50 ~]# rm -f /root/.ssh/*
+[root@H50 ~]# ls  /root/.ssh/
+[root@H50 ~]# 
+
+
+[root@H51 ~]# ls /root/.ssh/
+id_rsa     id_rsa.pub      known_hosts
+[root@H51 ~]# rm -rf /root/.ssh/*
+[root@H51 ~]# ls /root/.ssh/
+[root@H51 ~]# ssh-keygen  #默认RSA加密算法 [ 指定算法 ssh-keygen  -t rsa 或  -t dsa ]
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 回车确认
+Enter passphrase (empty for no passphrase):  回车确认
+Enter same passphrase again:  回车确认
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:5SrpJ53YbyyvNoOg3rb+rxdqa59SqVqqTGcYf07oHDU root@H51
+The key's randomart image is:
++---[RSA 2048]----+
+|                 |
+|                 |
+|          .      |
+|         o       |
+|  .   E S..      |
+|   +.o o+.       |
+|  o.*.*O.+       |
+| o.*.OX.@.o      |
+| .++O**@=Oo      |
++----[SHA256]-----+
+[root@H51 ~]# ls /root/.ssh/
+id_rsa [私有钥匙 文件]         id_rsa.pub [公钥匙文件]
+[root@H51 ~]# 
+[root@H51 ~]# ssh-copy-id  root@192.168.4.50
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/root/.ssh/id_rsa.pub"
+...................................................
+Are you sure you want to continue connecting (yes/no)? yes
+...........................
+root@192.168.4.50's password:  123  回车确认
+...............................
+[root@H51 ~]# 
+[root@H51 ~]# ls /root/.ssh/
+id_rsa [私有钥匙 文件]         id_rsa.pub [公钥匙文件]   known_hosts
+[root@H51 ~]# 
+[root@H51 ~]# cat /root/.ssh/known_hosts 
+192.168.4.50 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLbeZn0oixXQQEAEclKnr1zideN3MmtD9EfVZwn7NJu8qcJ/UJB4DnHsAfe+y0hOkv0bF+ek23RuH3YfeT4WWMY=
+[root@H51 ~]# 
+
+[root@H50 ~]# ls  /root/.ssh/
+authorized_keys   公钥匙库:存放授权客户机51的公钥文本
+
+[root@H50 ~]# cat /root/.ssh/authorized_keys 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCr94QdRPkjeJpX+QglOQg44Ikz6Cby7AD1fNqVQ8COMFcMizyvpr5EBGVL1T+3m6iFA0XhH95Z546Tb14agJo/TuAepdHmQ59vQCqNoqrLX07nbsJ2peUG3ekDX64cme4wJ7TxyscZcRpuNI8jgyadF/1PdR8RpNq0HUD2RFhPhRx9CwJHHxJyZCADaMn07UwIsCdnWgZbEVV94476h3dtva/KyjJLmz7GuBo52zkVcB6shOl9KQx+6bagXbQ4bF8hIM7U16hmCHL5oGYSZAo63zxrudRtuABm21/itjLAZmf4WQnVhHqLL/vYhCNSAm59fZbaiN+AfAo2aCGuS5Y1 root@H51
+
+[root@H50 ~]# 
+
+[root@H51 ~]# ssh  root@192.168.4.50
+Last login: Mon Nov  5 16:47:42 2018 from 192.168.4.254
+[root@H50 ~]# pwd
+/root
+[root@H50 ~]# hostname
+H50
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@H51 ~]# hostname
+H51
+[root@H51 ~]# 
+
+[root@H50 ~]# 
+ 66 #PermitEmptyPasswords no
+ 67 PasswordAuthentication yes
+[root@H50 ~]# vim /etc/ssh/sshd_config 
+ 67 #PasswordAuthentication yes
+ 68 PasswordAuthentication  no
+
+[root@H50 ~]# systemctl restart sshd
+
+[root@H50 ~]# sed -n 66,+2p  /etc/ssh/sshd_config
+#PermitEmptyPasswords no
+#PasswordAuthentication yes
+PasswordAuthentication  no
+[root@H50 ~]#  ls  /root/.ssh/
+authorized_keys  公钥匙库:存放授权客户机51的公钥文本
+
+
+[root@H51 ~]# hostname
+H51
+[root@H51 ~]#  ls  /root/.ssh/
+id_rsa [私有钥匙 文件]         id_rsa.pub [公钥匙文件]    known_hosts
+[root@H51 ~]# ssh  bob@192.168.4.50  
+
+##不能登陆的原因50 主机/etc/ssh/sshd_config设置了禁用密码登陆 PasswordAuthentication  no 
+
+Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+
+/***********
+[root@H50 ~]# vim /etc/ssh/sshd_config
+ 17 #Port 22
+ 18 #Port  2222
+
+ 24 HostKey /etc/ssh/ssh_host_rsa_key
+ 25 #HostKey /etc/ssh/ssh_host_dsa_key
+ 26 HostKey /etc/ssh/ssh_host_ecdsa_key
+ 27 HostKey /etc/ssh/ssh_host_ed25519_key
+
+ 45 #PubkeyAuthentication yes
+ 46 
+ 47 # The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
+ 48 # but this is overridden so installations will only check .ssh/authorized_keys
+ 49 AuthorizedKeysFile      .ssh/authorized_keys
+
+ 66 #PermitEmptyPasswords no
+ 67 PasswordAuthentication yes  ## 设置了 允许 密码登陆 PasswordAuthentication  yes
+[root@H50 ~]# sed  -n 67p /etc/ssh/sshd_config
+PasswordAuthentication yes
+[root@H50 ~]# systemctl restart sshd
+sshd@                sshd-keygen.service  sshd.service         sshd.socket
+[root@H50 ~]# systemctl restart sshd
+
+/************************************************
+        ##能够登陆的原因50 主机/etc/ssh/sshd_config
+      ## 设置了 允许 密码登陆 PasswordAuthentication  yes
+ 
+[root@H53 ~]# ssh  bob@192.168.4.50
+......................................
+Are you sure you want to continue connecting (yes/no)? yes
+..........................
+bob@192.168.4.50's password: 
+................................
+[bob@H50 ~]$ pwd
+/home/bob
+[bob@H50 ~]$ hostname
+H50
+[bob@H50 ~]$ echo $PATH
+/usr/local/mongodb/bin/:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/bob/.local/bin:/home/bob/bin
+[bob@H50 ~]$ exit
+登出
+Connection to 192.168.4.50 closed.
+[root@H53 ~]# echo $USER
+root
+[root@H53 ~]# 
+
+*****************/
+
+[root@H51 ~]# ssh  root@192.168.4.50
+Last login: Mon Nov  5 16:58:06 2018 from 192.168.4.51
+[root@H50 ~]# hostname
+H50
+[root@H50 ~]# whoami
+root
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@H51 ~]# 
+
+[root@H52 ~]# rm -f  /root/.ssh/known_hosts 
+[root@H52 ~]# ls /root/.ssh/
+[root@H52 ~]# scp  root@192.168.4.51:/root/.ssh/id_rsa  /root/.ssh/
+The authenticity of host '192.168.4.51 (192.168.4.51)' can't be established.
+ECDSA key fingerprint is SHA256:59Byua15gv4TAVEm7YutMtmgXfxGTYbzSfO84kICu0E.
+ECDSA key fingerprint is MD5:7e:6e:95:ed:84:fe:5b:8e:26:94:73:9b:c3:4b:90:cb.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '192.168.4.51' (ECDSA) to the list of known hosts.
+root@192.168.4.51's password: 
+id_rsa                                                             100% 1679     2.5MB/s   00:00    
+[root@H52 ~]# ls /root/.ssh/
+id_rsa  known_hosts
+[root@H52 ~]# ls -ld /root/.ssh/id_rsa 
+-rw-------. 1 root root 1679 11月  5 17:27 /root/.ssh/id_rsa
+[root@H52 ~]# ls -l /root/.ssh/id_rsa 
+-rw-------. 1 root root 1679 11月  5 17:27 /root/.ssh/id_rsa
+[root@H52 ~]# ssh -X root@192.168.4.50
+The authenticity of host '192.168.4.50 (192.168.4.50)' can't be established.
+ECDSA key fingerprint is SHA256:59Byua15gv4TAVEm7YutMtmgXfxGTYbzSfO84kICu0E.
+ECDSA key fingerprint is MD5:7e:6e:95:ed:84:fe:5b:8e:26:94:73:9b:c3:4b:90:cb.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '192.168.4.50' (ECDSA) to the list of known hosts.
+Last login: Mon Nov  5 17:10:12 2018 from 192.168.4.51
+[root@H50 ~]# hostname
+H50
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@H52 ~]# ssh -X root@192.168.4.50
+Last login: Mon Nov  5 17:29:37 2018 from 192.168.4.52
+[root@H50 ~]# hostname
+H50
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@H52 ~]# 
+[root@H52 ~]# cat  /root/.ssh/known_hosts 
+192.168.4.51 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLbeZn0oixXQQEAEclKnr1zideN3MmtD9EfVZwn7NJu8qcJ/UJB4DnHsAfe+y0hOkv0bF+ek23RuH3YfeT4WWMY=
+192.168.4.50 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLbeZn0oixXQQEAEclKnr1zideN3MmtD9EfVZwn7NJu8qcJ/UJB4DnHsAfe+y0hOkv0bF+ek23RuH3YfeT4WWMY=
+[root@H52 ~]# 
+[root@H52 ~]# ls /root/.ssh/
+id_rsa  known_hosts
+[root@H52 ~]# cat  /root/.ssh/id_rsa 
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpgIBAAKCAQEAq/eEHUT5I3iaV/kIJTkIOOCJM+gm8uwA9XzalUPAjjBXDIs8
+.................................
+ZZR62xLgR3H3Bf9rz8DWEbFIL6PZyJnspS5ZbvM6fqyJw78bijDcGnti
+-----END RSA PRIVATE KEY-----
+[root@H52 ~]# 
+
+[root@H51 ~]# ls  /root/.ssh/
+id_rsa  id_rsa.pub  known_hosts
+[root@H51 ~]# cat /root/.ssh/id_rsa
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpgIBAAKCAQEAq/eEHUT5I3iaV/kIJTkIOOCJM+gm8uwA9XzalUPAjjBXDIs8
+.................................
+ZZR62xLgR3H3Bf9rz8DWEbFIL6PZyJnspS5ZbvM6fqyJw78bijDcGnti
+-----END RSA PRIVATE KEY-----
+
+[root@H51 ~]# cat /root/.ssh/known_hosts 
+
+192.168.4.50 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLbeZn0oixXQQEAEclKnr1zideN3MmtD9EfVZwn7NJu8qcJ/UJB4DnHsAfe+y0hOkv0bF+ek23RuH3YfeT4WWMY=
+
+[root@H51 ~]# cat /root/.ssh/id_rsa.pub 
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCr94QdRPkjeJpX+QglOQg44Ikz6Cby7AD1fNqVQ8COMFcMizyvpr5EBGVL1T+3m6iFA0XhH95Z546Tb14agJo/TuAepdHmQ59vQCqNoqrLX07nbsJ2peUG3ekDX64cme4wJ7TxyscZcRpuNI8jgyadF/1PdR8RpNq0HUD2RFhPhRx9CwJHHxJyZCADaMn07UwIsCdnWgZbEVV94476h3dtva/KyjJLmz7GuBo52zkVcB6shOl9KQx+6bagXbQ4bF8hIM7U16hmCHL5oGYSZAo63zxrudRtuABm21/itjLAZmf4WQnVhHqLL/vYhCNSAm59fZbaiN+AfAo2aCGuS5Y1 root@H51
+[root@H51 ~]# 
+
+[root@H50 ~]#  ls  /root/.ssh/
+authorized_keys
+[root@H50 ~]# cat /root/.ssh/authorized_keys 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCr94QdRPkjeJpX+QglOQg44Ikz6Cby7AD1fNqVQ8COMFcMizyvpr5EBGVL1T+3m6iFA0XhH95Z546Tb14agJo/TuAepdHmQ59vQCqNoqrLX07nbsJ2peUG3ekDX64cme4wJ7TxyscZcRpuNI8jgyadF/1PdR8RpNq0HUD2RFhPhRx9CwJHHxJyZCADaMn07UwIsCdnWgZbEVV94476h3dtva/KyjJLmz7GuBo52zkVcB6shOl9KQx+6bagXbQ4bF8hIM7U16hmCHL5oGYSZAo63zxrudRtuABm21/itjLAZmf4WQnVhHqLL/vYhCNSAm59fZbaiN+AfAo2aCGuS5Y1 root@H51
+[root@H50 ~]# 
+====================================================================
+
+[root@H52 ~]# vim /etc/selinux/config 
+[root@H52 ~]# sed -n 7p /etc/selinux/config
+SELINUX=permissive
+[root@H52 ~]# sed -n 5,+2p /etc/selinux/config
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+SELINUX=permissive
+[root@H52 ~]# sed -n 4,+2p /etc/selinux/config
+#     enforcing - SELinux security policy is enforced.
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+[root@H52 ~]# rpm -qa  |grep -i selinux
+selinux-policy-targeted-3.13.1-166.el7.noarch
+libselinux-utils-2.5-11.el7.x86_64
+libselinux-2.5-11.el7.x86_64
+libselinux-python-2.5-11.el7.x86_64
+selinux-policy-3.13.1-166.el7.noarch
+[root@H52 ~]# uname -r
+3.10.0-693.el7.x86_64
+[root@H52 ~]# getenforce 
+Permissive
+[root@H52 ~]# setenforce 1
+[root@H52 ~]# getenforce 
+Enforcing
+[root@H52 ~]# setenforce 0
+[root@H52 ~]# getenforce 
+Permissive
+
+[root@H52 ~]# sed -n '11,$p' /etc/selinux/config  # 从第11行打印到文件末尾[ 注意一定要用 '单引号',只能用 单引号 ]
+#     mls - Multi Level Security protection.
+SELINUXTYPE=targeted 
+
+                                                                   ## [ 注意一定要用 '单引号',只能用 单引号 ]
+[root@H52 ~]# sed -n '/minimum/,$p' /etc/selinux/config  # 从匹配 行 打印 到 文件末尾
+#     minimum - Modification of targeted policy. Only selected processes are protected. 
+#     mls - Multi Level Security protection.
+SELINUXTYPE=targeted 
+
+
+[root@H52 ~]# sestatus 
+anaconda-ks.cfg
+.bash_history
+.bash_logout
+.bash_profile
+.bashrc
+.cache/
+.config/
+.cshrc
+.dbshell
+.dbus/
+.esd_auth
+.ICEauthority
+.local/
+.mongorc.js
+.............................
+.ssh/
+.tcshrc
+txt.txt
+.viminfo
+.Xauthority
+................
+[root@H52 ~]# ls /etc/selinux/
+config  final  semanage.conf  targeted  tmp
+[root@H52 ~]# yum -y install httpd |tail  -3
+  httpd-tools.x86_64 0:2.4.6-67.el7        mailcap.noarch 0:2.1.41-2.el7       
+
+完毕！
+[root@H52 ~]# systemctl start httpd
+[root@H52 ~]# echo "H52 index.html" >/var/www/html/index.html
+[root@H52 ~]# curl http://192.168.4.52
+H52 index.html
+[root@H52 ~]# echo "H52 a.html" >/var/www/html/a.html
+[root@H52 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

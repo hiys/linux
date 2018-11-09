@@ -1,0 +1,221 @@
+
+[root@hiys ~]# ls /ceph/
+libev-4.15-1.el6.rf.x86_64.rpm
+lnmp_soft.tar.gz
+maxscale-2.1.2-1.rhel.7.x86_64.rpm
+mha-soft-student
+Mycat-server-1.4-beta-20150604171601-linux.tar.gz
+Mycat-server-1.6-RELEASE-20161028204710-linux.tar.gz
+mysql-5.7.17.tar
+mysql-5.7.20-linux-glibc2.12-x86_64.tar.gz
+s3cmd-2.0.1-1.el7.noarch.rpm
+
+[root@hiys ~]# ls /ceph/mha-soft-student/
+app1.cnf
+master_ip_failover
+mha4mysql-manager-0.56.tar.gz
+mha4mysql-node-0.56-0.el6.noarch.rpm
+perl-Config-Tiny-2.14-7.el7.noarch.rpm
+perl-Email-Date-Format-1.002-15.el7.noarch.rpm
+perl-Log-Dispatch-2.41-1.el7.1.noarch.rpm
+perl-Mail-Sender-0.8.23-1.el7.noarch.rpm
+perl-Mail-Sendmail-0.79-21.el7.art.noarch.rpm
+perl-MIME-Lite-3.030-1.el7.noarch.rpm
+perl-MIME-Types-1.38-2.el7.noarch.rpm
+perl-Parallel-ForkManager-1.18-2.el7.noarch.rpm
+[root@hiys ~]# 
+
+===============  VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt === [ 1 ]===========
+
+[root@hiys ~]# vim VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt
+[root@hiys ~]# cat VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt
+rh7_node:Va50:Vb50:H50:4.50:2.50:1.1.50:1.2.50:/ceph/:MySQLsetup.sh  
+rh7_node:Va51:Vb51:H51:4.51:2.51:1.1.51:1.2.51:/ceph/:MySQLsetup.sh
+rh7_node:Va52:Vb52:H52:4.52:2.52:1.1.52:1.2.52:/ceph/:MySQLsetup.sh
+rh7_node:Va53:Vb53:H53:4.53:2.53:1.1.53:1.2.53:/ceph/:MySQLsetup.sh
+rh7_node:Va54:Vb54:H54:4.54:2.54:1.1.54:1.2.54:/ceph/:MySQLsetup.sh
+rh7_node:Va55:Vb55:H55:4.55:2.55:1.1.55:1.2.55:/ceph/:MySQLsetup.sh
+rh7_node:Va56:Vb56:H56:4.56:2.56:1.1.56:1.2.56:/ceph/:MySQLsetup.sh
+rh7_node:Va57:Vb57:H57:4.57:2.57:1.1.57:1.2.57:/ceph/:MySQLsetup.sh
+rh7_node:Va58:Vb58:H58:4.58:2.58:1.1.58:1.2.58:/ceph/:MySQLsetup.sh
+[root@hiys ~]# 
+
+================== VMname-hostname-eth0-eth1-eth2-eth3-cephsh.txt == [ 2 ] ========
+
+[root@hiys ~]# vim VMname-hostname-eth0-eth1-eth2-eth3-cephsh.txt
+[root@hiys ~]# cat VMname-hostname-eth0-eth1-eth2-eth3-cephsh.txt
+rh7_node:Vc50:Vd50:H50:4.50:2.50:1.1.50:1.2.50:/ceph/:MySQLsetup.sh
+rh7_node:Vc51:Vd51:H51:4.51:2.51:1.1.51:1.2.51:/ceph/:MySQLsetup.sh
+rh7_node:Vc52:Vd52:H52:4.52:2.52:1.1.52:1.2.52:/ceph/:MySQLsetup.sh
+rh7_node:Vc53:Vd53:H53:4.53:2.53:1.1.53:1.2.53:/ceph/:MySQLsetup.sh
+rh7_node:Vc54:Vd54:H54:4.54:2.54:1.1.54:1.2.54:/ceph/:MySQLsetup.sh
+rh7_node:Vc55:Vd55:H55:4.55:2.55:1.1.55:1.2.55:/ceph/:MySQLsetup.sh
+rh7_node:Vc56:Vd56:H56:4.56:2.56:1.1.56:1.2.56:/ceph/:MySQLsetup.sh
+rh7_node:Vc57:Vd57:H57:4.57:2.57:1.1.57:1.2.57:/ceph/:MySQLsetup.sh
+rh7_node:Vc58:Vd58:H58:4.58:2.58:1.1.58:1.2.58:/ceph/:MySQLsetup.sh
+[root@hiys ~]# 
+[root@hiys ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://www.wenkuxiazai.com/doc/2931ca513c1ec5da50e27046-2.html
+
+Linux运维工程师面试题
+
+一、有文件file1
+
+1、请用shell查询file1 里面空行的所在行号
+
+awk {if($0~/^$/)print NR} file
+
+or
+
+grep -n ^$ file |awk BEGIN{FS=”:”}{print $1}
+
+2、编写ShellScript查询file1 以abc 结尾的行
+
+grep abc$ file1
+
+3、打印出file1 文件第1 到第3 行
+
+sed -n 1,3p file1
+
+head -3 file1
+
+二、如何将本地80 端口的请求转发到8080 端口，当前主机IP 为192.168.2.1
+
+Iptables -A PREROUTING -d 192.168.2.1 -p tcp -m tcp –dport 80 -j DNAT -to-destination 192.168.2.1:8080
+
+三、crontab
+
+在11 月份内，每天的早上6 点到12 点中，每隔2 小时执行一次/usr/bin/httpd.sh 怎么实现 0 6-12/2 * 11 * /usr/bin/httpd.sh
+
+四、编写个shell 脚本将	Linux面试题_文库下载https://www.wenkuxiazai.com/doc/2931ca513c1ec5da50e27046.html	/usr/local/test 目录下大于100K 的文件转移到/tmp 目录下 #!/bin/bash
+
+for file in `ls /root`
+
+do
+
+if [ -f $file ]; then
+
+if [ `ls -l $file|awk '{print $5}'` -gt 10000 ]; then
+
+mv $file /tmp/
+
+fi
+
+fi
+
+done
+
+五、简述raid0 raid1 raid5 三种工作模式的工作原理及特点。
+
+
+RAID 0：连续以位或字节为单位分割数据，并行读/写于多个磁盘上，因此具有很高的数据传输率，但它没有数据冗余，因此并不能算是真正的RAID 结构。RAID 0 只是单纯地提高性能，并没有为数据的可靠性提供保证，而且其中的一个磁盘失效将影响到所有数据。因此，RAID 0 不能应用于数据安全性要求高的场合。
+
+RAID 1：它是通过磁盘数据镜像实现数据冗余，在成对的独立磁盘上产生互为备份的数据。当原始数据繁忙时，可直接从镜像拷贝中读取数据，因此RAID 1 可以提高读取性能。RAID 1 是磁盘阵列中单位成本最高的，但提供了很高的数据安全性和可用性。当一个磁盘
+Linux面试题_文库下载https://www.wenkuxiazai.com/doc/2931ca513c1ec5da50e27046.html
+
+失效时，系统可以自动切换到镜像磁盘上读写 ，而不需要重组失效的数据。简单来说就是：镜象结构，类似于备份模式，一个数据被复制到两块硬盘上。
+
+RAID10:高可靠性与高效磁盘结构一个带区结构加一个镜象结构，因为两种结构各有优缺点，因此可以相互补充。主要用于容量不大，但要求速度和差错控制的数据库中。
+
+RAID5：分布式奇偶校验的独立磁盘结构，它的奇偶校验码存在于所有磁盘上，任何一个硬盘损坏，都可以根据其它硬盘上的校验位来重建损坏的数据。支持一块盘掉线后仍然正常运行。
+
+六、oracle 数据库备份方式
+
+物理备份：开启网络监听，备份数据库文件。
+
+RMAN 备份：通过表空间文件在RMAN 模式对ORACLE 数据备份。
+
+七、如何查看占用端口8080 的进程
+
+lsof -i:8080
+
+八、请写出apache2.X 版本的两种工作模式，以及各自工作原理。如何查看apache 当前所支持的模块，并且查看是工作在哪种模式下？
+
+答案：
+
+prefork(多进程，每个进程产生子进程)和worker（多进程，每个进程生成多个线程) prefork 的工作原理是，控制进程在最初建立“StartServers”个子进程后，为了满足MinSpareServers 设置的需要创建一个进程，等待一秒钟，继续创建两个，再等待一秒钟，继续创建四个……如此按指数级增加创建的进程数，最多达到每秒32 个，直到满足MinSpareServers 设置的值为止。这就是预派生（prefork）的	Linux面试题_文库下载https://www.wenkuxiazai.com/doc/2931ca513c1ec5da50e27046-2.html	由来。这种模式可以不必在请求到来时再产生新的进程，从而减小了系统开销以增加性能。
+
+worker 是2.0 版中全新的支持多线程和多进程混合模型的MPM。由于使用线程来处理，所以可以处理相对海量的请求，而系统资源的开销要小于基于进程的服务器。但是，worker 也使用了多进程，每个进程又生成多个线程，以获得基于进程服务器的稳定性。这种MPM 的工作方式将是Apache 2.0 的发展趋势。
+
+可以通过命令httpd -l 可以查看apache 当前的模块，如果带有worker.c 就是工作在worker 模式下，如果有prefork.c 就是工作在prefork.c 的模式下。
+
+九、你使用过监控软件吗？说说其特点
+
+1）Nagios是一款开源的免费网络监视机工具，能有效监控Windows、Linux和Unix的主机状态，交换机路由器等网络设置，打印等。在系统或服务状态异常时发出邮件或短信报警第一时间通知网站运维人员，在状态恢复后发出正常的邮件或短信通知。
+
+
+2）使用cacti 对流量进行监控。Cacti是一套基于PHP，MySQL，SNMP和RRDTool开发的网络流量检测图形分析工具。它通过snmpget来获取数据，使用RRDtool绘画图形，而且你完全不需要了解RRDtool复杂的参数。它提供了非常强大的数据和用户管理功能，可以指定每一个用户能查看树状结构、host以及任何一张图，还可以与LDAP结合进行用户验证，同时也能自己增加模块，功能非常强大和完善。
+Linux面试题_文库下载https://www.wenkuxiazai.com/doc/2931ca513c1ec5da50e27046-2.html
+
+
+
+
+
+
+
+
+
+
+
+

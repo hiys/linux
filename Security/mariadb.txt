@@ -1,0 +1,227 @@
+
+[root@H50 ~]# netstat -npult |grep :3306
+tcp6       0      0 :::3306                 :::*                    LISTEN      1541/mysqld         
+[root@H50 ~]# systemctl stop mysqld
+[root@H50 ~]# systemctl disable mysqld
+Removed symlink /etc/systemd/system/multi-user.target.wants/mysqld.service.
+
+[root@H50 ~]# netstat -npult |grep :3306
+
+[root@H50 ~]# rpm -qa |grep -i mysql
+mysql-community-client-5.7.17-1.el7.x86_64
+mysql-community-minimal-debuginfo-5.7.17-1.el7.x86_64
+mysql-community-test-5.7.17-1.el7.x86_64
+mysql-community-common-5.7.17-1.el7.x86_64
+mysql-community-devel-5.7.17-1.el7.x86_64
+mysql-community-libs-compat-5.7.17-1.el7.x86_64
+mysql-community-libs-5.7.17-1.el7.x86_64
+mysql-community-embedded-5.7.17-1.el7.x86_64
+mysql-community-embedded-compat-5.7.17-1.el7.x86_64
+mysql-community-embedded-devel-5.7.17-1.el7.x86_64
+mysql-community-server-5.7.17-1.el7.x86_64
+
+[root@H50 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk '{print $2}'
+192.168.4.50
+192.168.2.50
+201.1.1.50
+201.1.2.50
+127.0.0.1
+192.168.122.1
+IP
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.2.254
+201.1.1.254
+.......................
+[root@H50 ~]# rpm -q mysql-community-*.rpm
+未安装软件包 mysql-community-client-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-common-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-devel-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-embedded-5.7.17-1.el7.x86_64.rpm 
+
+未安装软件包 mysql-community-embedded-compat-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-embedded-devel-5.7.17-1.el7.x86_64.rpm 
+
+未安装软件包 mysql-community-libs-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-libs-compat-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-minimal-debuginfo-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-server-5.7.17-1.el7.x86_64.rpm 
+未安装软件包 mysql-community-test-5.7.17-1.el7.x86_64.rpm 
+[root@H50 ~]# 
+
+[root@H50 ~]# rpm -q  mysql-community-devel     mysql-community-embedded    mysql-community-embedded-compat      mysql-community-embedded-devel     mysql-community-libs      mysql-community-libs-compat    mysql-community-minimal-debuginfo    mysql-community-server     mysql-community-test    mysql-community-client      mysql-community-common
+
+mysql-community-devel-5.7.17-1.el7.x86_64
+mysql-community-embedded-5.7.17-1.el7.x86_64
+mysql-community-embedded-compat-5.7.17-1.el7.x86_64
+mysql-community-embedded-devel-5.7.17-1.el7.x86_64
+mysql-community-libs-5.7.17-1.el7.x86_64
+
+mysql-community-libs-compat-5.7.17-1.el7.x86_64
+mysql-community-minimal-debuginfo-5.7.17-1.el7.x86_64
+mysql-community-server-5.7.17-1.el7.x86_64
+
+mysql-community-test-5.7.17-1.el7.x86_64
+mysql-community-client-5.7.17-1.el7.x86_64
+mysql-community-common-5.7.17-1.el7.x86_64
+[root@H50 ~]# 
+
+[root@H50 ~]# yum -y remove   mysql-community-devel   mysql-community-embedded   mysql-community-embedded-compat   mysql-community-embedded-devel   mysql-community-libs   mysql-community-libs-compat  mysql-community-minimal-debuginfo   mysql-community-server   mysql-community-test  mysql-community-client    mysql-community-common
+
+..........................................
+删除:
+  mysql-community-client.x86_64 0:5.7.17-1.el7             mysql-community-common.x86_64 0:5.7.17-1.el7         
+  mysql-community-devel.x86_64 0:5.7.17-1.el7              mysql-community-embedded.x86_64 0:5.7.17-1.el7       
+  mysql-community-embedded-compat.x86_64 0:5.7.17-1.el7    mysql-community-embedded-devel.x86_64 0:5.7.17-1.el7 
+  mysql-community-libs.x86_64 0:5.7.17-1.el7               mysql-community-libs-compat.x86_64 0:5.7.17-1.el7    
+  mysql-community-minimal-debuginfo.x86_64 0:5.7.17-1.el7  mysql-community-server.x86_64 0:5.7.17-1.el7         
+  mysql-community-test.x86_64 0:5.7.17-1.el7              
+
+作为依赖被删除:
+  postfix.x86_64 2:2.10.1-6.el7                                                                                 
+
+完毕！
+[root@H50 ~]# rpm -q  mysql-community-devel  mysql-community-embedded  mysql-community-embedded-compat  mysql-community-embedded-devel  mysql-community-libs  mysql-community-libs-compat  mysql-community-minimal-debuginfo  mysql-community-server  mysql-community-test mysql-community-client   mysql-community-common
+
+未安装软件包 mysql-community-devel 
+未安装软件包 mysql-community-embedded 
+未安装软件包 mysql-community-embedded-compat 
+未安装软件包 mysql-community-embedded-devel 
+未安装软件包 mysql-community-libs 
+未安装软件包 mysql-community-libs-compat 
+未安装软件包 mysql-community-minimal-debuginfo 
+未安装软件包 mysql-community-server 
+未安装软件包 mysql-community-test 
+未安装软件包 mysql-community-client 
+未安装软件包 mysql-community-common 
+[root@H50 ~]# rpm -qa |grep -i mysql
+[root@H50 ~]# 
+[root@H50 ~]# ls /etc/my.cnf*
+/etc/my.cnf.rpmsave
+[root@H50 ~]# rm  -rf /etc/my.cnf*
+[root@H50 ~]# ls /etc/my.cnf*
+ls: 无法访问/etc/my.cnf*: 没有那个文件或目录
+[root@H50 ~]# 
+
+[root@H50 ~]# yum list |grep mariadb
+mariadb.x86_64                          1:5.5.56-2.el7             rhel7        
+mariadb-bench.x86_64                    1:5.5.56-2.el7             rhel7        
+mariadb-devel.i686                      1:5.5.56-2.el7             rhel7        
+mariadb-devel.x86_64                    1:5.5.56-2.el7             rhel7        
+mariadb-libs.i686                       1:5.5.56-2.el7             rhel7        
+mariadb-libs.x86_64                     1:5.5.56-2.el7             rhel7        
+mariadb-server.x86_64                   1:5.5.56-2.el7             rhel7        
+mariadb-test.x86_64                     1:5.5.56-2.el7             rhel7        
+[root@H50 ~]# rpm -q mariadb*
+未安装软件包 mariadb* 
+[root@H50 ~]# yum  -y install  mariadb-server |tail -4
+  mariadb.x86_64 1:5.5.56-2.el7           mariadb-libs.x86_64 1:5.5.56-2.el7    
+  perl-DBD-MySQL.x86_64 0:4.023-5.el7    
+
+完毕！
+[root@H50 ~]# id mysql
+
+
+
+[root@H50 ~]# id mysql
+uid=27(mysql) gid=27(mysql) 组=27(mysql)
+
+[root@H50 ~]# netstat -nputl  |grep :3306
+[root@H50 ~]# systemctl start mariadb
+[root@H50 ~]# netstat -nputl  |grep :3306
+tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      15743/mysqld        
+[root@H50 ~]# systemctl enable  mariadb
+Created symlink from /etc/systemd/system/multi-user.target.wants/mariadb.service to /usr/lib/systemd/system/mariadb.service.
+[root@H50 ~]# 
+[root@H50 ~]# mysqladmin  -uroot  password'123'
+mysqladmin: Unknown command: 'password123'
+[root@H50 ~]# mysqladmin  -uroot  password '123'
+[root@H50 ~]# mysql -uroot -p123
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+4 rows in set (0.00 sec)
+
+MariaDB [(none)]> exit;
+Bye
+[root@H50 ~]# 
+
+
+
+
+
+[root@H53 ~]# route del default gw 192.168.4.52
+[root@H53 ~]# route add default gw 192.168.4.254
+[root@H53 ~]#  ifconfig |awk '/inet /{print $2}';route -n |awk '{print $2}'
+192.168.4.53
+192.168.2.53
+127.0.0.1
+192.168.122.1
+IP
+Gateway
+192.168.4.254
+192.168.2.254
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+[root@H53 ~]# 
+
+[root@H53 ~]# systemctl is-active NetworkManager
+inactive
+[root@H53 ~]# systemctl start  NetworkManager
+[root@H53 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,2009 @@
+
+TCP 3次握手
+SYN(1)
+SYN,ACK(2)
+ACK (3)
+
+[root@hiys ~]# which tcpdump 
+/usr/sbin/tcpdump
+[root@hiys ~]# tcpdump
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on rhce, link-type EN10MB (Ethernet), capture size 262144 bytes
+^C
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+
+[root@hiys ~]# ifconfig |head -2
+enp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 176.121.213.81  netmask 255.255.255.0  broadcast 176.121.213.255
+
+[root@hiys ~]# tcpdump  -i  enp2s0 
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on enp2s0, link-type EN10MB (Ethernet), capture size 262144 bytes
+09:16:00.965473 STP 802.1d, Config, Flags [none], bridge-id 800d.88:f0:77:d1:6a:80.800d, length 43
+09:16:01.363119 IP 176.121.213.69.39199 > 239.255.255.250.ssdp: UDP, length 172
+^C
+^C09:16:01.363868 IP hiys.52365 > 176.121.0.100.domain: 47175+ PTR? 250.255.255.239.in-addr.arpa. (46)
+
+3 packets captured
+32 packets received by filter
+0 packets dropped by kernel
+[root@hiys ~]# 
+
+
+
+
+[root@H50 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.50
+192.168.2.50
+201.1.1.50
+201.1.2.50
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+[root@H50 ~]# which tcpdump 
+/usr/sbin/tcpdump
+[root@H50 ~]# yum provides /usr/sbin/tcpdump 
+已加载插件：langpacks, product-id, search-disabled-repos, subscription-manager
+This system is not registered with an entitlement server. You can use subscription-manager to register.
+14:tcpdump-4.9.0-5.el7.x86_64 : A network traffic monitoring tool
+源    ：rhel7
+匹配来源：
+文件名    ：/usr/sbin/tcpdump
+14:tcpdump-4.9.0-5.el7.x86_64 : A network traffic monitoring tool
+源    ：rhel7-2
+匹配来源：
+文件名    ：/usr/sbin/tcpdump
+14:tcpdump-4.9.0-5.el7.x86_64 : A network traffic monitoring tool
+源    ：@anaconda/7.4
+匹配来源：
+文件名    ：/usr/sbin/tcpdump
+[root@H50 ~]# rpm -q tcpdump
+tcpdump-4.9.0-5.el7.x86_64
+[root@H50 ~]# tcpdump 
+ .................
+options [nop,nop,TS val 1785399 ecr 1871066], length 188
+09:20:25.983057 IP H50.ssh > gateway.49638: Flags [P.], seq 4130872:4131196, ack 1801, win 295, options [nop,nop,TS val 1785399 ecr 1871066], length 324
+^C
+24192 packets captured
+24195 packets received by filter
+0 packets dropped by kernel
+[root@H50 ~]# 
+[root@H50 ~]# tcpdump  -i eth0 -A  -w /tmp/tcpdump.cap
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+^C4 packets captured
+7 packets received by filter
+0 packets dropped by kernel
+
+[root@H50 ~]# ll /tmp/tcpdump.cap
+-rw-r--r--. 1 tcpdump tcpdump 448 11月  7 09:24 /tmp/tcpdump.cap
+
+[root@H50 ~]# vim /tmp/tcpdump.cap
+[root@H50 ~]# cat /tmp/tcpdump.cap
+........................
+T$e�&BB�RT7x�RT7x�
+[root@H50 ~]# 
+[root@H50 ~]# man  tcpdump
+
+[root@H50 ~]# >/tmp/tcpdump.cap
+
+[root@H50 ~]# cat /tmp/tcpdump.cap
+
+[root@H50 ~]# tcpdump -A -c 1  -i eth0   -w /tmp/tcpdump.cap
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+1 packet captured
+1 packet received by filter
+0 packets dropped by kernel
+[root@H50 ~]# ^C
+[root@H50 ~]# cat /tmp/tcpdump.cap
+.......................
+�����w����9NAL�
+[root@H50 ~]# 
+[root@H50 ~]# tcpdump -A  -r /tmp/tcpdump.cap
+
+reading from file /tmp/tcpdump.cap, link-type EN10MB (Ethernet)
+09:27:28.164474 IP H50.ssh > gateway.49638: Flags [P.], seq 2302046835:2302046959, ack 1613573775, win 295, options [nop,nop,TS val 2207580 ecr 2293231], length 124
+E...v.@.@.8....2.........6rs`-.....'.#.....
+.!.\.".......9NAL.......w....b=H...u{d5..9.PTo{.E.....7%O.S...B;a..);..8.H..C....U...5>...3._........A....B9..=.
+@....=.G0.y.......X
+
+[root@H50 ~]# man  tcpdump
+
+NAME
+       tcpdump - 转储网络上的数据流
+
+总览 (SYNOPSIS)
+       tcpdump [ -adeflnNOpqStvx ] [ -c count ] [ -F file ]
+               [ -i interface ] [ -r file ] [ -s snaplen ]
+               [ -T type ] [ -w file ] [ expression ]
+
+描述 (DESCRIPTION)
+       Tcpdump 打印出 在某个 网络界面 上, 匹配 布尔表达式 expression 的报文 的 报头.
+
+       对于  SunOS  的 nit 或 bpf 界面: 要 运行 tcpdump , 你 必须 有 /dev/nit 或 /dev/bpf* 的
+       读访问 权限.
+
+       对于 Solaris 的 dlpi: 你 必须 有 网络仿真设备 (network pseudo device), 如  /dev/le  的
+..........................
+选项 (OPTIONS)
+       -a     试着 把 网络和广播地址 转换成 名称.
+
+       -c     当 收到 count 报文 后 退出.
+
+       -d     把 编译好的 报文匹配代码 (packet-matching code) 翻译成 可读形式, 传往 标准输出,
+              然后退出.
+
+       -dd    把 报文匹配代码 (packet-matching code) 以 C 程序片断 的 形式 输出.
+
+       -ddd   把 报文匹配代码 (packet-matching code) 以 十进制数 形式 输出 (前面 加上 总数).
+
+       -e     显示 链路层报头.
+
+       -f     以  数字形式  显示  '外部的'  互联网地址,  而不是 字符形式 (这个 选项 用来 绕开
+              脑壳坏光的 SUN 黄页服务器 的 问题 — 一般说来 当它 翻译 外部网络 的 数字地址  时
+              会长期挂起).
+
+       -F     把 file 的内容 用作 过滤表达式. 忽略 命令行 上 的 表达式.
+
+       -i     监听  interface.   如果  不指定  接口,  tcpdump  在  系统 的 接口 清单 中, 寻找
+              号码最小, 已经 配置好的 接口 (loopback 除外). 选中的时候 会 中断 连接.
+
+       -l     行缓冲 标准输出. 可用于 捕捉 数据 的 同时 查看 数据. 例如,
+              ``tcpdump  -l  |  tee dat'' or ``tcpdump  -l   > dat  &  tail  -f  dat''.
+
+       -n     不要把 地址 转换成 名字 (指的是 主机地址, 端口号等)
+       -n     不要把 地址 转换成 名字 (指的是 主机地址, 端口号等)
+
+       -N     不显示 主机名字 中的 域名 部分. 例如,  如果  使用  这个  选项,  tcpdump  只显示
+              ``nic'', 而不是 ``nic.ddn.mil''.
+
+       -O     禁止运行  报文匹配代码  的  优化器.  这个选项  只有  当你 怀疑 优化器 有 bug 时
+              才有用.
+
+       -p     禁止 把 接口 置成 promiscuous(杂凑) 模式. 注意, 接口 有可能 因 其他原因 而 处于
+              promiscuous  模式;  因此,  '-p'  不能 作为 `ether host {local-hw-addr} 或 ether
+              broadcast' 的 简写.
+
+       -q     快速输出. 显示 较少的 协议信息, 输出行 会 短一点点.
+
+       -r     从 file 中 读入 数据报 (文件 是用 -w 选项 创建的).  如果 file  是  ``-'',  就从
+              标准输入 读入.
+
+       -s     从每个  报文 中 截取 snaplen 字节的数据, 而不是 缺省的 68 (如果是 SunOS 的 NIT,
+              最小值是 96). 68  个字节  适用于  IP,  ICMP,  TCP  和  UDP,  但是  有可能  截掉
+              名字服务器  和  NFS  报文 的 协议 信息 (见下文).  输出时 如果指定 ``[|proto]'',
+              tcpdump 可以 指出 那些 捕捉量过小 的 数据报,  这里的  proto  是  截断发生处  的
+              协议层  名称.   注意,  采用 更大的 捕捉范围 不但 增加了 处理 报文 的 时间, 而且
+              减少了 报文的 缓冲 数量, 可能 导致 报文的丢失. 你 应该 把 snaplen 设的  尽量小,
+              只要 能够 容纳 你 需要 的 协议信息 就可以了.
+
+       -T     把 通过 "expression" 挑选出来的 报文 解释成 指定的 type.  目前 已知 的 类型 有:
+              rpc (远程过程调用 Remote Procedure Call), rtp (实时应用协议 Real-Time  Applica‐
+              tions  protocol),  rtcp (实时应用控制协议 Real-Time Applications control proto‐
+              col), vat (可视音频工具 Visual Audio Tool), 和 wb (分布式白板 distributed White
+              Board).
+       -S     显示 绝对的, 而不是 相对的 TCP 流序号.
+
+       -t     禁止 显示 时戳标志.
+
+       -tt    显示 未格式化的 时戳标志.
+
+       -v     (稍微多一点) 繁琐的输出. 例如, 显示 IP 数据报 中的 生存周期 和 服务类型.
+
+       -vv    更繁琐的输出. 例如, 显示 NFS 应答报文 的 附加域.
+
+       -w     把  原始报文 存进 file, 不做 分析 和 显示. 它们 可以 以后 用 -r 选项 显示. 如果
+              file 是 ``-'', 就 写往 标准输出.
+
+       -x     以 16 进制数 形式 显示 每一个 报文 (去掉链路层报头后) .  可以 显示 较小的  完整
+              报文, 否则 只 显示 snaplen 个 字节 .
+
+       expression
+              用来  选择  要 转储 的 数据报.  如果 没有 指定 expression , 就 转储 网络的 全部
+              报文.  否则, 只转储 相对 expression 为 `true' 的 数据报.
+
+              expression 由 一个或多个 原语 (primitive) 组成. 原语 通常  由  一个  标识  (id,
+              名称或数字),  和 标识 前面的 一个或多个 修饰子(qualifier) 组成.  修饰子 有 三种
+              不同的类型:
+........................
+[root@H50 ~]# tcpdump -h
+tcpdump version 4.9.0
+libpcap version 1.5.3
+OpenSSL 1.0.1e-fips 11 Feb 2013
+Usage: tcpdump [-aAbdDefhHIJKlLnNOpqStuUvxX#] [ -B size ] [ -c count ]
+		[ -C file_size ] [ -E algo:secret ] [ -F file ] [ -G seconds ]
+		[ -i interface ] [ -j tstamptype ] [ -M secret ] [ --number ]
+		[ -Q|-P in|out|inout ]
+		[ -r file ] [ -s snaplen ] [ --time-stamp-precision precision ]
+		[ --immediate-mode ] [ -T type ] [ --version ] [ -V file ]
+		[ -w file ] [ -W filecount ] [ -y datalinktype ] [ -z postrotate-command ]
+		[ -Z user ] [ expression ]
+[root@H50 ~]# tcpdump --help
+....................
+[root@H50 ~]# sed -n 65,67p /etc/ssh/sshd_config 
+#PasswordAuthentication yes
+#PermitEmptyPasswords no
+PasswordAuthentication yes
+[root@H50 ~]# netstat -unptl |grep -E ':3306|:6351|:80|:21|:22'
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1184/sshd           
+tcp6       0      0 :::80                   :::*                    LISTEN      1201/httpd          
+tcp6       0      0 :::21                   :::*                    LISTEN      1234/vsftpd         
+tcp6       0      0 :::22                   :::*                    LISTEN      1184/sshd           
+tcp6       0      0 :::3306                 :::*                    LISTEN      1492/mysqld         
+[root@H50 ~]# tcpdump  -i eth0 -A tcp port 22
+..........................
+IP H50.ssh > gateway.49638.....4em.."......,)...p...t.....2A*q.....[x.....:...F.t`.
+^C
+3487 packets captured
+5063 packets received by filter
+1544 packets dropped by kernel
+[root@H50 ~]#
+
+[root@H50 ~]# tcpdump  -i eth0 -A -c 1 -w  /tmp/ssh.cap  tcp port 22
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+1 packet captured
+2 packets received by filter
+0 packets dropped by kernel
+[root@H50 ~]# tcpdump  -A -r /tmp/ssh.cap 
+reading from file /tmp/ssh.cap, link-type EN10MB (Ethernet)
+09:48:27.365225 IP H50.ssh > gateway.49638: Flags [P.], seq 2310670971:2310671095, ack 1613603387, win 295, options [nop,nop,TS val 3466781 ecr 3552452], length 124
+E.....@.@..0...2..........
+{`-.;...'.#.....
+.4...64..$.|O(.x.uw....K.O....0.6...............f....t..v.. ...........#$..ej1.w.7..G.@..HN......0;u..MB......M.l..........[.v. ..3.
+[root@H50 ~]# 
+
+
+[root@H50 ~]# tcpdump  -i eth0 -A -c 1   tcp port 22 and host 192.168.4.51
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+09:51:48.772396 IP 192.168.4.51.59494 > H50.ssh: Flags [P.], seq 1403230571:1403230607, ack 174630009, win 329, options [nop,nop,TS val 3668023 ecr 3630795], length 36
+E..X.;@.@......3...2.f..S..k
+h.y...I.......
+.7.7.7f.O?.......HO....@.[v..).}F.A.$.	K..1.
+1 packet captured
+1 packet received by filter
+0 packets dropped by kernel
+[root@H50 ~]# tcpdump  -A -r /tmp/ssh.cap 
+reading from file /tmp/ssh.cap, link-type EN10MB (Ethernet)
+[root@H50 ~]# 
+[root@H50 ~]# ls /var/www/html/
+index.html  son  test2.html  test.html
+[root@H50 ~]# curl  192.168.4.50/test.html
+H50 test
+[root@H50 ~]# tcpdump  -i eth0 -A -c 1   tcp portrange  22-3306  and host 192.168.4.51
+
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+09:57:24.397072 IP gateway.39596 > 192.168.4.51.ssh: Flags [P.], seq 2107583706:2107583774, ack 2887833122, win 371, options [nop,nop,TS val 4089499 ecr 3668918], length 68
+E..xH.@.@.gh.......3....}.,.. ."...s.......
+.>f..7.......].. ......|/a^(..0.Q..
+..J....R{..Y.+V;........zo).}(..S.X.8.Vo
+1 packet captured
+1 packet received by filter
+0 packets dropped by kernel
+[root@H50 ~]# 
+
+[root@H50 ~]# tcpdump  -i eth0 -A -c 1   tcp portrange  20-3306  and host 192.168.4.51
+
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+10:00:52.985924 IP 192.168.4.51.54700 > H50.ftp: Flags [S], seq 1581819137, win 29200, options [mss 1460,sackOK,TS val 4212237 ecr 0,nop,wscale 7], length 0
+E..<..@.@......3...2....^H........r............
+.@F.........
+1 packet captured
+3 packets received by filter
+0 packets dropped by kernel
+
+[root@H50 ~]# 
+[root@H50 ~]# 
+[root@H50 ~]# tcpdump  -i eth0 -A -c 3   tcp portrange  20-3306  and host 192.168.4.51
+
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+10:01:38.999410 IP 192.168.4.51.54700 > H50.ftp: Flags [P.], seq 1581819161:1581819167, ack 1993183476, win 229, options [nop,nop,TS val 4258250 ecr 4217144], length 6: FTP: PASV
+E..:..@.@......3...2....^H..v..............
+.@...@Y8PASV
+
+10:01:39.003737 IP H50.ftp > 192.168.4.51.54700: Flags [P.], seq 1:52, ack 6, win 227, options [nop,nop,TS val 4258419 ecr 4258250], length 51: FTP: 227 Entering Passive Mode (192,168,4,50,248,155).
+E..g.+@.@......2...3....v...^H.............
+.@.s.@..227 Entering Passive Mode (192,168,4,50,248,155).
+
+10:01:39.004131 IP 192.168.4.51.54700 > H50.ftp: Flags [.], ack 52, win 229, options [nop,nop,TS val 4258255 ecr 4258419], length 0
+E..4..@.@......3...2....^H..v..'...........
+.@...@.s
+3 packets captured
+3 packets received by filter
+0 packets dropped by kernel
+
+[root@H50 ~]# 
+[root@H50 ~]# firewall-cmd  --get-default-zonnot running
+not running
+FirewallD is not running
+[root@H50 ~]# getsebool  -a |grep -i ftpd
+ftpd_anon_write --> on
+ftpd_connect_all_unreserved --> off
+ftpd_connect_db --> off
+ftpd_full_access --> on
+ftpd_use_cifs --> off
+ftpd_use_fusefs --> off
+ftpd_use_nfs --> off
+ftpd_use_passive_mode --> off
+[root@H50 ~]#  
+
+[root@H50 ~]# sed -n '12p;29p;33p' /etc/vsftpd/vsftpd.conf
+
+anonymous_enable=YES
+anon_upload_enable=YES
+anon_mkdir_write_enable=YES
+[root@H50 ~]# 
+
+[root@H50 ~]# tcpdump  -i eth0 -A -c 3    tcp portrange  20-3306  and  dst host 192.168.4.51
+
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+10:24:00.977507 IP H50.ftp > 192.168.4.51.54704: Flags [S.], seq 1214710477, ack 257744144, win 28960, options [mss 1460,sackOK,TS val 5600393 ecr 5600228,nop,wscale 7], length 0
+E..<..@.@......2...3....Hg...\....q ...........
+.Ut..Us.....
+10:24:00.983212 IP H50.ftp > 192.168.4.51.54704: Flags [P.], seq 1:21, ack 1, win 227, options [nop,nop,TS val 5600399 ecr 5600229], length 20: FTP: 220 (vsFTPd 3.0.2)
+E..HvD@.@.:....2...3....Hg...\.............
+.Ut..Us.220 (vsFTPd 3.0.2)
+
+10:24:03.893314 IP H50.ftp > 192.168.4.51.54704: Flags [.], ack 11, win 227, options [nop,nop,TS val 5603309 ecr 5603144], length 0
+E..4vE@.@.:....2...3....Hg...\.............
+.U...U.H
+3 packets captured
+3 packets received by filter
+0 packets dropped by kernel
+[root@H50 ~]# 
+[root@H50 ~]# tcpdump  -i eth0 -A   tcp portrange  20-22  and  dst host 192.168.4.51
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+10:28:27.409336 IP H50.ftp > 192.168.4.51.54706: Flags [S.], seq 1415126637, ack 1007251904, win 28960, options [mss 1460,sackOK,TS val 5866825 ecr 5866660,nop,wscale 7], length 0
+E..<..@.@......2...3....TY.m<	q...q ...........
+.Y.I.Y......
+10:28:27.412813 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 1:21, ack 1, win 227, options [nop,nop,TS val 5866828 ecr 5866661], length 20: FTP: 220 (vsFTPd 3.0.2)
+E..H.'@.@......2...3....TY.n<	q............
+.Y.L.Y..220 (vsFTPd 3.0.2)
+
+10:28:29.637431 IP H50.ftp > 192.168.4.51.54706: Flags [.], ack 11, win 227, options [nop,nop,TS val 5869053 ecr 5868888], length 0
+E..4.(@.@......2...3....TY..<	q............
+.Y...Y.X
+10:28:29.637777 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 21:55, ack 11, win 227, options [nop,nop,TS val 5869053 ecr 5868888], length 34: FTP: 331 Please specify the password.
+E..V.)@.@......2...3....TY..<	q............
+.Y...Y.X331 Please specify the password.
+
+10:28:30.320182 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 55:78, ack 18, win 227, options [nop,nop,TS val 5869736 ecr 5869569], length 23: FTP: 230 Login successful.
+E..K.*@.@......2...3....TY..<	q............
+.Y...Y..230 Login successful.
+
+10:28:30.321001 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 78:97, ack 24, win 227, options [nop,nop,TS val 5869736 ecr 5869572], length 19: FTP: 215 UNIX Type: L8
+E..G.+@.@......2...3....TY..<	q............
+.Y...Y..215 UNIX Type: L8
+
+10:28:40.879137 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 97:147, ack 30, win 227, options [nop,nop,TS val 5880295 ecr 5880130], length 50: FTP: 227 Entering Passive Mode (192,168,4,50,126,69).
+E..f.,@.@......2...3....TY..<	q............
+.Y...Y.B227 Entering Passive Mode (192,168,4,50,126,69).
+
+10:28:40.880495 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 147:186, ack 36, win 227, options [nop,nop,TS val 5880296 ecr 5880131], length 39: FTP: 150 Here comes the directory listing.
+E..[.-@.@......2...3....TY..<	q............
+.Y...Y.C150 Here comes the directory listing.
+
+10:28:40.881600 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 186:210, ack 36, win 227, options [nop,nop,TS val 5880297 ecr 5880131], length 24: FTP: 226 Directory send OK.
+E..L..@.@......2...3....TY.'<	q............
+.Y...Y.C226 Directory send OK.
+
+10:29:54.990084 IP H50.ftp > 192.168.4.51.54706: Flags [P.], seq 210:224, ack 42, win 227, options [nop,nop,TS val 5954406 ecr 5954241], length 14: FTP: 221 Goodbye.
+E..B./@.@......2...3....TY.?<	q............
+.Z.f.Z..221 Goodbye.
+
+10:29:54.990141 IP H50.ftp > 192.168.4.51.54706: Flags [F.], seq 224, ack 42, win 227, options [nop,nop,TS val 5954406 ecr 5954241], length 0
+E..4.0@.@......2...3....TY.M<	q............
+.Z.f.Z..
+10:29:54.991708 IP H50.ftp > 192.168.4.51.54706: Flags [.], ack 43, win 227, options [nop,nop,TS val 5954407 ecr 5954243], length 0
+E..4.1@.@......2...3....TY.N<	q............
+.Z.g.Z..
+^C
+12 packets captured
+12 packets received by filter
+0 packets dropped by kernel
+
+
+[root@H50 ~]# tcpdump  -i eth0 -A  -w  /tmp/ftp.cap  tcp portrange  20-22  and  dst host 192.168.4.51
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+^C12 packets captured
+12 packets received by filter
+0 packets dropped by kernel
+
+[root@H50 ~]# tcpdump  -A -r  /tmp/ftp.cap 
+
+reading from file /tmp/ftp.cap, link-type EN10MB (Ethernet)
+10:31:33.545425 IP H50.ftp > 192.168.4.51.54708: Flags [S.], seq 3573276513, ack 796245055, win 28960, options [mss 1460,sackOK,TS val 6052961 ecr 6052796,nop,wscale 7], length 0
+E..<..@.@......2...3.......a/u.?..q ...........
+.\\a.\[.....
+10:31:33.551222 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 1:21, ack 1, win 227, options [nop,nop,TS val 6052967 ecr 6052797], length 20: FTP: 220 (vsFTPd 3.0.2)
+E..H..@.@.-....2...3.......b/u.?...........
+.\\g.\[.220 (vsFTPd 3.0.2)
+
+10:31:35.813331 IP H50.ftp > 192.168.4.51.54708: Flags [.], ack 11, win 227, options [nop,nop,TS val 6055229 ecr 6055064], length 0
+E..4..@.@..
+...2...3.......v/u.I...........
+.\e=.\d.
+10:31:35.813493 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 21:55, ack 11, win 227, options [nop,nop,TS val 6055229 ecr 6055064], length 34: FTP: 331 Please specify the password.
+E..V..@.@.-....2...3.......v/u.I...........
+.\e=.\d.331 Please specify the password.
+
+10:31:36.688319 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 55:78, ack 18, win 227, options [nop,nop,TS val 6056104 ecr 6055937], length 23: FTP: 230 Login successful.
+E..K..@.@.-....2...3......../u.P...........
+.\h..\h.230 Login successful.
+
+10:31:36.688936 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 78:97, ack 24, win 227, options [nop,nop,TS val 6056104 ecr 6055940], length 19: FTP: 215 UNIX Type: L8
+E..G..@.@.-....2...3......../u.V...........
+.\h..\h.215 UNIX Type: L8
+
+10:31:38.502080 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 97:147, ack 30, win 227, options [nop,nop,TS val 6057918 ecr 6057753], length 50: FTP: 227 Entering Passive Mode (192,168,4,50,42,250).
+E..f..@.@.-....2...3......../u.\...........
+.\o..\o.227 Entering Passive Mode (192,168,4,50,42,250).
+
+10:31:38.503599 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 147:186, ack 36, win 227, options [nop,nop,TS val 6057919 ecr 6057754], length 39: FTP: 150 Here comes the directory listing.
+E..[.	@.@.-....2...3......../u.b...........
+.\o..\o.150 Here comes the directory listing.
+
+10:31:38.504169 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 186:210, ack 36, win 227, options [nop,nop,TS val 6057920 ecr 6057754], length 24: FTP: 226 Directory send OK.
+E..L.
+@.@.-....2...3......../u.b...........
+.\o..\o.226 Directory send OK.
+
+10:31:48.382301 IP H50.ftp > 192.168.4.51.54708: Flags [P.], seq 210:224, ack 42, win 227, options [nop,nop,TS val 6067798 ecr 6067633], length 14: FTP: 221 Goodbye.
+E..B..@.@.-....2...3.......3/u.h...........
+.\.V.\..221 Goodbye.
+
+10:31:48.382332 IP H50.ftp > 192.168.4.51.54708: Flags [F.], seq 224, ack 42, win 227, options [nop,nop,TS val 6067798 ecr 6067633], length 0
+E..4..@.@......2...3.......A/u.h...........
+.\.V.\..
+10:31:48.382969 IP H50.ftp > 192.168.4.51.54708: Flags [.], ack 43, win 227, options [nop,nop,TS val 6067798 ecr 6067634], length 0
+E..4..@.@......2...3.......B/u.i...........
+.\.V.\..
+[root@H50 ~]# ls /home
+
+[root@H50 ~]# systemctl is-active firewalld
+unknown
+[root@H50 ~]# yum list |grep  -i iptables
+iptables.x86_64                         1.4.21-18.el7              @anaconda/7.4
+iptables.i686                           1.4.21-18.el7              rhel7        
+iptables-devel.i686                     1.4.21-18.el7              rhel7        
+iptables-devel.x86_64                   1.4.21-18.el7              rhel7        
+iptables-services.x86_64                1.4.21-18.el7              rhel7   
+     
+[root@H50 ~]# rpm -qa |grep  iptables
+iptables-1.4.21-18.el7.x86_64
+
+[root@H50 ~]# yum -y install iptables*
+.......................................
+=============================================================
+ Package                      架构              版本                     源                大小
+===============================================================
+正在安装:
+ iptables-devel               x86_64    1.4.21-18.el7     rhel7             54 k
+ iptables-services            x86_64    1.4.21-18.el7     rhel7             50 k
+
+事务概要
+===========================================
+安装  2 软件包
+
+总下载量：105 k
+安装大小：56 k
+Downloading packages:
+(1/2): iptables-devel-1.4.21-18.el7.x86_64.rpm                           |  54 kB  00:00:00     
+(2/2): iptables-services-1.4.21-18.el7.x86_64.rpm                        |  50 kB  00:00:00     
+------------------------------------------------------------------------------------------------
+..............................
+已安装:
+  iptables-devel.x86_64 0:1.4.21-18.el7         iptables-services.x86_64 0:1.4.21-18.el7        
+
+完毕！
+[root@H50 ~]# 
+[root@H50 ~]# service iptables status
+Redirecting to /bin/systemctl status iptables.service
+● iptables.service - IPv4 firewall with iptables
+   Loaded: loaded (/usr/lib/systemd/system/iptables.service; disabled; vendor preset: disabled)
+   Active: inactive (dead)
+
+[root@H50 ~]# service iptables start 
+
+Redirecting to /bin/systemctl start iptables.service
+
+[root@H50 ~]# chkconfig  iptables on
+注意：正在将请求转发到“systemctl enable iptables.service”。
+Created symlink from /etc/systemd/system/basic.target.wants/iptables.service to /usr/lib/systemd/system/iptables.service.
+[root@H50 ~]# 
+
+[root@H50 ~]# service iptables status
+Redirecting to /bin/systemctl status iptables.service
+● iptables.service - IPv4 firewall with iptables
+   Loaded: loaded (/usr/lib/systemd/system/iptables.service; enabled; vendor preset: disabled)
+   Active: active (exited) since 三 2018-11-07 11:32:09 CST; 58s ago
+ Main PID: 3901 (code=exited, status=0/SUCCESS)
+
+11月 07 11:32:09 H50 systemd[1]: Starting IPv4 firewall with iptables...
+11月 07 11:32:09 H50 iptables.init[3901]: iptables: Applying firewall rules: [  确定  ]
+11月 07 11:32:09 H50 systemd[1]: Started IPv4 firewall with iptables.
+[root@H50 ~]# 
+
+[root@H50 ~]# rpm -qa |grep  iptables
+iptables-1.4.21-18.el7.x86_64
+iptables-services-1.4.21-18.el7.x86_64
+iptables-devel-1.4.21-18.el7.x86_64
+[root@H50 ~]# 
+[root@H50 ~]# systemctl is-enabled firewalld.service 
+disabled
+[root@H50 ~]# 
+/*******************
+1 ）iptables的4个表（区分大小写）：
+iptables默认有4个表，
+
+nat表（地址转换表）{OUTPUT链,POSTROUTING链,PREROUTING链 }
+
+filter表（数据过滤表）{input,forward,output}
+
+mangle表（包标记表）{OUTPUT链,FORWARD链,PREROUTING链,POSTROUTING链,input }---- 给到达防火墙主机的ip包打标签
+
+【raw表（状态跟踪表） 一般禁用，耗CPU资源{OUTPUT链, PREROUTING链 }】
+
+2）iptables的5个链（区分大小写）：
+INPUT链（入站规则）     #进入防火墙主机的ip包
+OUTPUT链（出站规则）
+FORWARD链（转发规则）  #经过防火墙主机的ip包
+
+PREROUTING链（路由前规则） #路由前
+ 
+POSTROUTING链（路由后规则） #路由后
+所有链的初始默认规则是ACCEPT
+                   #  iptables [-t 表名]  管理选项  [链名]   [条件规则]     [-j 目标操作]
+[root@proxy source1]# iptables -t filter  -I  INPUT -p icmp  -j REJECT;
+-p为指定的链 设置默认规则
+//注意事项与规律：
+//可以不指定表，默认为filter表
+//可以不指定链，默认为对应表的所有链
+//如果没有找到匹配条件，则执行防火墙默认规则
+//选项/链名/目标操作用大写字母，其余都小写
+########################################################################
+//目标操作：
+// ACCEPT：允许通过/放行
+// DROP：直接丢弃，不给出任何回应
+// REJECT：拒绝通过，必要时会给出提示
+// LOG：记录日志，然后传给下一条规则
+                         #LOG匹配即停止的唯一例外，记录日志，然后传给下一条规则
+[root@proxy ~]# iptables -t filter -I INPUT -p icmp -j LOG ;
+
+[root@proxy ~]# iptables -F  #清空所有规则-F
+## -p 为指定的链 设置默认规则 tcp ,udp ,icmp
+## -A 追加规则至 [ filter表中的INPUT ] 链的末尾
+## -I 插入规则至filter表中的INPUT链的开头
+[root@proxy ~]# iptables -t filter -A INPUT -p tcp -j ACCEPT ;
+
+# 插入规则至filter表中的INPUT链的开头，允许任何人使用UDP协议访问本机
+[root@proxy ~]# iptables -t filter -I INPUT -p udp -j ACCEPT ;
+*********************************/
+
+[root@H50 ~]# iptables -t filter  -F
+[root@H50 ~]# iptables -t raw  -F
+[root@H50 ~]# iptables -t mangle  -F
+
+[root@H50 ~]# iptables -t nat  -F
+[root@H50 ~]# service  iptables save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+[root@H50 ~]# 
+
+## -p 为指定的链 设置默认规则 tcp ,udp ,icmp
+## -A 追加规则至filter表中的INPUT链的末尾
+# -s  源地址  
+#  -d  目标地址
+### -i  收数据的网卡, -o  发数据的网卡
+
+## --dport  目标端口
+## --sport  源端口
+## --icmp-type  ICMP类型  { 用! 取反条件 }
+
+[root@H50 ~]# iptables -t filter -A INPUT  -p tcp  \
+> -s 192.168.4.254 --dport 22  -j ACCEPT
+
+[root@H50 ~]# iptables  -t filter -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     tcp  --  gateway              anywhere             tcp dpt:ssh
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination  
+       
+
+[root@H50 ~]# iptables  -t filter -P INPUT DROP
+
+[root@H50 ~]# iptables  -t filter -nL --line-number
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+
+Chain FORWARD (policy ACCEPT)
+num  target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+[root@H50 ~]# 
+[root@H50 ~]#  sed -n 17,20p  /etc/ssh/sshd_config
+Port 22
+#Port  2222
+#AddressFamily any
+#ListenAddress  192.168.4.50
+
+
+[root@H50 ~]# systemctl is-active httpd
+active
+[root@H50 ~]# iptables -t filter -A INPUT \
+> -p  tcp  --dport  80  -j ACCEPT
+[root@H50 ~]# service iptables  save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+[root@H50 ~]# iptables -t filter  -L
+Chain INPUT (policy DROP)
+target     prot opt source               destination         
+ACCEPT     tcp  --  gateway              anywhere             tcp dpt:ssh
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:http
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination   
+      
+[root@H50 ~]# curl http://192.168.4.50
+^C
+[root@H50 ~]# ls /var/www/html/
+index.html  son  test2.html  test.html
+[root@H50 ~]# curl 192.168.4.50
+^C
+[root@H50 ~]# 
+
+[root@H50 ~]# iptables -t filter  -A INPUT  -p icmp  -j ACCEPT
+[root@H50 ~]# service  iptables save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+[root@H50 ~]# iptables -t filter -nL INPUT
+Chain INPUT (policy DROP)
+target     prot opt source               destination         
+ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+[root@H50 ~]# 
+[root@H50 ~]# iptables -t filter  -A INPUT  -p icmp  -s 192.168.4.52  -j ACCEPT
+[root@H50 ~]# iptables -t filter -nL INPUT
+Chain INPUT (policy DROP)
+target     prot opt source               destination         
+ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     icmp --  192.168.4.52         0.0.0.0/0           
+[root@H50 ~]# 
+[root@H50 ~]# iptables -t filter  -D  INPUT 4  ## 删除第4 条规则
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+3    ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+[root@H50 ~]# 
+
+[root@H50 ~]# iptables -t filter  -I  INPUT 3  -p icmp  -s 192.168.4.52  -j ACCEPT
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+3    ACCEPT     icmp --  192.168.4.52         0.0.0.0/0           
+4    ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+[root@H50 ~]# 
+
+[root@H50 ~]# iptables -t filter -I INPUT 4  -p icmp  -s 192.168.4.51 -j DROP
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+3    ACCEPT     icmp --  192.168.4.52         0.0.0.0/0           
+4    DROP       icmp --  192.168.4.51         0.0.0.0/0           
+5    ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+[root@H50 ~]# 
+[root@H50 ~]# curl http://192.168.4.50
+^C
+[root@H50 ~]# systemctl is-active httpd
+active
+[root@H50 ~]# ls /var/www/html/
+index.html  son  test2.html  test.html
+[root@H50 ~]# 
+[root@H50 ~]# ping -c2  -i0.2 -w1 192.168.4.51
+PING 192.168.4.51 (192.168.4.51) 56(84) bytes of data.
+
+--- 192.168.4.51 ping statistics ---
+5 packets transmitted, 0 received, 100% packet loss, time 819ms
+
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+3    ACCEPT     icmp --  192.168.4.52         0.0.0.0/0           
+4    DROP       icmp --  192.168.4.51         0.0.0.0/0           
+5    ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+[root@H50 ~]# ping -c2  -i0.2 -w1 192.168.4.53
+PING 192.168.4.53 (192.168.4.53) 56(84) bytes of data.
+64 bytes from 192.168.4.53: icmp_seq=1 ttl=64 time=0.948 ms
+64 bytes from 192.168.4.53: icmp_seq=2 ttl=64 time=0.455 ms
+
+--- 192.168.4.53 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 200ms
+rtt min/avg/max/mdev = 0.455/0.701/0.948/0.247 ms
+[root@H50 ~]# 
+
+[root@H50 ~]# iptables -t filter  -D INPUT 5
+[root@H50 ~]# iptables -t filter  -D INPUT 4
+[root@H50 ~]# iptables -t filter  -D INPUT 3
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0            tcp dpt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+[root@H50 ~]# 
+## -p 为指定的链 设置默认规则 tcp ,udp ,icmp
+## -A 追加规则至filter表中的INPUT链的末尾
+# -s  源地址  
+#  -d  目标地址
+### -i  收数据的网卡, -o  发数据的网卡
+
+## --dport  目标端口
+## --sport  源端口
+## --icmp-type  ICMP类型  { 用! 取反条件 }
+
+echo-request (ping)  #ping 请求包
+echo-reply (pong)   ## 回应
+
+[root@H50 ~]# iptables -t filter  -A INPUT  -p icmp --help
+iptables v1.4.21
+
+Usage: iptables -[ACD] chain rule-specification [options]
+       iptables -I chain [rulenum] rule-specification [options]
+       iptables -R chain rulenum rule-specification [options]
+       iptables -D chain rulenum [options]
+       iptables -[LS] [chain [rulenum]] [options]
+       iptables -[FZ] [chain] [options]
+       iptables -[NX] chain
+       iptables -E old-chain-name new-chain-name
+       iptables -P chain target [options]
+       iptables -h (print this help information)
+
+Commands:
+Either long or short options are allowed.
+  --append  -A chain		Append to chain
+  --check   -C chain		Check for the existence of a rule
+  --delete  -D chain		Delete matching rule from chain
+  --delete  -D chain rulenum
+				Delete rule rulenum (1 = first) from chain
+  --insert  -I chain [rulenum]
+				Insert in chain as rulenum (default 1=first)
+  --replace -R chain rulenum
+				Replace rule rulenum (1 = first) in chain
+  --list    -L [chain [rulenum]]
+				List the rules in a chain or all chains
+  --list-rules -S [chain [rulenum]]
+				Print the rules in a chain or all chains
+  --flush   -F [chain]		Delete all rules in  chain or all chains
+  --zero    -Z [chain [rulenum]]
+				Zero counters in chain or all chains
+  --new     -N chain		Create a new user-defined chain
+  --delete-chain
+            -X [chain]		Delete a user-defined chain
+  --policy  -P chain target
+				Change policy on chain to target
+  --rename-chain
+            -E old-chain new-chain
+				Change chain name, (moving any references)
+Options:
+    --ipv4	-4		Nothing (line is ignored by ip6tables-restore)
+    --ipv6	-6		Error (line is ignored by iptables-restore)
+[!] --protocol	-p proto	protocol: by number or name, eg. `tcp'
+[!] --source	-s address[/mask][...]
+				source specification
+[!] --destination -d address[/mask][...]
+				destination specification
+[!] --in-interface -i input name[+]
+				network interface name ([+] for wildcard)
+ --jump	-j target
+				target for rule (may load target extension)
+  --goto      -g chain
+                              jump to chain with no return
+  --match	-m match
+				extended match (may load extension)
+  --numeric	-n		numeric output of addresses and ports
+[!] --out-interface -o output name[+]
+				network interface name ([+] for wildcard)
+  --table	-t table	table to manipulate (default: `filter')
+  --verbose	-v		verbose mode
+  --wait	-w [seconds]	maximum wait to acquire xtables lock before give up
+  --wait-interval -W [usecs]	wait time to try to acquire xtables lock
+				default is 1 second
+  --line-numbers		print line numbers when listing
+  --exact	-x		expand numbers (display exact values)
+[!] --fragment	-f		match second or further fragments only
+  --modprobe=<command>		try to insert modules using this command
+  --set-counters PKTS BYTES	set the counter during insert/append
+[!] --version	-V		print package version.
+
+icmp match options:
+[!] --icmp-type typename	match icmp type
+[!] --icmp-type type[/code]	(or numeric type or type/code)
+Valid ICMP Types:
+any
+echo-reply (pong)  ## 返回,回应包
+destination-unreachable
+   network-unreachable
+   host-unreachable
+   protocol-unreachable
+   port-unreachable
+   fragmentation-needed
+   source-route-failed
+   network-unknown
+   host-unknown
+   network-prohibited
+   host-prohibited
+   TOS-network-unreachable
+   TOS-host-unreachable
+   communication-prohibited
+   host-precedence-violation
+   precedence-cutoff
+source-quench
+redirect
+   network-redirect
+   host-redirect
+   TOS-network-redirect
+   TOS-host-redirect
+echo-request (ping)  #ping 请求包
+router-advertisement
+router-solicitation
+time-exceeded (ttl-exceeded)
+   ttl-zero-during-transit
+   ttl-zero-during-reassembly
+parameter-problem
+   ip-header-bad
+   required-option-missing
+timestamp-request
+timestamp-reply
+address-mask-request
+address-mask-reply
+[root@H50 ~]# 
+
+/********* #iptables  -t filter -A INPUT  -p  icmp  -s 192.168.4.51  ! --icmp-type  echo-request -j ACCEPT
+[root@H50 ~]# iptables -t filter  -A INPUT  -p icmp  --icmp-type  echo-reply \
+> -j ACCEPT 
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  192.168.4.254        0.0.0.0/0    tcp dpt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    tcp dpt:80
+3    ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0    icmptype 0 ## 这里0 表示echo-reply
+[root@H50 ~]# iptables -t filter -L INPUT --line-numbers
+Chain INPUT (policy DROP)
+num  target     prot opt source         destination         
+1    ACCEPT     tcp  --  gateway        anywhere     tcp dpt:ssh
+2    ACCEPT     tcp  --  anywhere      anywhere     tcp dpt:http
+3    ACCEPT     icmp --  anywhere     anywhere     icmp echo-reply ## 这里 echo-reply 表示0
+
+[root@H50 ~]# service iptables save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+
+[root@H50 ~]# ping -c2  -i0.2 -w1 192.168.4.51
+PING 192.168.4.51 (192.168.4.51) 56(84) bytes of data.
+64 bytes from 192.168.4.51: icmp_seq=1 ttl=64 time=0.661 ms
+64 bytes from 192.168.4.51: icmp_seq=2 ttl=64 time=0.563 ms
+
+--- 192.168.4.51 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 200ms
+rtt min/avg/max/mdev = 0.563/0.612/0.661/0.049 ms
+[root@H50 ~]# 
+[root@H51 ~]# ping -c2 -i0.2 -w1 192.168.4.50
+PING 192.168.4.50 (192.168.4.50) 56(84) bytes of data.
+
+--- 192.168.4.50 ping statistics ---
+5 packets transmitted, 0 received, 100% packet loss, time 829ms
+
+[root@H51 ~]# 
+/*********************************** 还原 还原设置************
+[root@H50 ~]# 
+[root@H50 ~]# iptables -t filter -F
+[root@H50 ~]# iptables -t filter -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+[root@H50 ~]# iptables -t filter  -P  INPUT ACCEPT
+[root@H50 ~]# iptables -t filter -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+[root@H50 ~]# curl http://192.168.4.50
+H50 index.html
+
+************************* 还原 还原设置****************/
+[root@H50 ~]# arp -n
+Address                  HWtype  HWaddress           Flags Mask            Iface
+192.168.4.254            ether   52:54:00:37:78:11   C                     eth0
+192.168.4.53             ether   52:54:00:c0:09:7e   C                     eth0
+192.168.4.56             ether   52:54:00:33:42:d8   C                     eth0
+192.168.2.254            ether   52:54:00:f8:f9:d7   C                     eth1
+192.168.4.54             ether   52:54:00:bc:31:35   C                     eth0
+192.168.4.51             ether   52:54:00:7e:27:9f   C                     eth0
+[root@H50 ~]# 
+
+[root@H50 ~]# iptables -t filter -A INPUT  -p icmp \  ## 注意192.168.4.51 的mac 地址52:54:00:7e:27:9f
+> -m mac --mac-source  52:54:00:7e:27:9f  -j DROP
+
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            MAC 52:54:00:7E:27:9F
+[root@H50 ~]# 
+[root@H50 ~]# iptables -t filter  -A INPUT  -p icmp  --icmp-type  echo-reply -j ACCEPT ^C
+[root@H50 ~]# 
+[root@H50 ~]# ping -c2 -i0.2 -w1 192.168.4.51
+PING 192.168.4.51 (192.168.4.51) 56(84) bytes of data.
+
+--- 192.168.4.51 ping statistics ---
+5 packets transmitted, 0 received, 100% packet loss, time 839ms
+
+[root@H50 ~]# iptables -t filter -I INPUT 1  -p  icmp  -s 192.168.4.51  --icmp-type  echo-reply -j ACCEPT
+
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbersChain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     icmp --  192.168.4.51         0.0.0.0/0            icmptype 0
+2    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            MAC 52:54:00:7E:27:9F
+
+[root@H50 ~]# ping -c2 -i0.2 -w1 192.168.4.51
+
+PING 192.168.4.51 (192.168.4.51) 56(84) bytes of data.
+64 bytes from 192.168.4.51: icmp_seq=1 ttl=64 time=0.697 ms
+64 bytes from 192.168.4.51: icmp_seq=2 ttl=64 time=0.557 ms
+
+--- 192.168.4.51 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 200ms
+rtt min/avg/max/mdev = 0.557/0.627/0.697/0.070 ms
+[root@H50 ~]# 
+
+[root@H50 ~]# iptables -t filter -A INPUT -p tcp  -m multiport  -s 192.168.4.51  --dports 80,6350  -j DROP
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbersChain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     icmp --  192.168.4.51         0.0.0.0/0            icmptype 0
+2    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            MAC 52:54:00:7E:27:9F
+3    DROP       tcp  --  192.168.4.51         0.0.0.0/0            multiport dports 80,6350
+[root@H50 ~]# netstat -nputl  |grep -E ':80|6350'
+tcp        0      0 192.168.4.50:6350       0.0.0.0:*               LISTEN      1339/redis-server 1 
+tcp6       0      0 :::80                   :::*                    LISTEN      1201/httpd          
+[root@H50 ~]# 
+[root@H51 ~]# redis-cli  -h 192.168.4.50 -p 6350
+192.168.4.50:6350> keys *
+(empty list or set)
+192.168.4.50:6350> show dbs
+(error) ERR unknown command 'show'
+192.168.4.50:6350> exit
+[root@H51 ~]# netstat -nputl  |grep -E ':80|6351'
+tcp        0      0 192.168.4.51:6351       0.0.0.0:*               LISTEN      1269/redis-server 1 
+[root@H51 ~]# redis-cli  -h 192.168.4.50 -p 6350
+^C
+[root@H51 ~]# 
+
+[root@H50 ~]# iptables -t filter -A INPUT -p icmp   -m iprange  --src-range 192.168.4.51-192.168.4.53   -j DROP
+
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbersChain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     icmp --  192.168.4.51         0.0.0.0/0            icmptype 0
+2    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            MAC 52:54:00:7E:27:9F
+3    DROP       tcp  --  192.168.4.51         0.0.0.0/0            multiport dports 80,6350
+4    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            source IP range 192.168.4.51-192.168.4.53
+[root@H50 ~]# 
+[root@H50 ~]# iptables  -t filter -A INPUT  -p  icmp  -s 192.168.4.51  ! --icmp-type  echo-request -j ACCEPT
+
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbersChain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     icmp --  192.168.4.51         0.0.0.0/0            icmptype 0
+2    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            MAC 52:54:00:7E:27:9F
+3    DROP       tcp  --  192.168.4.51         0.0.0.0/0            multiport dports 80,6350
+4    DROP       icmp --  0.0.0.0/0            0.0.0.0/0            source IP range 192.168.4.51-192.168.4.53
+5    ACCEPT     icmp --  192.168.4.51         0.0.0.0/0            icmp !type 8
+[root@H50 ~]# iptables -t filter -L INPUT --line-numbers
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     icmp --  192.168.4.51         anywhere             icmp echo-reply
+2    DROP       icmp --  anywhere             anywhere             MAC 52:54:00:7E:27:9F
+3    DROP       tcp  --  192.168.4.51         anywhere             multiport dports http,adap
+4    DROP       icmp --  anywhere             anywhere             source IP range 192.168.4.51-192.168.4.53
+5    ACCEPT     icmp --  192.168.4.51         anywhere             icmp !echo-request
+[root@H50 ~]# 
+[root@H50 ~]# iptables -t filter  -F
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbers
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+[root@H50 ~]# iptables  -t filter -A INPUT  -p  icmp  -s 192.168.4.54  ! --icmp-type  echo-request -j ACCEPT
+[root@H50 ~]# iptables -t filter -nL INPUT --line-numbersChain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     icmp --  192.168.4.54         0.0.0.0/0            icmp !type 8
+[root@H50 ~]# 
+
+[root@H50 ~]# ping -c2 -i0.2 -w1 192.168.4.54
+PING 192.168.4.54 (192.168.4.54) 56(84) bytes of data.
+64 bytes from 192.168.4.54: icmp_seq=1 ttl=64 time=0.503 ms
+64 bytes from 192.168.4.54: icmp_seq=2 ttl=64 time=0.540 ms
+
+--- 192.168.4.54 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 200ms
+rtt min/avg/max/mdev = 0.503/0.521/0.540/0.029 ms
+[root@H50 ~]# 
+[root@H54 ~]# ping -c2 -i0.2 -w1 192.168.4.50
+PING 192.168.4.50 (192.168.4.50) 56(84) bytes of data.
+64 bytes from 192.168.4.50: icmp_seq=1 ttl=64 time=0.519 ms
+64 bytes from 192.168.4.50: icmp_seq=2 ttl=64 time=0.428 ms
+
+--- 192.168.4.50 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 200ms
+rtt min/avg/max/mdev = 0.428/0.473/0.519/0.050 ms
+[root@H54 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@H51 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.51
+192.168.2.51
+201.1.1.51
+201.1.2.51
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+[root@H51 ~]# netstat -unptl |grep -E ':3306|:6351|:80|:21|:22'
+tcp        0      0 192.168.4.51:6351       0.0.0.0:*               LISTEN      1269/redis-server 1 
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1121/sshd           
+tcp6       0      0 :::21                   :::*                    LISTEN      1170/vsftpd         
+tcp6       0      0 :::22                   :::*                    LISTEN      1121/sshd           
+tcp6       0      0 :::3306                 :::*                    LISTEN      1424/mysqld         
+[root@H51 ~]#
+
+[root@H51 ~]# ssh -X 192.168.4.50
+Last login: Wed Nov  7 08:57:34 2018 from 192.168.4.254
+[root@H50 ~]# echo $USER
+root
+[root@H50 ~]# hostname
+H50
+[root@H50 ~]# exit
+登出
+Connection to 192.168.4.50 closed.
+[root@H51 ~]# 
+[root@H51 ~]# ls -ld /tmp/
+drwxrwxrwt. 9 root root 280 11月  7 10:09 /tmp/
+
+[root@H51 ~]# chmod o-t /tmp/
+
+[root@H51 ~]# ls -ld /tmp/
+drwxrwxrwx. 9 root root 280 11月  7 10:09 /tmp/
+[root@H51 ~]# 
+[root@H51 ~]# ftp 192.168.4.50
+Connected to 192.168.4.50 (192.168.4.50).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.50:root): ftp
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> lcd /tmp/
+Local directory now /tmp
+ftp> cd sharedir/
+250 Directory successfully changed.
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,229,59).
+150 Here comes the directory listing.
+-rw-------    1 14       50             11 Nov 06 11:38 a.txt
+-rw-------    1 14       50             17 Nov 06 11:38 b.txt
+-rw-------    1 14       50             16 Nov 06 11:38 c.txt
+-rw-------    1 14       50           2563 Nov 06 11:36 passwd
+226 Directory send OK.
+ftp> get passwd
+local: passwd remote: passwd
+227 Entering Passive Mode (192,168,4,50,134,151).
+550 Failed to open file.
+ftp> by
+421 Timeout.
+[root@H51 ~]# 
+[root@H51 ~]# ftp 192.168.4.50
+Connected to 192.168.4.50 (192.168.4.50).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.50:root): ftp
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,42,250).
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+drwxr-xrwx    2 0        0              59 Nov 06 11:38 sharedir
+226 Directory send OK.
+ftp> by
+221 Goodbye.
+[root@H51 ~]# 
+[root@H51 ~]# sed -n 17,20p  /etc/ssh/sshd_config 
+#Port 22
+#AddressFamily any
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+[root@H51 ~]# 
+[root@H51 ~]# yum -y install  iptables* |tail -3
+  iptables-services.x86_64 0:1.4.21-18.el7                                      
+
+完毕！
+
+[root@H51 ~]# rpm -qa |grep iptables
+
+iptables-services-1.4.21-18.el7.x86_64
+iptables-1.4.21-18.el7.x86_64
+iptables-devel-1.4.21-18.el7.x86_64
+
+[root@H51 ~]# systemctl is-enabled firewalld
+disabled
+[root@H51 ~]# systemctl is-active firewalld
+unknown
+
+
+
+[root@H51 ~]# iptables  -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:domain
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:domain
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:bootps
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:bootps
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  anywhere             192.168.122.0/24     ctstate RELATED,ESTABLISHED
+ACCEPT     all  --  192.168.122.0/24     anywhere            
+ACCEPT     all  --  anywhere             anywhere            
+REJECT     all  --  anywhere             anywhere             reject-with icmp-port-unreachable
+REJECT     all  --  anywhere             anywhere             reject-with icmp-port-unreachable
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:bootpc
+[root@H51 ~]# 
+
+
+[root@H51 ~]# iptables  -nL
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:53
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:53
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:67
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:67
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  0.0.0.0/0            192.168.122.0/24     ctstate RELATED,ESTABLISHED
+ACCEPT     all  --  192.168.122.0/24     0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+REJECT     all  --  0.0.0.0/0            0.0.0.0/0            reject-with icmp-port-unreachable
+REJECT     all  --  0.0.0.0/0            0.0.0.0/0            reject-with icmp-port-unreachable
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:68
+[root@H51 ~]# 
+
+
+[root@H51 ~]# iptables  -nL  --line-numbers
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:53
+2    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:53
+3    ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:67
+4    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:67
+
+Chain FORWARD (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     all  --  0.0.0.0/0            192.168.122.0/24     ctstate RELATED,ESTABLISHED
+2    ACCEPT     all  --  192.168.122.0/24     0.0.0.0/0           
+3    ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+4    REJECT     all  --  0.0.0.0/0            0.0.0.0/0            reject-with icmp-port-unreachable
+5    REJECT     all  --  0.0.0.0/0            0.0.0.0/0            reject-with icmp-port-unreachable
+
+Chain OUTPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+1    ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:68
+[root@H51 ~]# 
+
+[root@H51 ~]# iptables  -F
+
+[root@H51 ~]# iptables  -nL  --line-numbers
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+num  target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+num  target     prot opt source               destination 
+        
+[root@H51 ~]# service iptables  save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+[root@H51 ~]# 
+/*******************
+1 ）iptables的4个表（区分大小写）：
+iptables默认有4个表，
+
+nat表（地址转换表）{OUTPUT链,POSTROUTING链,PREROUTING链,INPUT  }
+
+[root@H51 ~]# iptables -t nat  -L  --line-numbers
+Chain PREROUTING (policy ACCEPT)
+num  target     prot opt source               destination         
+
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+num  target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+num  target     prot opt source               destination         
+1    RETURN     all  --  192.168.122.0/24     224.0.0.0/24        
+2    RETURN     all  --  192.168.122.0/24     255.255.255.255     
+3    MASQUERADE  tcp  --  192.168.122.0/24    !192.168.122.0/24     masq ports: 1024-65535
+4    MASQUERADE  udp  --  192.168.122.0/24    !192.168.122.0/24     masq ports: 1024-65535
+5    MASQUERADE  all  --  192.168.122.0/24    !192.168.122.0/24    
+[root@H51 ~]# 
+[root@H51 ~]# iptables -t nat  -L POSTROUTING  --line-numbers
+Chain POSTROUTING (policy ACCEPT)
+num  target     prot opt source               destination         
+1    RETURN     all  --  192.168.122.0/24     224.0.0.0/24        
+2    RETURN     all  --  192.168.122.0/24     255.255.255.255     
+3    MASQUERADE  tcp  --  192.168.122.0/24    !192.168.122.0/24     masq ports: 1024-65535
+4    MASQUERADE  udp  --  192.168.122.0/24    !192.168.122.0/24     masq ports: 1024-65535
+5    MASQUERADE  all  --  192.168.122.0/24    !192.168.122.0/24    
+[root@H51 ~]# 
+[root@H51 ~]# iptables -t nat  -F
+[root@H51 ~]# iptables -t nat  -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+[root@H51 ~]# 
+
+filter表（数据过滤表）{input,forward,output}
+
+[root@H51 ~]# iptables -t  filter -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:domain
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:domain
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:bootps
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:bootps
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  anywhere             192.168.122.0/24     ctstate RELATED,ESTABLISHED
+ACCEPT     all  --  192.168.122.0/24     anywhere            
+ACCEPT     all  --  anywhere             anywhere            
+REJECT     all  --  anywhere             anywhere             reject-with icmp-port-unreachable
+REJECT     all  --  anywhere             anywhere             reject-with icmp-port-unreachable
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:bootpc
+
+[root@H51 ~]# iptables -t filter  -F
+
+[root@H51 ~]# iptables -t filter  -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+[root@H51 ~]# 
+
+
+mangle表（包标记表）{OUTPUT链,FORWARD链,PREROUTING链,POSTROUTING链,input }---- 给到达防火墙主机的ip包打标签
+
+[root@H51 ~]# iptables -t mangle  -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+CHECKSUM   udp  --  anywhere             anywhere             udp dpt:bootpc CHECKSUM fill
+[root@H51 ~]# 
+[root@H51 ~]# iptables -t mangle  -F
+[root@H51 ~]# 
+[root@H51 ~]# iptables -t mangle  -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+[root@H51 ~]# 
+[root@H51 ~]# 
+
+
+【raw表（状态跟踪表） 一般禁用，耗CPU资源{OUTPUT链, PREROUTING链 }】
+
+[root@H51 ~]# iptables -t raw  -F
+[root@H51 ~]# iptables -t raw  -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+[root@H51 ~]# 
+
+2）iptables的5个链（区分大小写）：
+INPUT链（入站规则）     #进入防火墙主机的ip包
+OUTPUT链（出站规则）
+FORWARD链（转发规则）  #经过防火墙主机的ip包
+
+PREROUTING链（路由前规则） #路由前
+ 
+POSTROUTING链（路由后规则） #路由后
+所有链的初始默认规则是ACCEPT
+                   #  iptables [-t 表名]  管理选项  [链名]   [条件规则]     [-j 目标操作]
+[root@proxy source1]# iptables -t filter  -I  INPUT -p icmp  -j REJECT;
+-p为指定的链 设置默认规则
+//注意事项与规律：
+//可以不指定表，默认为filter表
+//可以不指定链，默认为对应表的所有链
+//如果没有找到匹配条件，则执行防火墙默认规则
+//选项/链名/目标操作用大写字母，其余都小写
+########################################################################
+//目标操作：
+// ACCEPT：允许通过/放行
+// DROP：直接丢弃，不给出任何回应
+// REJECT：拒绝通过，必要时会给出提示
+// LOG：记录日志，然后传给下一条规则
+                         #LOG匹配即停止的唯一例外，记录日志，然后传给下一条规则
+[root@proxy ~]# iptables -t filter -I INPUT -p icmp -j LOG ;
+
+[root@proxy ~]# iptables -F  #清空所有规则-F
+## -p 为指定的链 设置默认规则 tcp ,udp ,icmp
+## -A 追加规则至 [ filter表中的INPUT ] 链的末尾
+## -I 插入规则至filter表中的INPUT链的开头
+[root@proxy ~]# iptables -t filter -A INPUT -p tcp -j ACCEPT ;
+
+# 插入规则至filter表中的INPUT链的开头，允许任何人使用UDP协议访问本机
+[root@proxy ~]# iptables -t filter -I INPUT -p udp -j ACCEPT ;
+*********************************/
+
+
+[root@H51 ~]# service iptables save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+[root@H51 ~]# 
+[root@H51 ~]# iptables -t raw  -F
+[root@H51 ~]# iptables -t raw  -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+[root@H51 ~]# 
+[root@H51 ~]# service iptables save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+
+[root@H51 ~]# service iptables start
+Redirecting to /bin/systemctl start iptables.service
+
+[root@H51 ~]# chkconfig  iptables on
+注意：正在将请求转发到“systemctl enable iptables.service”。
+Created symlink from /etc/systemd/system/basic.target.wants/iptables.service to /usr/lib/systemd/system/iptables.service.
+
+[root@H51 ~]# service iptables restart
+Redirecting to /bin/systemctl restart iptables.service
+[root@H51 ~]# 
+
+[root@H51 network-scripts]# cat ifcfg-eth1test
+TYPE=Ethernet
+
+BOOTPROTO=none
+
+NAME=eth1
+
+DEVICE=eth1
+ONBOOT=yes
+IPADDR=192.168.2.51
+
+[root@H51 network-scripts]# cat ifcfg-eth1
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=none
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=eth1
+UUID=81daca83-6e6d-4b2d-af2f-8967aa17edf4
+DEVICE=eth1
+ONBOOT=yes
+IPADDR=192.168.2.51
+PREFIX=24
+GATEWAY=192.168.2.254
+
+[root@H51 network-scripts]# pwd
+/etc/sysconfig/network-scripts
+[root@H51 network-scripts]# cd
+
+[root@H51 ~]# ifup eth1
+
+[root@H51 ~]# ifdown eth0
+
+[root@hiys ~]# ssh -X 192.168.2.51
+root@192.168.2.51's password: 
+
+[root@H51 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.2.51
+201.1.1.51
+201.1.2.51
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.2.254
+201.1.1.254
+201.1.2.254
+0.0.0.0
+[root@H51 ~]# 
+
+iptables规则功能
+
+表:
+
+filter主要和主机自身有关，主要负责防火墙功能 过滤本机流入流出的数据包是默认使用的表;
+
+input   :负责过滤所有目标地址是本机地址的数据包，就是过滤进入主机的数据包;
+
+forward  :负责转发流经主机但不进入本机的数据包，和NAT关系很大;
+
+output   :负责处理源地址的数据包，就是对本机发出的数据包;
+
+NAT表：
+
+负责网络地址转换，即来源于目的IP地址和端口的转换，一般用于共享上网或特殊端口的转换服务
+
+snat    :地址转换
+
+dnat    :标地址转换
+
+pnat    :标端口转换
+
+mangle 表：
+
+将报文拆开来并修改报文标志位，最后封装起来
+
+5个检查点（内置链）
+
+·PREROUTING
+
+·INPUT
+
+·FORWORD
+
+·OUTPUT
+
+·POSTROUTING    
+
+多条链整合起来叫做表，比如，在input这个链，既有magle的规则也可能有fileter的规则。因此在编写规则的时候应该先指定表，再指定链
+
+多条链整合起来叫做表，比如，在input这个链，既有mangle的规则也可能有fileter的规则。因此在编写规则的时候应该先指定表，再指定链
+
+netfilter主要工作在tcp/ip协议栈上的，主要集中在tcp报文首部和udp报文首部
+
+规则的属性定义：
+
+1.网络层协议
+
+主要集中在ip协议报文上
+
+2.传输层协议属性：
+
+主要集中在
+
+tcp
+
+udp
+
+icmp  icmp其并不是真正意义传输层的，而是工作在网络层和传输层之间的一种特殊的协议
+
+3.ip报文的属性：
+
+IP报文的属性为: 源地址.目标地址
+
+4.iptables规则匹配
+
+iptables如何查看表和链
+
+大写字母选项：可以实现某种功能，比如添加删除清空规则链；
+
+小写字母选项：用来匹配及其他；
+
+-L ：list 列表
+
+    -n :数字格式显示ip和端口；
+
+    --line-numbers:显示行号；
+
+    -x ： 显示精确值，不要做单位换算；
+
+ 
+
+-t :  指定表
+
+     -t{fillter|nat|mangle|raw}
+
+-v ： 显示详细信息 -v -vvv -vvvv ..可以显示更详细的信息
+
+ 
+
+5.其他子命令：
+
+管理链：
+
+-F ：清空链
+
+清空nat表中的input链，格式如下：
+
+#iptables-t nat -F INPUT
+
+#清空fllter表所有链：
+
+#iptables-F
+
+-P : 设定默认策略，为指定链设置默认策略，格式如下：
+
+#设置fllter表input链的默认规则为丢弃
+
+iptables-t fllter -P INPUT DROP
+
+-N ： 新建一条自定义链（内置链不能删除，如果太多，可以自定义链）
+
+#自定义连只能被调用才可以发挥作用
+
+iptables-N fillter_web
+
+-X : 删除自定义空链，如果链内有规则，则无法删除
+
+-Z ：计算器清零
+
+iptables-Z
+
+-E ：重命名自定义链
+
+ 
+
+iptables管理规则：
+
+-A   ：append附加规则，将新增的规则添加到链的尾部
+
+-I[n] ：插入为第n条规则
+
+-D   : 删除第n条规则
+
+-R[n] : 替换第N条
+
+表和链的对应关系：
+
+fillter ：INPUT FORWORD OUTPUT
+
+nat : PREROUTING POSTROUTING  OUTPUT
+
+使用-t指定表来查看指定表内的规则：
+
+#iptables-t nat -L -n
+
+raw : prerouting output
+
+iptables-t raw -L -n
+
+mangle: prerouting input forword output postrouting
+
+iptables-t mangle -L -n
+
+#查看规则
+
+[root@test3~]# iptables -L -n
+Chain INPUT (policy ACCEPT)
+target     prot opt source              destination        
+
+Chain FORWARD (policy ACCEPT)
+target     prot optsource              destination        
+
+Chain OUTPUT (policy ACCEPT)
+target     prot optsource              destination  
+
+通过以上可以观察到，每一个链都有默认策略：policy ACCEPT
+
+通常只需要修改fllter表的默认策略即可，由此如果有报文请求来访问本机的某个服务，那么则会经过input链，因此进来的报文都是需要做过滤的，那么出去的报文则不需要过滤，在有些特定的场所下也需要做过滤
+
+所以写规则的时候必须放将规则写在正确链上，意义非常重大
+
+规则和默认策略都有2个计数器，通过-v选项可以观察规则的匹配情况
+
+#iptables -t nat -L -n -v
+
+[root@sshgw~]# iptables -L -n -v
+
+ChainINPUT (policy ACCEPT 7 packets, 975 bytes)
+
+
+1.通用匹配
+
+-s | --src | --source [!] IP/NETWORK
+
+-d ------------------------
+
+-i :指定数据报文流入接口  input prerouting forward
+
+-o :指定数据报文流出接口  output postrouting forward
+
+-p :明确说明只放行哪种协议的报文匹配规则
+
+/************************
+-P : 设定默认策略，为指定链设置默认策略，格式如下：
+#设置fllter表input链的默认规则为丢弃
+
+iptables -t filter -P INPUT DROP
+**************/
+
+[root@H51 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.2.51
+201.1.1.51
+201.1.2.51
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.2.254
+201.1.1.254
+201.1.2.254
+0.0.0.0
+[root@H51 ~]# mysql -uroot -p1234 
+
+mysql> grant all on *.*  to admin@'%' identified by'1234';
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> exit
+Bye
+[root@H51 ~]# 
+
+[root@H51 ~]# route  add default  gateway 192.168.2.52
+[root@H51 ~]# route  del  default  gateway 192.168.2.254
+
+[root@H51 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.2.51
+201.1.1.51
+201.1.2.51
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.2.52
+201.1.1.254
+201.1.2.254
+0.0.0.0
+[root@H51 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@H52 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.52
+192.168.2.52
+201.1.1.52
+201.1.2.52
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+[root@H52 ~]# 
+[root@H52 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.52
+192.168.2.52
+201.1.1.52
+201.1.2.52
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+[root@H52 ~]# netstat -unptl |grep -E ':3306|:6351|:80|:21|:22'
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1113/sshd           
+tcp6       0      0 :::22                   :::*                    LISTEN      1113/sshd           
+tcp6       0      0 :::3306                 :::*                    LISTEN      1423/mysqld         
+[root@H52 ~]# systemctl  stop NetworkManager
+[root@H52 ~]# route add default gateway 192.168.2.52
+[root@H52 ~]# route -n |awk '{print $2}'
+IP
+Gateway
+192.168.2.52
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+[root@H52 ~]# 
+
+[root@H52 ~]# yum -y install iptables* |tail -3
+软件包 iptables-services-1.4.21-18.el7.x86_64 已安装并且是最新版本
+软件包 iptables-devel-1.4.21-18.el7.x86_64 已安装并且是最新版本
+无须任何处理
+
+[root@H52 ~]# rpm -qa |grep iptables
+
+iptables-devel-1.4.21-18.el7.x86_64
+iptables-1.4.21-18.el7.x86_64
+iptables-services-1.4.21-18.el7.x86_64
+[root@H52 ~]# systemctl  stop firewalld
+[root@H52 ~]# systemctl disable firewalld
+
+[root@H52 ~]# yum -y reinstall iptables* |tail -3
+警告：RPM 数据库已被非 yum 程序修改。
+  iptables-services.x86_64 0:1.4.21-18.el7                                      
+
+完毕！
+
+[root@H52 ~]# service iptables start
+Redirecting to /bin/systemctl start iptables.service
+[root@H52 ~]# service iptables status
+Redirecting to /bin/systemctl status iptables.service
+● iptables.service - IPv4 firewall with iptables
+   Loaded: loaded (/usr/lib/systemd/system/iptables.service; disabled; vendor preset: disabled)
+   Active: active (exited) since 三 2018-11-07 19:07:59 CST; 5s ago
+  Process: 7537 ExecStart=/usr/libexec/iptables/iptables.init start (code=exited, status=0/SUCCESS)
+ Main PID: 7537 (code=exited, status=0/SUCCESS)
+
+11月 07 19:07:59 H52 systemd[1]: Starting IPv4 firewall with iptables...
+11月 07 19:07:59 H52 iptables.init[7537]: iptables: Applying firewall rules: [  确定  ]
+11月 07 19:07:59 H52 systemd[1]: Started IPv4 firewall with iptables.
+[root@H52 ~]# 
+[root@H52 ~]# route del default  gateway  192.168.2.52
+[root@H52 ~]# route -n |awk '{print $2}'
+IP
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+0.0.0.0
+[root@H52 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@H53 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.53
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+0.0.0.0
+0.0.0.0
+[root@H53 ~]# systemctl  stop NetworkManager
+[root@H53 ~]# route add default gateway 192.168.4.52
+[root@H53 ~]# route -n |awk 'NR>1&&NR<7{print $2}'
+Gateway
+192.168.4.52
+192.168.4.254
+0.0.0.0
+0.0.0.0
+[root@H53 ~]# history |head -20
+
+
+ nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes
+ nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.2.53/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes 
+ nmcli connection up eth1 
+
+[root@H53 ~]# systemctl  start NetworkManager
+
+[root@H53 ~]#  nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes
+连接“eth1”(f48953df-9e9a-4221-8722-0c0698460126) 已成功添加。
+[root@H53 ~]#  nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.2.53/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes 
+[root@H53 ~]#  nmcli connection up eth1 
+连接已成功激活（D-Bus 活动路径：/org/freedesktop/NetworkManager/ActiveConnection/4）
+[root@H53 ~]# yum clean all >/dev/null && yum repolist |tail -9
+mon                                 mon                                       41
+mon-2                               mon-2                                     41
+osd                                 osd                                       28
+osd-2                               osd-2                                     28
+rhel7                               rhel7.4                                4,986
+rhel7-2                             rhel7.4-2                              4,986
+tools                               tools                                     33
+tools-2                             tools-2                                   33
+repolist: 10,176
+[root@H53 ~]# yum -y install httpd |tail -3  httpd-tools.x86_64 0:2.4.6-67.el7        mailcap.noarch 0:2.1.41-2.el7       
+
+完毕！
+[root@H53 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'192.168.4.53
+192.168.2.53
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.52
+192.168.4.254
+192.168.2.254
+0.0.0.0
+[root@H53 ~]# systemctl  stop NetworkManager
+[root@H53 ~]# route del default gateway 192.168.4.254
+[root@H53 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.53
+192.168.2.53
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.52
+192.168.2.254
+0.0.0.0
+0.0.0.0
+[root@H53 ~]# ifdown eth1
+[root@H53 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.53
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.52
+0.0.0.0
+0.0.0.0
+[root@H53 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@H54 ~]# ifconfig |awk '/inet /{print $2}';route -n |awk 'NR>1&&NR<7{print $2}'
+192.168.4.54
+192.168.2.54
+201.1.1.54
+201.1.2.54
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+[root@H54 ~]# 
+
+
+
+
+
+
+

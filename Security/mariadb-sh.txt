@@ -1,0 +1,85 @@
+
+
+
+netstat -npult |grep :3306
+systemctl stop mysqld
+systemctl disable mysqld
+netstat -npult |grep :3306
+ls /var/lib/mysql*
+rm  -rf /etc/my.cnf*
+ls /etc/my.cnf*
+rm -rf /var/lib/mysql*
+ls /var/lib/mysql*
+rpm -qa |grep -i mysql
+
+rpm -q  mysql-community-devel     mysql-community-embedded    mysql-community-embedded-compat      mysql-community-embedded-devel     mysql-community-libs      mysql-community-libs-compat    mysql-community-minimal-debuginfo    mysql-community-server     mysql-community-test    mysql-community-client      mysql-community-common
+
+yum -y remove   mysql-community-devel   mysql-community-embedded   mysql-community-embedded-compat   mysql-community-embedded-devel   mysql-community-libs   mysql-community-libs-compat  mysql-community-minimal-debuginfo   mysql-community-server   mysql-community-test  mysql-community-client    mysql-community-common  |tail -12
+
+rpm -q  mysql-community-devel  mysql-community-embedded  mysql-community-embedded-compat  mysql-community-embedded-devel  mysql-community-libs  mysql-community-libs-compat  mysql-community-minimal-debuginfo  mysql-community-server  mysql-community-test mysql-community-client   mysql-community-common
+
+rpm -qa |grep -i mysql
+yum list |grep mariadb
+yum  -y install  mariadb-server |tail -4
+netstat -nputl  |grep :3306
+systemctl start mariadb
+netstat -nputl  |grep :3306
+systemctl enable  mariadb
+id mysql
+ls /var/lib/mysql*
+mysqladmin  -uroot  password '123'
+mysql -uroot -p123 -e "show databases;"
+
+[root@H52 ~]# systemctl is-active NetworkManager
+inactive
+[root@H52 ~]# systemctl start  NetworkManager
+[root@H52 ~]# systemctl is-active NetworkManager
+active
+[root@H52 ~]# vim mariadb.sh
+[root@H52 ~]# cat mariadb.sh
+#!/bin/bash
+netstat -npult |grep :3306
+systemctl stop mysqld
+systemctl disable mysqld
+netstat -npult |grep :3306
+ls /var/lib/mysql*
+rm  -rf /etc/my.cnf*
+ls /etc/my.cnf*
+rm -rf /var/lib/mysql*
+ls /var/lib/mysql*
+rpm -qa |grep -i mysql
+
+rpm -q  mysql-community-devel     mysql-community-embedded    mysql-community-embedded-compat      mysql-community-embedded-devel     mysql-community-libs      mysql-community-libs-compat    mysql-community-minimal-debuginfo    mysql-community-server     mysql-community-test    mysql-community-client      mysql-community-common
+
+yum -y remove   mysql-community-devel   mysql-community-embedded   mysql-community-embedded-compat   mysql-community-embedded-devel   mysql-community-libs   mysql-community-libs-compat  mysql-community-minimal-debuginfo   mysql-community-server   mysql-community-test  mysql-community-client    mysql-community-common  |tail -12
+
+rpm -q  mysql-community-devel  mysql-community-embedded  mysql-community-embedded-compat  mysql-community-embedded-devel  mysql-community-libs  mysql-community-libs-compat  mysql-community-minimal-debuginfo  mysql-community-server  mysql-community-test mysql-community-client   mysql-community-common
+
+rpm -qa |grep -i mysql
+yum list |grep mariadb
+yum  -y install  mariadb-server |tail -4
+netstat -nputl  |grep :3306
+systemctl start mariadb
+netstat -nputl  |grep :3306
+systemctl enable  mariadb
+id mysql
+ls /var/lib/mysql*
+mysqladmin  -uroot  password '123'
+mysql -uroot -p123 -e "show databases;"
+[root@H52 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1915 @@
+
+
+
+[root@hiys ~]# ll lnmp_soft.tar.gz
+-rw-r--r-- 1 root root 78844881 11月  6 08:36 lnmp_soft.tar.gz
+[root@hiys ~]# for i in 192.168.4.5{0..7}
+> do
+> scp -o StrictHostKeyChecking=no -r lnmp_soft.tar.gz  $i:/root/
+> done
+
+root@192.168.4.50's password: 
+lnmp_soft.tar.gz                              100%   75MB 163.4MB/s   00:00    
+....................................     
+root@192.168.4.57's password: 
+lnmp_soft.tar.gz                              100%   75MB 167.5MB/s   00:00    
+[root@hiys ~]# 
+
+[root@H50 ~]# ifconfig |awk '/inet /{print $2}';route  -n |awk 'NR>1&&NR<8{print $2}'
+192.168.4.50
+192.168.2.50
+201.1.1.50
+201.1.2.50
+127.0.0.1
+192.168.122.1
+Gateway
+192.168.4.254
+192.168.2.254
+201.1.1.254
+201.1.2.254
+0.0.0.0
+[root@H50 ~]# ll lnmp_soft.tar.gz 
+-rw-r--r--. 1 root root 63305912 10月 29 09:05 lnmp_soft.tar.gz
+[root@H50 ~]# netstat  -anpult |grep :80
+[root@H50 ~]# systemctl start httpd && systemctl enable httpd.service 
+Created symlink from /etc/systemd/system/multi-user.target.wants/httpd.service to /usr/lib/systemd/system/httpd.service.
+[root@H50 ~]# netstat  -anpult |grep :80
+tcp6       0      0 :::80                   :::*                    LISTEN      1995/httpd          
+[root@H50 ~]# history  |
+> head -20
+    1  systemctl set-default multi-user.target 
+    2  systemctl stop firewalld.service 
+    3  systemctl disable firewalld.service 
+    4  vim /etc/selinux/config 
+    5  grubby --update-kernel=ALL --args="console=ttyS0"
+    6  reboot 
+    7  echo 123 |passwd  --stdin root
+........................
+[root@H50 ~]# systemctl is-active  firewalld
+unknown
+[root@H50 ~]# systemctl start firewalld
+
+[root@H50 ~]# systemctl is-active  firewalld
+active
+
+[root@H50 ~]# getenforce 
+Permissive
+
+[root@H50 ~]# echo "H50 index.html" >/var/www/html/index.html
+[root@H50 ~]# yum -y install elinks |tail -3
+
+[root@H50 ~]# elinks -dump 192.168.4.50
+   H50 index.html
+
+[root@H50 ~]# ls /etc/selinux/
+config  final  semanage.conf  targeted  tmp
+
+[root@H50 ~]# vim /etc/selinux/config 
+
+[root@H50 ~]# sed -n '/enforcing/,+3p' /etc/selinux/config
+
+#     enforcing - SELinux security policy is enforced.
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+SELINUX=permissive
+
+[root@H50 ~]# sestatus 
+SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+
+Loaded policy name:             targeted   ## 开启安全上下文值 标签(target 对象,靶子,目标)
+
+Current mode:                   permissive
+Mode from config file:          permissive
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Max kernel policy version:      28
+
+[root@H50 ~]# firewall-cmd  --get-default-zone 
+public
+
+[root@H50 ~]# firewall-cmd  --set-default-zone=trusted
+success
+[root@H50 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@H50 ~]# 
+[root@H50 ~]# tail -4 /etc/selinux/config 
+#     mls - Multi Level Security protection.
+SELINUXTYPE=targeted 
+
+
+[root@H50 ~]# sed -n '/mls -/,$p' /etc/selinux/config 
+#     mls - Multi Level Security protection.
+SELINUXTYPE=targeted 
+
+
+[root@H50 ~]# echo "H50 test" >/var/www/html/test.html
+[root@H50 ~]# ls /var/www/html/
+index.html  test.html
+
+[root@H50 ~]# elinks -dump  http://192.168.4.50/test.html
+   H50 test
+
+[root@H50 ~]# elinks -dump 192.168.4.50/test.html
+   H50 test
+
+[root@H50 ~]# ls -ldZ /etc/
+                           用户
+drwxr-xr-x. root root system_u:object_r:etc_t:s0       /etc/
+[root@H50 ~]# ls -ldZ /var/www/html/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+[root@H50 ~]# ls -ldZ /var/www/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/
+
+[root@H50 ~]# ps auxZ  |grep httpd
+system_u:system_r:httpd_t:s0    root      1995  0.0  0.5 226240  5152 ?        Ss   09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+system_u:system_r:httpd_t:s0    apache    1996  0.0  0.3 228460  3896 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+system_u:system_r:httpd_t:s0    apache    1997  0.0  0.3 228460  3896 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+system_u:system_r:httpd_t:s0    apache    1998  0.0  0.3 228324  3156 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+system_u:system_r:httpd_t:s0    apache    1999  0.0  0.3 228324  3156 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+system_u:system_r:httpd_t:s0    apache    2000  0.0  0.3 228460  3912 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 root 2912 0.0  0.0 112676 984 pts/0 R+ 09:24   0:00 grep --color=auto httpd
+
+[root@H50 ~]# ps aux  |grep httpd
+root      1995  0.0  0.5 226240  5152 ?        Ss   09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+apache    1996  0.0  0.3 228460  3896 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+apache    1997  0.0  0.3 228460  3896 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+apache    1998  0.0  0.3 228324  3156 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+apache    1999  0.0  0.3 228324  3156 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+apache    2000  0.0  0.3 228460  3912 ?        S    09:00   0:00 /usr/sbin/httpd -DFOREGROUND
+root      2914  0.0  0.0 112676   984 pts/0    R+   09:24   0:00 grep --color=auto httpd
+[root@H50 ~]# 
+ 
+[root@H50 ~]# ls -ldZ /root/
+dr-xr-x---. root root system_u:object_r:admin_home_t:s0 /root/
+
+[root@H50 ~]# ls -ldZ /home/
+drwxr-xr-x. root root system_u:object_r:home_root_t:s0 /home/
+
+[root@H50 ~]# ls -ldZ  /home/bob/
+drwx------. bob bob unconfined_u:object_r:user_home_dir_t:s0 /home/bob/
+
+[root@H50 ~]# ls -ldZ  /var/lib/mysql/
+drwxr-x--x. mysql mysql system_u:object_r:mysqld_db_t:s0 /var/lib/mysql/
+
+[root@H50 ~]# ls -ldZ  /var/www/html/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+[root@H50 ~]# 
+                  
+
+
+[root@H50 ~]# ls -lZ  /var/www/html/test.html  ## 注意 httpd_sys_content_t
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/test.html
+
+[root@H50 ~]# cp  /var/www/html/test.html  /root/  
+
+## 复制的文件,原有的httpd_sys_content_t安全上下文值 会随着目标目录admin_home_t的访问类型而改变
+
+[root@H50 ~]# ls -lZ /root/test.html   ## 注意 admin_home_t
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /root/test.html
+[root@H50 ~]# 
+
+                 移动的文件,原有的安全上下文值 不变
+[root@H50 ~]# mv  /root/test.html  /root/test2.html
+
+[root@H50 ~]# ls -lZ /root/test2.html   ## 注意 admin_home_t
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /root/test2.html
+[root@H50 ~]# 
+                            移动的文件,原有的安全上下文值 不变
+[root@H50 ~]# mv  /root/test2.html  /var/www/html/
+
+[root@H50 ~]# ls  -lZ /var/www/html/test2.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/test2.html
+
+[root@H50 ~]# ls  -lZ /var/www/html/test.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/test.html
+
+[root@H50 ~]# chcon  -t  httpd_sys_content_t  /var/www/html/test2.html
+
+[root@H50 ~]# ls  -lZ /var/www/html/test2.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/test2.html
+[root@H50 ~]# 
+[root@H50 ~]# mkdir /son/
+
+[root@H50 ~]# ls -ldZ /son/   ## 注意 
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /son/
+
+[root@H50 ~]# echo "son.html" > /son/son.html
+[root@H50 ~]# echo "son2.html" > /son/son2.html
+
+[root@H50 ~]# ls -lZ /son/son2.html   ## 注意 
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /son/son2.html
+
+[root@H50 ~]# ls -lZ /son/son.html    ## 注意 
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /son/son.html
+[root@H50 ~]# 
+
+                        移动的文件(夹),原有的安全上下文值 不变
+[root@H50 ~]# mv  /son/  /var/www/html/
+
+[root@H50 ~]# ls -ldZ /var/www/html/son/   ## 注意 
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son.html    ## 注意 
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /var/www/html/son/son.html
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son2.html    ## 注意 
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /var/www/html/son/son2.html
+[root@H50 ~]# 
+
+[root@H50 ~]# ls -ldZ /var/www/html/     ## 注意 httpd_sys_content_t
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+
+[root@H50 ~]# chcon  -R -t httpd_sys_content_t   /var/www/html/son/   ##
+
+[root@H50 ~]# ls -ldZ /var/www/html/son/    ## 注意 httpd_sys_content_t
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son.html    ## 注意 httpd_sys_content_t
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son.html
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son2.html     ## 注意 httpd_sys_content_t
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son2.html
+[root@H50 ~]# 
+
+
+[root@H50 ~]# elinks -dump 192.168.4.50/son/son.html
+   son.html
+[root@H50 ~]# elinks -dump 192.168.4.50/son/son2.html
+   son2.html
+[root@H50 ~]# restorecon -R /var/www/html/son/  ## 注意 
+
+[root@H50 ~]# echo $?
+0
+ ## 复制的文件,原有的httpd_sys_content_t安全上下文值 会随着目标目录admin_home_t的访问类型而改变
+[root@H50 ~]# cp -r /var/www/html/son/  /root/
+
+[root@H50 ~]# ls -ldZ /root/son/
+drwxr-xr-x. root root unconfined_u:object_r:admin_home_t:s0 /root/son/
+
+[root@H50 ~]# ls -lZ /root/son/son.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /root/son/son.html
+[root@H50 ~]# ls -lZ /root/son/son2.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /root/son/son2.html
+
+[root@H50 ~]# rm -rf /var/www/html/son/
+[root@H50 ~]# ls /var/www/html/
+index.html  test2.html  test.html
+[root@H50 ~]# 
+                   移动的文件(夹),原有的安全上下文值 不变
+[root@H50 ~]# mv  /root/son/  /var/www/html/
+
+[root@H50 ~]# ls -ldZ  /var/www/html/son/
+drwxr-xr-x. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/son.html
+
+[root@H50 ~]# restorecon  /var/www/html/son/son.html   ## 注意 
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son.html
+[root@H50 ~]# 
+
+[root@H50 ~]# ls -ldZ  /var/www/html/son/
+drwxr-xr-x. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son2.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/son2.html
+[root@H50 ~]# 
+[root@H50 ~]# restorecon -R /var/www/html/son/   ## 注意 
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son2.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son2.html
+
+[root@H50 ~]# ls -ldZ  /var/www/html/son/
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/
+[root@H50 ~]# 
+
+/***************
+文件已经存放到共享目录下，但客户端无法访问下载，是因为被SELinux拦截了！
+[root@proxy ~]# ls -Z /var/ftp/
+-rw-r--r--. root root unconfined_u:object_r:public_content_t:s0 log1.tar
+-rw-r--r--. 1 root root unconfined_u:object_r:admin_home_t:s0   log2.tar
+
+[root@proxy ~]# chcon -t public_content_t /var/ftp/d2.tar.gz
+
+[root@proxy ~]# ls -Z /var/ftp/log2.tar
+-rw-r--r--. root root unconfined_u:object_r:public_content_t:s0 log2.tar
+
+[root@proxy ~]# wget ftp://192.168.4.5/log2.tar            //再次下载，成功
+
+注意：上例中的chcon操作可替换为（效果相同）：
+
+# restorecon /var/ftp/log2.tar.gz  #
+# restorecon 使当前目录下的文件安全上下文值 自动和父目录保持一致
+或者
+# chcon --reference=/var/ftp/log1.tar.gz /var/ftp/log2.tar.gz
+
+************************/
+[root@H50 ~]# getsebool -a |grep -i samba
+samba_create_home_dirs --> off
+samba_domain_controller --> off
+samba_enable_home_dirs --> off
+samba_export_all_ro --> off
+samba_export_all_rw --> off
+samba_load_libgfapi --> off
+samba_portmapper --> off
+samba_run_unconfined --> off
+samba_share_fusefs --> off
+samba_share_nfs --> off
+sanlock_use_samba --> off
+tmpreaper_use_samba --> off
+use_samba_home_dirs --> off
+virt_use_samba --> off
+
+[root@H50 ~]# setsebool  -P  samba_create_home_dirs  on
+
+[root@H50 ~]# getsebool -a |grep -i samba_create
+samba_create_home_dirs --> on
+
+[root@H50 ~]# setenforce 1     //设置SELinux为强制模式
+[root@H50 ~]# getenforce     //查看当前模式为强制模式
+Enforcing    //SELinux为强制模式
+
+[root@H50 ~]# sed -n '/enforcing/,+3p' /etc/selinux/config
+#     enforcing - SELinux security policy is enforced.
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+SELINUX=permissive
+[root@H50 ~]# 
+[root@H50 ~]# sed -n 12p /etc/selinux/config
+SELINUXTYPE=targeted    //保护策略为保护主要的网络服务安全
+[root@H50 ~]# 
+
+
+[root@H50 ~]# yum -y install vsftpd |tail -3
+  vsftpd.x86_64 0:3.0.2-22.el7                                                  
+
+完毕！
+[root@H50 ~]# rpm -q vsftpd
+vsftpd-3.0.2-22.el7.x86_64
+[root@H50 ~]# systemctl start vsftpd  && systemctl enable vsftpd
+
+[root@H50 ~]# netstat -anputl |grep vsftpd
+tcp6       0      0 :::21                   :::*                    LISTEN      3639/vsftpd         
+
+                //默认Vsftpd共享目录为/var/ftp/
+[root@H50 ~]# ls /var/ftp/
+pub
+[root@H50 ~]# mkdir /var/ftp/sharedir
+
+[root@H50 ~]# ls -ldZ /var/ftp/sharedir/
+drwxr-xr-x. root root unconfined_u:object_r:public_content_t:s0 /var/ftp/sharedir/
+
+[root@H50 ~]# chmod o+w /var/ftp/sharedir/
+
+[root@H50 ~]# ls -ldZ /var/ftp/sharedir/
+drwxr-xrwx. root root unconfined_u:object_r:public_content_t:s0 /var/ftp/sharedir/
+
+[root@H50 ~]# ls -lZ /etc/passwd 
+-rw-r--r--. root root system_u:object_r:passwd_file_t:s0 /etc/passwd
+
+[root@H50 ~]# cp  /etc/passwd /var/ftp/sharedir/
+
+[root@H50 ~]# ls -lZ /var/ftp/sharedir/passwd 
+-rw-r--r--. root root unconfined_u:object_r:public_content_t:s0 /var/ftp/sharedir/passwd
+[root@H50 ~]# 
+[root@H50 ~]# vim  /etc/vsftpd/vsftpd.conf 
+
+ 12 anonymous_enable=YES    //开启匿名访问
+
+ 29 anon_upload_enable=YES  ## 允许匿名用户上传//允许上传文件
+
+ 33 anon_mkdir_write_enable=YES  # //允许上传目录
+
+
+[root@H50 ~]# sed -n 29p /etc/vsftpd/vsftpd.conf
+anon_upload_enable=YES
+
+[root@H50 ~]# 
+[root@H50 ~]# systemctl restart vsftpd  //重新启动服务
+
+[root@H50 ~]# yum -y install ftp |tail -3
+  ftp.x86_64 0:0.17-67.el7                                                      
+
+完毕！
+[root@H50 ~]# rpm -qf /bin/ftp
+ftp-0.17-67.el7.x86_64
+[root@H50 ~]# which ftp
+/usr/bin/ftp
+
+[root@H50 ~]# vim /etc/vsftpd/vsftpd.conf 
+[root@H50 ~]# sed -n '12p;29p;33p' /etc/vsftpd/vsftpd.conf
+anonymous_enable=YES
+anon_upload_enable=YES
+anon_mkdir_write_enable=YES
+[root@H50 ~]# systemctl restart vsftpd  #/重新启动服务
+
+[root@H50 ~]# ftp 192.168.4.50
+Connected to 192.168.4.50 (192.168.4.50).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.50:root): ftp  ## 注意输入默认用户ftp #####注意输入默认用户ftp #####
+331 Please specify the password.
+Password:  ## 无密码直接回车确认 ## 无密码直接回车确认
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+/*************
+[root@H50 ~]# ls /var/ftp/
+pub  sharedir
+******************/
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,110,201).
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+drwxr-xrwx    2 0        0              20 Nov 06 02:25 sharedir
+226 Directory send OK.
+
+## 在下载一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+ftp> lcd /etc
+
+[root@H50 ~]# ls /var/ftp/
+pub  sharedir
+[root@H50 ~]# mkdir /download
+[root@H50 ~]# ls /download
+[root@H50 ~]# ls /var/ftp/sharedir/
+passwd
+[root@H50 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@H50 ~]#
+[root@H50 ~]# setenforce 0
+[root@H50 ~]# getenforce 
+Permissive
+[root@H50 ~]# ftp 192.168.4.50
+
+Connected to 192.168.4.50 (192.168.4.50).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.50:root): ftp 默认用户名
+331 Please specify the password.
+Password: 回车无密码确认
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,87,197).
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+drwxr-xrwx    2 0        0              20 Nov 06 02:25 sharedir
+226 Directory send OK.
+ftp> cd  sharedir/
+250 Directory successfully changed.
+ftp> pwd
+257 "/sharedir"
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,147,140).
+150 Here comes the directory listing.
+-rw-r--r--    1 0        0            2563 Nov 06 02:25 passwd
+226 Directory send OK.
+ftp> get passwd
+local: passwd remote: passwd
+227 Entering Passive Mode (192,168,4,50,146,65).
+150 Opening BINARY mode data connection for passwd (2563 bytes).
+226 Transfer complete.
+2563 bytes received in 5.7e-05 secs (44964.91 Kbytes/sec)
+ftp> by
+221 Goodbye.
+[root@H50 ~]# ls passwd   如果你不指定下载目录，文件将会下载到你登录 FTP 时候的工作目录[/root]。
+passwd
+[root@H50 ~]# ll passwd
+-rw-r--r--. 1 root root 2563 11月  6 13:26 passwd
+[root@H50 ~]# 
+
+## 在下载一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+ftp> lcd /download
+Local directory now /download
+
+ftp> pwd
+257 "/"
+
+ftp> get  sharedir/passwd   ##不支持多层目录,必须cd切换相应目录下载
+local: sharedir/passwd remote: sharedir/passwd
+local: sharedir/passwd: 没有那个文件或目录
+
+ftp> cd sharedir  ##不支持多层目录,必须cd切换相应目录下载
+250 Directory successfully changed.
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,232,136).
+150 Here comes the directory listing.
+-rw-r--r--    1 0        0            2563 Nov 06 02:25 passwd
+226 Directory send OK.
+
+ftp> get passwd  ## 下载目录sharedir下的文件 passwd
+local: passwd remote: passwd
+227 Entering Passive Mode (192,168,4,50,208,176).
+150 Opening BINARY mode data connection for passwd (2563 bytes).
+226 Transfer complete.
+2563 bytes received in 8.2e-05 secs (31256.10 Kbytes/sec)
+ftp> 
+/*************文件会保存在使用lcd命令设置的目录位置。
+## 在下载一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+ftp> lcd /download  ******************
+[root@H50 ~]# ls /download/
+passwd
+[root@H50 ~]# ll   /download/passwd 
+-rw-r--r--. 1 root root 2563 11月  6 13:36 /download/passwd
+************************/
+[root@H50 ~]# ls /var/ftp/sharedir/
+passwd
+[root@H50 ~]# echo "abcabcaaaa">/var/ftp/sharedir/a.txt
+[root@H50 ~]# echo "abcabcbbbbbbbbbb">/var/ftp/sharedir/b.txt
+[root@H50 ~]# echo "abcaccccccccccc">/var/ftp/sharedir/c.txt
+[root@H50 ~]# ls /var/ftp/sharedir/
+a.txt  b.txt  c.txt  passwd
+[root@H50 ~]# 
+/***************************文件会保存在使用lcd命令设置的目录位置。
+## 在下载一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+
+ftp> lcd /download
+Local directory now /download
+
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,31,230).
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+drwxr-xrwx    2 0        0              59 Nov 06 05:44 sharedir
+226 Directory send OK.
+ftp> pwd
+257 "/"
+ftp> cd  sharedir
+250 Directory successfully changed.
+ftp> ls
+227 Entering Passive Mode (192,168,4,50,130,99).
+150 Here comes the directory listing.
+-rw-r--r--    1 0        0              11 Nov 06 05:43 a.txt
+-rw-r--r--    1 0        0              17 Nov 06 05:44 b.txt
+-rw-r--r--    1 0        0              16 Nov 06 05:44 c.txt
+-rw-r--r--    1 0        0            2563 Nov 06 02:25 passwd
+226 Directory send OK.
+
+ftp> mget *.txt  ##下载多个文件可以使用通配符及 mget 命令
+mget a.txt? y
+.................
+mget b.txt? y
+227 Entering Passive Mode (192,168,4,50,177,213).
+150 Opening BINARY mode data connection for b.txt (17 bytes).
+226 Transfer complete.
+17 bytes received in 7.2e-05 secs (236.11 Kbytes/sec)
+mget c.txt? y
+....................
+查看一下文件列表 !ls
+ftp> !ls
+a.txt  b.txt  c.txt  passwd
+
+/********************
+[root@H50 ~]# ls  /download/
+a.txt  b.txt  c.txt  passwd
+[root@H50 ~]# ll /download/a.txt 
+-rw-r--r--. 1 root root 11 11月  6 13:48 /download/a.txt
+[root@H50 ~]# cat /download/a.txt
+abcabcaaaa
+[root@H50 ~]# 
+******************************/
+[root@H50 ~]# rm -f /var/ftp/sharedir/*
+[root@H50 ~]# ls /var/ftp/sharedir/
+[root@H50 ~]# 
+
+  ## 使用lcd命令设定本地接受目录位置
+
+ftp> cd sharedir/
+250 Directory successfully changed.
+ftp> lcd
+Local directory now /download
+ftp> 
+[root@H50 ~]# ls /download/
+a.txt  b.txt  c.txt  passwd
+[root@H50 ~]# ls /var/ftp/sharedir/
+[root@H50 ~]# ftp  192.168.4.50
+Connected to 192.168.4.50 (192.168.4.50).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.50:root): ftp
+331 Please specify the password.
+Password: 回车无密码确认
+
+ftp> pwd
+257 "/sharedir"
+ftp> cd ../
+250 Directory successfully changed.
+ftp> pwd
+257 "/"
+ftp> cd sharedir/
+250 Directory successfully changed.
+ftp> pwd
+257 "/sharedir"
+
+/***************************文件会保存在使用lcd命令设置的目录位置。
+## 在下载 或上传 一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+
+ftp> lcd /var/ftp/sharedir/
+Local directory now /var/ftp/sharedir
+ftp> 
+查看一下文件列表 !ls
+ftp> !ls
+/**************
+FTP命令行连接设置主动和被动模式
+linux默认是PASV模式，并通过passive on  | off  来进行切换
+*************/
+ftp> passive
+Passive mode off.
+ftp> ls  /download/
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+226 Transfer done (but failed to open directory).
+ftp> passive
+Passive mode on.
+[root@H50 ~]# ls /var/ftp/sharedir/
+[root@H50 ~]# ls /download/
+a.txt  b.txt  c.txt  passwd
+[root@H50 ~]# 
+
+ftp> pwd
+257 "/"
+
+/**************
+FTP命令行连接设置主动和被动模式
+linux默认是PASV模式，并通过passive on  | off  来进行切换
+*************/
+
+ftp> passive
+Passive mode off.
+
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+drwxr-xrwx    2 0        0               6 Nov 06 08:04 sharedir
+226 Directory send OK.
+ftp> pwd
+257 "/"
+
+/***************************文件会保存在使用lcd命令设置的目录位置。
+## 在下载 或上传 一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+
+ftp> lcd  /download/
+Local directory now /download
+ftp> cd  sharedir
+250 Directory successfully changed.
+
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+226 Directory send OK.
+
+  ## 查看一下lcd 指定的文件列表 !ls
+ftp> !ls
+a.txt  b.txt  c.txt  passwd
+
+ftp> put passwd 
+local: passwd remote: passwd
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+2563 bytes sent in 6.5e-05 secs (39430.77 Kbytes/sec)
+
+ftp> mput *.txt
+
+mput a.txt? y
+
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+11 bytes sent in 6.8e-05 secs (161.76 Kbytes/sec)
+
+mput b.txt? y
+
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+17 bytes sent in 3.3e-05 secs (515.15 Kbytes/sec)
+
+mput c.txt? y
+
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+16 bytes sent in 2.9e-05 secs (551.72 Kbytes/sec)
+
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+-rw-------    1 14       50             11 Nov 06 11:38 a.txt
+-rw-------    1 14       50             17 Nov 06 11:38 b.txt
+-rw-------    1 14       50             16 Nov 06 11:38 c.txt
+-rw-------    1 14       50           2563 Nov 06 11:36 passwd
+226 Directory send OK.
+ftp> 
+
+
+
+#ls /etc/group
+ftp>lcd  /etc
+put  group
+ftp> bye
+421 Timeout.
+[root@H50 ~]# getsebool  -a  |grep  -i ftp
+ftpd_anon_write --> off
+ftpd_connect_all_unreserved --> off
+ftpd_connect_db --> off
+ftpd_full_access --> on
+ftpd_use_cifs --> off
+ftpd_use_fusefs --> off
+ftpd_use_nfs --> off
+ftpd_use_passive_mode --> off
+httpd_can_connect_ftp --> off
+httpd_enable_ftp_server --> off
+tftp_anon_write --> off
+tftp_home_dir --> off
+[root@H50 ~]# 
+[root@H50 ~]# setsebool -P ftpd_anon_write on
+[root@H50 ~]# 
+[root@H50 ~]# setsebool -P ftpd_full_access  on
+[root@H50 ~]# getenforce
+Permissive
+[root@H50 ~]# getsebool  -a  |grep  -i ftp
+ftpd_anon_write --> on
+
+ftpd_connect_all_unreserved --> off
+ftpd_connect_db --> off
+
+ftpd_full_access --> on
+
+ftpd_use_cifs --> off
+ftpd_use_fusefs --> off
+ftpd_use_nfs --> off
+ftpd_use_passive_mode --> off
+httpd_can_connect_ftp --> off
+httpd_enable_ftp_server --> off
+tftp_anon_write --> off
+tftp_home_dir --> off
+[root@H50 ~]# ftp  192.168.4.50
+Connected to 192.168.4.50 (192.168.4.50).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.50:root): ftp
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> lcd  /etc/
+Local directory now /etc
+ftp> put passwd
+local: passwd remote: passwd
+227 Entering Passive Mode (192,168,4,50,57,222).
+553 Could not create file.
+ftp> by
+221 Goodbye.
+[root@H50 ~]# 
+
+
+[root@H50 ~]# rpm -qa  |grep -i shoot
+setroubleshoot-3.2.28-3.el7.x86_64
+setroubleshoot-server-3.2.28-3.el7.x86_64
+setroubleshoot-plugins-3.0.65-1.el7.noarch
+[root@H50 ~]# 
+[root@H50 ~]# ll /sbin/restorecon 
+lrwxrwxrwx. 1 root root 8 1月  30 2018 /sbin/restorecon -> setfiles
+[root@H50 ~]# ll /sbin/setfiles 
+-rwxr-xr-x. 1 root root 27808 5月  26 2017 /sbin/setfiles
+[root@H50 ~]# rpm  -qa | grep  -i shoot
+setroubleshoot-3.2.28-3.el7.x86_64
+setroubleshoot-server-3.2.28-3.el7.x86_64
+setroubleshoot-plugins-3.0.65-1.el7.noarch
+[root@H50 ~]# ls  /var/log/messages
+/var/log/messages
+[root@H50 ~]# grep setrouble  /var/log/messages
+[root@H50 ~]# grep setrouble  /var/log/messages |tail -3
+[root@H50 ~]# sealert  -l  run:xxxidend
+Error
+query_alerts error (1003): id (run:xxxidend) not found
+[root@H50 ~]# 
+
+对称加密
+DES  Data Encryption Standard
+AES  
+ 
+非对称加密
+ RSA
+DSA
+Hash散列技术
+MD5
+SHA	
+
+[root@H50 ~]# cat txt.txt
+show dbs
+db
+exit
+ddd
+[root@H50 ~]# md5sum  txt.txt
+c8dfb4124fe99123734758af45c32d1b  txt.txt
+
+[root@H50 ~]# echo "md5sum Hash"> txt.txt
+-bash: txt.txt: 不允许的操作
+
+[root@H50 ~]# lsattr  txt.txt
+-----a---------- txt.txt
+
+[root@H50 ~]# chattr  -a txt.txt
+
+[root@H50 ~]# lsattr  txt.txt
+---------------- txt.txt
+
+[root@H50 ~]# echo "md5sum Hash"> txt.txt
+
+[root@H50 ~]# md5sum  txt.txt
+19baf3013ac12a6d2cd05ea9359942db  txt.txt
+
+[root@H50 ~]# cat txt.txt
+md5sum Hash
+
+[root@H50 ~]# echo abcd |md5sum
+f5ac8127b3b6b85cdc13f237c6005d80  -
+
+[root@H50 ~]# echo abc |md5sum  ## 注意 符号 "-"表示字符字符串
+0bee89b07a248e27c83fc3d5951213c1  -
+[root@H50 ~]# 
+
+[root@H50 ~]# rpm -q gpgme 
+gpgme-1.3.2-5.el7.x86_64
+[root@H50 ~]# gpg --versio
+gpg: invalid option "--versio"
+[root@H50 ~]# gpg --version
+gpg (GnuPG) 2.0.22
+libgcrypt 1.5.3
+Copyright (C) 2013 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Home: ~/.gnupg
+支持的算法：
+公钥：RSA, ?, ?, ELG, DSA
+对称加密：IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256,
+     TWOFISH, CAMELLIA128, CAMELLIA192, CAMELLIA256
+散列：MD5, SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224
+压缩：不压缩, ZIP, ZLIB, BZIP2
+[root@H50 ~]# rpm -q |gpg
+gpg: 已创建目录‘/root/.gnupg’
+rpm：未给出要查询的参数
+gpg: 新的配置文件‘/root/.gnupg/gpg.conf’已建立
+gpg: 警告：在‘/root/.gnupg/gpg.conf’里的选项于此次运行期间未被使用
+gpg: 钥匙环‘/root/.gnupg/secring.gpg’已建立
+gpg: 钥匙环‘/root/.gnupg/pubring.gpg’已建立
+gpg: processing message failed: 未知的系统错误
+[root@H50 ~]# rpm -qa |gpg
+gpg: 找不到有效的 OpenPGP 数据。
+gpg: processing message failed: 未知的系统错误
+
+[root@H50 ~]# yum -y install gnupg2 |tail -3
+
+This system is not registered with an entitlement server. You can use subscription-manager to register.
+软件包 gnupg2-2.0.22-4.el7.x86_64 已安装并且是最新版本
+无须任何处理
+[root@H50 ~]# rpm -q gnupg2 
+gnupg2-2.0.22-4.el7.x86_64
+[root@H50 ~]# rpm -qa |grep g
+xorg-x11-drv-qxl-0.1.5-3.el7.x86_64
+xorg-x11-drv-void-1.4.1-2.el7.x86_64
+ibus-gtk3-1.5.3-13.el7.x86_64
+gnome-abrt-0.3.4-8.el7.x86_64
+grub2-pc-modules-2.02-0.64.el7.noarch
+gnome-shell-extension-user-theme-3.22.2-10.el7.noarch
+mysql-community-minimal-debuginfo-5.7.17-1.el7.x86_64
+gnome-python2-gnomevfs-2.28.1-14.el7.x86_64
+glusterfs-3.8.4-18.4.el7.x86_64
+subscription-manager-initial-setup-addon-1.19.21-1.el7.x86_64
+gnome-tweak-tool-3.22.0-1.el7.noarch
+libreport-plugin-reportuploader-2.1.11-38.el7.x86_64
+gvfs-mtp-1.30.4-3.el7.x86_64
+pygpgme-0.3-9.el7.x86_64
+libchewing-0.3.4-6.el7.x86_64
+libvirt-daemon-driver-storage-core-3.2.0-14.el7.x86_64
+gucharmap-3.18.2-1.el7.x
+
+
+
+
+[root@H51 ~]# echo "aaaaaaaaaaa"> a.txt
+[root@H51 ~]# echo "bbbbbbbbbbbbb"> b.txt
+
+[root@H51 ~]# rpm -qa  |grep -i shoot
+setroubleshoot-3.2.28-3.el7.x86_64
+setroubleshoot-server-3.2.28-3.el7.x86_64
+setroubleshoot-plugins-3.0.65-1.el7.noarch
+
+[root@H51 ~]# rpm -q gpgme
+gpgme-1.3.2-5.el7.x86_64
+
+[root@H51 ~]# yum -y install gnupg2 |tail -3
+
+[root@H51 ~]# ls /home/usera/
+[root@H51 ~]# ls /home/userb/
+
+[root@H51 ~]# ssh -X usera@192.168.4.51
+........................
+Are you sure you want to continue connecting (yes/no)? yes
+
+usera@192.168.4.51's password: 123
+
+[usera@H51 ~]$ pwd
+/home/usera
+[usera@H51 ~]$ echo $USER
+usera
+[usera@H51 ~]$ echo "aaaaaaaaaaa"> a.txt
+[usera@H51 ~]$ cat a.txt
+aaaaaaaaaaa
+[usera@H51 ~]$ gpg  --version
+gpg (GnuPG) 2.0.22
+libgcrypt 1.5.3
+Copyright (C) 2013 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Home: ~/.gnupg
+支持的算法：
+公钥：RSA, ?, ?, ELG, DSA
+对称加密：IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256,
+     TWOFISH, CAMELLIA128, CAMELLIA192, CAMELLIA256
+散列：MD5, SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224
+压缩：不压缩, ZIP, ZLIB, BZIP2
+
+[usera@H51 ~]$ gpg  -c  a.txt    ##对称加密  [ -c ]
+gpg: 已创建目录‘/home/usera/.gnupg’
+gpg: 新的配置文件‘/home/usera/.gnupg/gpg.conf’已建立
+gpg: 警告：在‘/home/usera/.gnupg/gpg.conf’里的选项于此次运行期间未被使用
+
+     需要输入自定义密码 123 再次输入解密 密码 123 
+  pinentry-gtk-2   Passphrase  ***
+
+gpg: 钥匙环‘/home/usera/.gnupg/pubring.gpg’已建立
+[usera@H51 ~]$ ls
+a.txt  a.txt.gpg
+[usera@H51 ~]$ head -1 a.txt.gpg 
+[�q]��)���/�wK�;��\��XW����=��d�C�[usera@H51 ~]$
+
+[usera@H51 ~]$ cat a.txt
+aaaaaaaaaaa
+
+[usera@H51 ~]$ mkdir jiemi
+[usera@H51 ~]$ cd jiemi
+
+[usera@H51 jiemi]$ pwd
+/home/usera/jiemi
+
+[usera@H51 jiemi]$ cp  /home/usera/a.txt.gpg  .
+[usera@H51 jiemi]$ ls
+a.txt.gpg
+
+[usera@H51 jiemi]$ ll a.txt.gpg 
+-rw-rw-r--. 1 usera usera 48 11月  6 14:15 a.txt.gpg
+
+[usera@H51 jiemi]$ gpg  -d  a.txt.gpg >a2.txt  ##对称解密-d
+gpg: 钥匙环‘/home/usera/.gnupg/secring.gpg’已建立
+gpg: CAST5 加密过的数据
+gpg: 以 1 个密码加密
+gpg: 警告：报文未受到完整的保护
+
+[usera@H51 jiemi]$ ls
+a2.txt  a.txt.gpg
+[usera@H51 jiemi]$ cat a2.txt 
+aaaaaaaaaaa
+
+[usera@H51 jiemi]$ head -1 a.txt.gpg 
+[�q]��)���/�wK�;��\��XW����=��d�C�[usera@H51 jiemi]$ 
+[usera@H51 jiemi]$ 
+
+[root@H51 ~]# gpg -?
+....................
+Home: ~/.gnupg
+支持的算法：
+公钥：RSA, ?, ?, ELG, DSA
+对称加密：IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256,
+     TWOFISH, CAMELLIA128, CAMELLIA192, CAMELLIA256
+散列：MD5, SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224
+压缩：不压缩, ZIP, ZLIB, BZIP2
+
+Syntax: gpg [options] [files]
+Sign, check, encrypt or decrypt
+Default operation depends on the input data
+
+指令：
+ -s, --sign                 make a signature
+     --clearsign            make a clear text signature
+ -b, --detach-sign          生成一份分离的签名
+ -e, --encrypt              加密数据
+ -c, --symmetric            仅使用对称加密
+ -d, --decrypt              解密数据(默认)
+     --verify               验证签名
+ -k, --list-keys            列出密钥
+     --list-sigs            列出密钥和签名
+     --check-sigs           列出并检查密钥签名
+     --fingerprint          列出密钥和指纹
+ -K, --list-secret-keys     列出私钥
+     --gen-key              生成一副新的密钥对
+     --gen-revoke           生成一份吊销证书
+     --delete-keys          从公钥钥匙环里删除密钥
+     --delete-secret-keys   从私钥钥匙环里删除密钥
+     --sign-key             为某把密钥添加签名
+     --lsign-key            为某把密钥添加本地签名
+     --edit-key             编辑某把密钥或为其添加签名
+     --passwd               change a passphrase
+     --export               导出密钥
+     --send-keys            把密钥导出到某个公钥服务器上
+     --recv-keys            从公钥服务器上导入密钥
+     --search-keys          在公钥服务器上搜寻密钥
+     --refresh-keys         从公钥服务器更新所有的本地密钥
+     --import               导入/合并密钥
+     --card-status          打印卡状态
+     --card-edit            更改卡上的数据
+     --change-pin           更改卡的 PIN
+     --update-trustdb       更新信任度数据库
+     --print-md             print message digests
+     --server               run in server mode
+
+选项：
+ 
+ -a, --armor                输出经 ASCII 封装
+ -r, --recipient USER-ID    encrypt for USER-ID
+ -u, --local-user USER-ID   use USER-ID to sign or decrypt
+ -z N                       set compress level to N (0 disables)
+     --textmode             使用标准的文本模式
+ -o, --output FILE          write output to FILE
+ -v, --verbose              详细模式
+ -n, --dry-run              不做任何改变
+ -i, --interactive          覆盖前先询问
+     --openpgp              行为严格遵循 OpenPGP 定义
+
+(请参考在线说明以获得所有命令和选项的完整清单)
+
+范例：
+
+ -se -r Bob [文件名]          为 Bob 这个收件人签名及加密
+ --clearsign [文件名]         做出明文签名
+ --detach-sign [文件名]       做出分离式签名
+ --list-keys [某甲]           显示密钥
+ --fingerprint [某甲]         显示指纹
+
+请向 <http://bugs.gnupg.org> 报告程序缺陷。
+请向 <zuxyhere@eastday.com> 反映简体中文翻译的问题。
+[root@H51 ~]# 
+=============== 使用GPG非对称加密方式保护文件 ===============
+非对称加密/解密文件时，UserA（192.168.4.100）生成私钥与公钥，
+并把公钥发送给UserB（192.168.4.5），
+UserB使用公钥加密数据，并把加密后的数据传给UserA，
+UserA最后使用自己的私钥解密数据。
+
+[usera@H51 ~]$ pwd  #接收方UserA创建自己的公钥、私钥对
+/home/usera
+[usera@H51 ~]$ ls
+a.txt  a.txt.gpg  jiemi
+[usera@H51 ~]$ ls .gnupg/
+gpg.conf  private-keys-v1.d  pubring.gpg  random_seed  secring.gpg  S.gpg-agent
+[usera@H51 ~]$ rm  -rf .gnupg/
+[usera@H51 ~]$ echo $USER
+usera
+[usera@H51 ~]$ 
+[usera@H51 ~]$ gpg  --gen-key   ##usera 创建密钥对
+..............
+
+gpg: 已创建目录‘/home/usera/.gnupg’
+gpg: 新的配置文件‘/home/usera/.gnupg/gpg.conf’已建立
+gpg: 警告：在‘/home/usera/.gnupg/gpg.conf’里的选项于此次运行期间未被使用
+gpg: 钥匙环‘/home/usera/.gnupg/secring.gpg’已建立
+gpg: 钥匙环‘/home/usera/.gnupg/pubring.gpg’已建立
+请选择您要使用的密钥种类：
+   (1) RSA and RSA (default)
+   (2) DSA and Elgamal
+   (3) DSA (仅用于签名)
+   (4) RSA (仅用于签名)
+您的选择？ 1                  ## 可以输入1 默认算法为RSA
+RSA 密钥长度应在 1024 位与 4096 位之间。
+您想要用多大的密钥尺寸？(2048) 1024    ## 可以输入1024
+您所要求的密钥尺寸是 1024 位
+请设定这把密钥的有效期限。
+         0 = 密钥永不过期
+      <n>  = 密钥在 n 天后过期
+      <n>w = 密钥在 n 周后过期
+      <n>m = 密钥在 n 月后过期
+      <n>y = 密钥在 n 年后过期
+密钥的有效期限是？(0)  0    //接受默认永不过期
+密钥永远不会过期
+以上正确吗？(y/n)y    //输入y确认
+
+You need a user ID to identify your key; the software constructs the user ID
+from the Real Name, Comment and Email Address in this form:
+    "Heinrich Heine (Der Dichter) <heinrichh@duesseldorf.de>"
+
+真实姓名：hiyes
+电子邮件地址：hiyes@163.com
+注释：boy
+您选定了这个用户标识：
+    “hiyes (boy) <hiyes@163.com>”
+
+更改姓名(N)、注释(C)、电子邮件地址(E)或确定(O)/退出(Q)？ O #大写字母O//输入大写O确认
+  ===============弹出多次对话框
+[[[[ take this one any way  ]]]]
+密码1234
+==========================
+您需要一个密码来保护您的私钥。
+
+我们需要生成大量的随机字节。这个时候您可以多做些琐事(像是敲打键盘、移动
+鼠标、读写硬盘之类的)，这会让随机数字发生器有更好的机会获得足够的熵数。
+我们需要生成大量的随机字节。这个时候您可以多做些琐事(像是敲打键盘、移动
+鼠标、读写硬盘之类的)，这会让随机数字发生器有更好的机会获得足够的熵数。
+gpg: /home/usera/.gnupg/trustdb.gpg：建立了信任度数据库
+gpg: 密钥 A19748C2 被标记为绝对信任
+公钥和私钥已经生成并经签名。
+
+gpg: 正在检查信任度数据库
+gpg: 需要 3 份勉强信任和 1 份完全信任，PGP 信任模型
+gpg: 深度：0 有效性：  1 已签名：  0 信任度：0-，0q，0n，0m，0f，1u
+pub   1024R/A19748C2 2018-11-06
+密钥指纹 = 5EFC 732B 0206 95D4 589D  102F 8A43 346A A197 48C2
+uid                  hiyes (boy) <hiyes@163.com>
+sub   1024R/88E9290C 2018-11-06
+
+[usera@H51 ~]$ pwd
+/home/usera
+[usera@H51 ~]$ ls /home/usera/.
+./             .bash_logout   .bashrc        .config/       .gnupg/        .Xauthority
+../            .bash_profile  .cache/        .dbus/         .mozilla/      
+[usera@H51 ~]$ ls /home/usera/.gnupg/
+gpg.conf           pubring.gpg   random_seed  S.gpg-agent
+private-keys-v1.d  pubring.gpg~  secring.gpg  trustdb.gpg
+[usera@H51 ~]$ ll /home/usera/.gnupg/pubring.gpg
+-rw-------. 1 usera usera 671 11月  6 14:37 /home/usera/.gnupg/pubring.gpg
+
+[usera@H51 ~]$ echo $USER
+usera
+[usera@H51 ~]$ gpg  --list-keys
+/home/usera/.gnupg/pubring.gpg
+------------------------------
+pub   1024R/A19748C2 2018-11-06
+uid                  hiyes (boy) <hiyes@163.com>
+sub   1024R/88E9290C 2018-11-06
+
+[usera@H51 ~]$ 
+
+[usera@H51 ~]$ dd  
+Try 'dd --help' for more information.
+[root@H51 ~]# dd --help
+用法：dd [操作数] ...
+　或：dd 选项
+Copy a file, converting and formatting according to the operands.
+
+  bs=BYTES        read and write up to BYTES bytes at a time
+  cbs=BYTES       convert BYTES bytes at a time
+  conv=CONVS      convert the file as per the comma separated symbol list
+  count=N         copy only N input blocks
+  ibs=BYTES       read up to BYTES bytes at a time (default: 512)
+
+  if=FILE         read from FILE instead of stdin
+
+  iflag=FLAGS     read as per the comma separated symbol list
+  obs=BYTES       write BYTES bytes at a time (default: 512)
+
+  of=FILE         write to FILE instead of stdout
+
+  oflag=FLAGS     write as per the comma separated symbol list
+  seek=N          skip N obs-sized blocks at start of output
+  skip=N          skip N ibs-sized blocks at start of input
+  status=LEVEL    The LEVEL of information to print to stderr;
+                  'none' suppresses everything but error messages,
+                  'noxfer' suppresses the final transfer statistics,
+                  'progress' shows periodic transfer statistics
+
+N and BYTES may be followed by the following multiplicative suffixes:
+c =1, w =2, b =512, kB =1000, K =1024, MB =1000*1000, M =1024*1024, xM =M
+GB =1000*1000*1000, G =1024*1024*1024, and so on for T, P, E, Z, Y.
+
+Each CONV symbol may be:
+
+  ascii     from EBCDIC to ASCII
+  ebcdic    from ASCII to EBCDIC
+  ibm       from ASCII to alternate EBCDIC
+  block     pad newline-terminated records with spaces to cbs-size
+  unblock   replace trailing spaces in cbs-size records with newline
+  lcase     change upper case to lower case
+  ucase     change lower case to upper case
+  sparse    try to seek rather than write the output for NUL input blocks
+  swab      swap every pair of input bytes
+  sync      pad every input block with NULs to ibs-size; when used
+            with block or unblock, pad with spaces rather than NULs
+  excl		fail if the output file already exists
+  nocreat	do not create the output file
+  notrunc	不截断输出文件
+  noerror	读取数据发生错误后仍然继续
+  fdatasync	结束前将输出文件数据写入磁盘
+  fsync	类似上面，但是元数据也一同写入
+
+FLAG 符号可以是：
+
+  append	追加模式(仅对输出有意义；隐含了conv=notrunc)
+  direct	使用直接I/O 存取模式
+  directory	除非是目录，否则 directory 失败
+  dsync		使用同步I/O 存取模式
+  sync		与上者类似，但同时也对元数据生效
+  fullblock	为输入积累完整块(仅iflag)
+  nonblock	使用无阻塞I/O 存取模式
+  noatime	不更新存取时间
+  nocache	丢弃缓存数据
+  noctty	不根据文件指派控制终端
+  nofollow	不跟随链接文件
+  count_bytes  treat 'count=N' as a byte count (iflag only)
+  skip_bytes  treat 'skip=N' as a byte count (iflag only)
+  seek_bytes  treat 'seek=N' as a byte count (oflag only)
+
+Sending a USR1 signal to a running 'dd' process makes it
+print I/O statistics to standard error and then resume copying.
+
+  $ dd if=/dev/zero of=/dev/null& pid=$!
+  $ kill -USR1 $pid; sleep 1; kill $pid
+  18335302+0 records in
+  18335302+0 records out
+  9387674624 bytes (9.4 GB) copied, 34.6279 seconds, 271 MB/s
+
+Options are:
+      --help		显示此帮助信息并退出
+      --version		显示版本信息并退出
+GNU coreutils online help: <http://www.gnu.org/software/coreutils/>
+请向<http://translationproject.org/team/zh_CN.html> 报告dd 的翻译错误
+要获取完整文档，请运行：info coreutils 'dd invocation'
+[root@H51 ~]# 
+
+[usera@H51 ~]$ dd  if=/dev/zero  of=/home/usera/aa.txt  bs=1M  count=10240
+^C记录了1727+0 的读入
+记录了1727+0 的写出
+1810890752字节(1.8 GB)已复制，10.2584 秒，177 MB/秒
+
+[usera@H51 ~]$ ll /home/usera/aa.txt 
+-rw-rw-r--. 1 usera usera 1810890752 11月  6 14:44 /home/usera/aa.txt
+[usera@H51 ~]$ head -1 /home/usera/aa.txt
+^C
+
+[usera@H51 ~]$ echo $USER
+usera
+
+[usera@H51 ~]$ gpg  --list-keys   ##  //查看公钥环
+/home/usera/.gnupg/pubring.gpg
+------------------------------
+pub   1024R/A19748C2 2018-11-06
+uid                  hiyes (boy) <hiyes@163.com>
+sub   1024R/88E9290C 2018-11-06
+
+[usera@H51 ~]$ 
+
+
+[usera@H51 ~]$ pwd
+/home/usera
+[usera@H51 ~]$ gpg  --export  -a
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+mI0EW+E2vwEEAL/g5bA5HUV+IVbZI9TwMKy+Js1kzbhQD7vp1CK7mTsbNlMMnh6B
+JDlW32695TkB7/v+ZkxR1AWWcyIdYmHp0qpMDkx4JsEP8LsjNnM+eb0egvwnee
+........................
+za8p+zKE/n7/H+a0CHbLitIypV5tA6K6Vl7/CDWSH34521X2eu9A
+=K/0L
+-----END PGP PUBLIC KEY BLOCK-----
+
+   //--export的作用是导出密钥，-a的作用是导出的密钥存储为ASCII格式
+
+[usera@H51 ~]$ gpg  --export  -a >usera.pub  #使用gpg命令结合--export选项将其中的公钥文本导出
+
+[usera@H51 ~]$ head -1 usera.pub
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+[usera@H51 ~]$ ls
+aa.txt  a.txt  a.txt.gpg  jiemi  usera.pub
+[usera@H51 ~]$ 
+[usera@H51 ~]$ pwd
+/home/usera
+[usera@H51 ~]$ cp usera.pub  /home/
+cp: 无法创建普通文件"/home/usera.pub": 权限不够
+[usera@H51 ~]$ exit
+登出
+[root@H51 ~]# ll /home/usera/usera.pub 
+-rw-rw-r--. 1 usera usera 1012 11月  6 14:47 /home/usera/usera.pub
+[root@H51 ~]# 
+[root@H51 ~]# ls /home/usera/
+aa.txt  a.txt  a.txt.gpg  jiemi  usera.pub
+
+[root@H51 ~]# cp /home/usera/usera.pub  usera.pub   #usera 传递公钥/home/usera/usera.pub 信息 给用户root
+
+   #使用gpg命令结合--import选项导入发送方的公钥信息，以便在加密文件时指定对应的公钥。
+
+[root@H51 ~]# gpg --import usera.pub
+gpg: 已创建目录‘/root/.gnupg’
+gpg: 新的配置文件‘/root/.gnupg/gpg.conf’已建立
+gpg: 警告：在‘/root/.gnupg/gpg.conf’里的选项于此次运行期间未被使用
+gpg: 钥匙环‘/root/.gnupg/secring.gpg’已建立
+gpg: 钥匙环‘/root/.gnupg/pubring.gpg’已建立
+gpg: /root/.gnupg/trustdb.gpg：建立了信任度数据库
+gpg: 密钥 A19748C2：公钥“hiyes (boy) <hiyes@163.com>”已导入
+gpg: 合计被处理的数量：1
+gpg:           已导入：1  (RSA: 1)
+[root@H51 ~]# ll usera.pub
+-rw-r--r--. 1 root root 1012 11月  6 14:52 usera.pub
+
+[root@H51 ~]# ls /root/.gnupg/
+gpg.conf  pubring.gpg  pubring.gpg~  secring.gpg  trustdb.gpg
+[root@H51 ~]# echo "root  root" >root.txt
+
+  ##  UserB root 使用公钥加密数据，并把加密后的数据传给UserA usera
+
+[root@H51 ~]# gpg  -e  -r hiyes  root.txt
+gpg: 88E9290C：没有证据表明这把密钥真的属于它所声称的持有者
+
+pub  1024R/88E9290C 2018-11-06 hiyes (boy) <hiyes@163.com>
+ 主钥指纹： 5EFC 732B 0206 95D4 589D  102F 8A43 346A A197 48C2
+ 子钥指纹： 0D8E BCCD 60E2 2F42 096F  5B80 CF72 774D 88E9 290C
+
+这把密钥并不一定属于用户标识声称的那个人。如果您真的知道自
+己在做什么，您可以在下一个问题回答 yes。
+
+无论如何还是使用这把密钥吗？(y/N) y   //确认使用此密钥加密文件 y
+[root@H51 ~]# 
+[root@H51 ~]# ll root*
+-rw-r--r--. 1 root root  11 11月  6 15:19 root.txt
+-rw-r--r--. 1 root root 217 11月  6 15:19 root.txt.gpg
+[root@H51 ~]# 
+[root@H51 ~]# cp root.txt.gpg  /home/usera/  ##加密后的文件
+[root@H51 ~]# ll /home/usera/root.txt.gpg 
+-rw-r--r--. 1 root root 217 11月  6 15:22 /home/usera/root.txt.gpg
+[root@H51 ~]# chown usera:usera /home/usera/root.txt.gpg
+[root@H51 ~]# 
+[root@H51 ~]# ssh -X usera@192.168.4.51   ## UserA usera 以自己的私钥解密文件
+[usera@H51 ~]$ ls
+a2.txt  a2.txt.gpg  aa.txt  a.txt  a.txt.gpg  jiemi  root.txt.gpg  usera.pub
+[usera@H51 ~]$ head -1 root.txt.gpg 
+���rwM��)
+          �>��a����%Q����rl��,�3�3�bx�"~@����y/,�b���ZO�=�Cىm�}/L ?d��t�M�软
+
+             ##usera 以自己的私钥 1234 解密文件
+[usera@H51 ~]$ gpg  -d  root.txt.gpg >root.txt  //解密后保存
+
+您需要输入密码，才能解开这个用户的私钥：“hiyes (boy) <hiyes@163.com>”
+
+1024 位的 RSA 密钥，钥匙号 88E9290C，建立于 2018-11-06 (主钥匙号 A19748C2)
+                            //验证私钥口令 输入 密码1234
+gpg: 由 1024 位的 RSA 密钥加密，钥匙号为 88E9290C、生成于 2018-11-06
+      “hiyes (boy) <hiyes@163.com>”
+[usera@H51 ~]$ ls
+a2.txt  a2.txt.gpg  aa.txt  a.txt  a.txt.gpg  jiemi  root.txt  root.txt.gpg  usera.pub
+
+[usera@H51 ~]$ cat root.txt  //获得解密后的文件内容
+root  root
+[usera@H51 ~]$ 
+[usera@H51 ~]$ pwd
+/home/usera
+[usera@H51 ~]$ ls
+a2.txt  a2.txt.gpg  aa.txt  a.txt  a.txt.gpg  jiemi  root.txt  root.txt.gpg  usera.pub
+[usera@H51 ~]$ cat a2.txt
+aaaaa222
+[usera@H51 ~]$ echo "useraaa" >ua.txt   UserA为 ua.txt 创建分离式签名
+
+[usera@H51 ~]$ gpg  -b  ua.txt   //创建分离式数字签名
+
+您需要输入密码，才能解开这个用户的私钥：“hiyes (boy) <hiyes@163.com>”
+        ## 输入密码 1234
+1024 位的 RSA 密钥，钥匙号 A19748C2，建立于 2018-11-06
+
+[usera@H51 ~]$ 
+[usera@H51 ~]$ gpg  -?
+...............................
+指令：
+ 
+ -s, --sign                 make a signature
+     --clearsign            make a clear text signature
+ -b, --detach-sign          生成一份分离的签名
+ -e, --encrypt              加密数据
+ -c, --symmetric            仅使用对称加密
+ -d, --decrypt              解密数据(默认)
+     --verify               验证签名
+ -k, --list-keys            列出密钥
+     --list-sigs            列出密钥和签名
+     --check-sigs           列出并检查密钥签名
+     --fingerprint          列出密钥和指纹
+ -K, --list-secret-keys     列出私钥
+     --gen-key              生成一副新的密钥对
+
+选项：
+ 
+ -a, --armor                输出经 ASCII 封装
+........................................
+范例：
+
+ -se -r Bob [文件名]          为 Bob 这个收件人签名及加密
+ --clearsign [文件名]         做出明文签名
+ --detach-sign [文件名]       做出分离式签名
+ --list-keys [某甲]           显示密钥
+ --fingerprint [某甲]         显示指纹
+
+请向 <http://bugs.gnupg.org> 报告程序缺陷。
+请向 <zuxyhere@eastday.com> 反映简体中文翻译的问题。
+[usera@H51 ~]$ gpg  --fingerprint
+/home/usera/.gnupg/pubring.gpg
+------------------------------
+pub   1024R/A19748C2 2018-11-06
+密钥指纹 = 5EFC 732B 0206 95D4 589D  102F 8A43 346A A197 48C2
+uid                  hiyes (boy) <hiyes@163.com>
+sub   1024R/88E9290C 2018-11-06
+
+[root@H51 ~]# cp  /home/usera/ua.txt*  /root/  # usera 将签名文件ua.txt与签名 ua.txt.sig 传给UserB root
+
+[root@H51 ~]# ls /root/ua.txt*
+/root/ua.txt  /root/ua.txt.sig
+[root@H51 ~]# gpg  --verify  /root/ua.txt.sig   ## 验证签名
+gpg: 于 2018年11月06日 星期二 16时11分49秒 CST 创建的签名，使用 RSA，钥匙号 A19748C2
+gpg: 完好的签名，来自于“hiyes (boy) <hiyes@163.com>”
+gpg: 警告：这把密钥未经受信任的签名认证！
+gpg:       没有证据表明这个签名属于它所声称的持有者。
+主钥指纹： 5EFC 732B 0206 95D4 589D  102F 8A43 346A A197 48C2
+[root@H51 ~]# 
+
+
+
+[root@H50 ~]# rpm -q aide
+未安装软件包 aide 
+[root@H50 ~]# yum -y install aide |tail -3
+  aide.x86_64 0:0.15.1-13.el7                                                   
+
+完毕！
+[root@H50 ~]# ll /etc/aide.conf 
+-rw-------. 1 root root 7333 3月  21 2017 /etc/aide.conf
+
+
+[root@H50 ~]# vim /etc/aide.conf
+
+ 54 FIPSR = p+i+n+u+g+s+m+c+acl+selinux+xattrs+sha256
+
+ 98 /testdir FIPSR
+
+:99,312s/^/#
+
+312 #!/var/log/httpd/
+214 次替换，共 214 行 
+:wq
+[root@H50 ~]# mkdir  /testdir
+[root@H50 ~]# aide  --help
+Aide 0.15.1 
+
+Usage: aide [options] command
+
+Commands:
+  -i, --init		Initialize the database
+  -C, --check		Check the database
+  -u, --update		Check and update the database non-interactively
+      --compare		Compare two databases
+
+Miscellaneous:
+  -D, --config-check	Test the configuration file
+  -v, --version		Show version of AIDE and compilation options
+  -h, --help		Show this help message
+
+Options:
+  -c [cfgfile]	--config=[cfgfile]	Get config options from [cfgfile]
+  -B "OPTION"	--before="OPTION"	Before configuration file is read define OPTION
+  -A "OPTION"	--after="OPTION"	After configuration file is read define OPTION
+  -r [reporter]	--report=[reporter]	Write report output to [reporter] url
+  -V[level]	--verbose=[level]	Set debug message level to [level]
+
+[root@H50 ~]# 
+[root@H50 ~]# aide  --init  #//生成校验数据库，数据保存在/var/lib/aide/aide.db.new.gz
+
+AIDE, version 0.15.1
+
+### AIDE database at /var/lib/aide/aide.db.new.gz initialized.
+
+[root@H50 ~]# echo $?
+0
+[root@H50 ~]# ll /var/lib/aide/aide.db.new.gz 
+-rw-------. 1 root root 316 11月  6 16:52 /var/lib/aide/aide.db.new.gz
+[root@H50 ~]# tail -1 /var/lib/aide/aide.db.new.gz
+
+%[�],��Q.q��=�Es_̓��b�T
+�[root@H50 ~]# 
+[root@H50 ~]# 
+[root@H50 ~]# cp /var/lib/aide/aide.db.new.gz  /root/
+
+[root@H50 ~]# echo "aidetest"> /testdir/a.txt
+[root@H50 ~]# ls /testdir/
+a.txt
+[root@H50 ~]# ll /root/aide.db.new.gz 
+-rw-------. 1 root root 316 11月  6 16:56 /root/aide.db.new.gz
+[root@H50 ~]# cd /var/lib/aide/;ls
+aide.db.new.gz
+
+[root@H50 aide]# sed -n '3,4p;7p'  /etc/aide.conf
+@@define DBDIR /var/lib/aide
+@@define LOGDIR /var/log/aide
+database=file:@@{DBDIR}/aide.db.gz  ## 文件名必须一致/var/lib/aide/aide.db.gz
+
+[root@H50 aide]# ls /var/lib/aide/
+aide.db.gz
+[root@H50 aide]# 
+
+[root@H50 aide]# mv aide.db.new.gz  aide.db.gz   ##改名的依据database=file:@@{DBDIR}/aide.db.gz 
+
+[root@H50 aide]# echo "aide  testb" >/testdir/b.txt
+[root@H50 aide]# aide -C    ##入侵后检测
+AIDE 0.15.1 found differences between database and filesystem!!
+Start timestamp: 2018-11-06 17:00:51
+
+Summary:
+  Total number of files:	4
+  Added files:			2
+  Removed files:		0
+  Changed files:		1
+---------------------------------------------------
+Added files:
+---------------------------------------------------
+added: /testdir/a.txt
+added: /testdir/b.txt
+---------------------------------------------------
+Changed files:
+---------------------------------------------------
+changed: /testdir
+---------------------------------------------------
+Detailed information about changes:
+---------------------------------------------------
+
+Directory: /testdir
+ Size     : 6                                , 32
+ Mtime    : 2018-11-06 16:51:09              , 2018-11-06 17:00:31
+ Ctime    : 2018-11-06 16:51:09              , 2018-11-06 17:00:31
+[root@H50 aide]# vim /etc/aide.conf 
+
+[root@H50 aide]# sed -n 98,99p /etc/aide.conf
+
+/testdir FIPSR
+/homedir FIPSR
+
+[root@H50 aide]# 
+[root@H50 aide]# mkdir  /homedir
+[root@H50 aide]# echo "homedir" > /homedir/h.txt
+[root@H50 aide]# pwd
+/var/lib/aide
+[root@H50 aide]# 
+[root@H50 aide]# ls  /testdir/
+a.txt  b.txt
+[root@H50 aide]# rm -f /testdir/a.txt 
+[root@H50 aide]# aide  --check   ##入侵后检测
+AIDE 0.15.1 found differences between database and filesystem!!
+Start timestamp: 2018-11-06 17:24:34
+
+Summary:
+  Total number of files:	5
+  Added files:			3
+  Removed files:		0
+  Changed files:		1
+---------------------------------------------------
+Added files:
+---------------------------------------------------
+added: /homedir
+added: /homedir/h.txt
+added: /testdir/b.txt
+---------------------------------------------------
+Changed files:
+---------------------------------------------------
+changed: /testdir
+---------------------------------------------------
+Detailed information about changes:
+---------------------------------------------------
+Directory: /testdir
+ Size     : 6                                , 19
+ Mtime    : 2018-11-06 16:51:09              , 2018-11-06 17:23:43
+ Ctime    : 2018-11-06 16:51:09              , 2018-11-06 17:23:43
+[root@H50 aide]# 
+
+
+[root@H51 ~]# yum -y install nmap |tail -3
+  nmap.x86_64 2:6.40-7.el7                                                      
+
+完毕！
+[root@H51 ~]# rpm -qf /bin/nmap 
+nmap-6.40-7.el7.x86_64
+[root@H51 ~]# rpm -q  nmap
+nmap-6.40-7.el7.x86_64
+[root@H51 ~]# which nmap
+/usr/bin/nmap
+[root@H51 ~]# nmap -h
+Nmap 6.40 ( http://nmap.org )
+Usage: nmap [Scan Type(s)] [Options] {target specification}
+TARGET SPECIFICATION:
+  Can pass hostnames, IP addresses, networks, etc.
+  Ex: scanme.nmap.org, microsoft.com/24, 192.168.0.1; 10.0.0-255.1-254
+  -iL <inputfilename>: Input from list of hosts/networks
+  -iR <num hosts>: Choose random targets
+  --exclude <host1[,host2][,host3],...>: Exclude hosts/networks
+  --excludefile <exclude_file>: Exclude list from file
+HOST DISCOVERY:
+  -sL: List Scan - simply list targets to scan
+  -sn: Ping Scan - disable port scan
+  -Pn: Treat all hosts as online -- skip host discovery
+  -PS/PA/PU/PY[portlist]: TCP SYN/ACK, UDP or SCTP discovery to given ports
+  -PE/PP/PM: ICMP echo, timestamp, and netmask request discovery probes
+  -PO[protocol list]: IP Protocol Ping
+  -n/-R: Never do DNS resolution/Always resolve [default: sometimes]
+  --dns-servers <serv1[,serv2],...>: Specify custom DNS servers
+  --system-dns: Use OS's DNS resolver
+  --traceroute: Trace hop path to each host
+SCAN TECHNIQUES:
+  -sS/sT/sA/sW/sM: TCP SYN/Connect()/ACK/Window/Maimon scans
+  -sU: UDP Scan
+  -sN/sF/sX: TCP Null, FIN, and Xmas scans
+  --scanflags <flags>: Customize TCP scan flags
+  -sI <zombie host[:probeport]>: Idle scan
+  -sY/sZ: SCTP INIT/COOKIE-ECHO scans
+  -sO: IP protocol scan
+  -b <FTP relay host>: FTP bounce scan
+PORT SPECIFICATION AND SCAN ORDER:
+  -p <port ranges>: Only scan specified ports
+    Ex: -p22; -p1-65535; -p U:53,111,137,T:21-25,80,139,8080,S:9
+  -F: Fast mode - Scan fewer ports than the default scan
+  -r: Scan ports consecutively - don't randomize
+  --top-ports <number>: Scan <number> most common ports
+  --port-ratio <ratio>: Scan ports more common than <ratio>
+SERVICE/VERSION DETECTION:
+  -sV: Probe open ports to determine service/version info
+  --version-intensity <level>: Set from 0 (light) to 9 (try all probes)
+  --version-light: Limit to most likely probes (intensity 2)
+  --version-all: Try every single probe (intensity 9)
+  --version-trace: Show detailed version scan activity (for debugging)
+SCRIPT SCAN:
+  -sC: equivalent to --script=default
+  --script=<Lua scripts>: <Lua scripts> is a comma separated list of 
+           directories, script-files or script-categories
+  --script-args=<n1=v1,[n2=v2,...]>: provide arguments to scripts
+  --script-args-file=filename: provide NSE script args in a file
+  --script-trace: Show all data sent and received
+  --script-updatedb: Update the script database.
+  --script-help=<Lua scripts>: Show help about scripts.
+           <Lua scripts> is a comma separted list of script-files or
+           script-categories.
+OS DETECTION:
+  -O: Enable OS detection
+  --osscan-limit: Limit OS detection to promising targets
+  --osscan-guess: Guess OS more aggressively
+TIMING AND PERFORMANCE:
+  Options which take <time> are in seconds, or append 'ms' (milliseconds),
+  's' (seconds), 'm' (minutes), or 'h' (hours) to the value (e.g. 30m).
+  -T<0-5>: Set timing template (higher is faster)
+  --min-hostgroup/max-hostgroup <size>: Parallel host scan group sizes
+  --min-parallelism/max-parallelism <numprobes>: Probe parallelization
+  --min-rtt-timeout/max-rtt-timeout/initial-rtt-timeout <time>: Specifies
+      probe round trip time.
+  --max-retries <tries>: Caps number of port scan probe retransmissions.
+  --host-timeout <time>: Give up on target after this long
+  --scan-delay/--max-scan-delay <time>: Adjust delay between probes
+  --min-rate <number>: Send packets no slower than <number> per second
+  --max-rate <number>: Send packets no faster than <number> per second
+FIREWALL/IDS EVASION AND SPOOFING:
+  -f; --mtu <val>: fragment packets (optionally w/given MTU)
+  -D <decoy1,decoy2[,ME],...>: Cloak a scan with decoys
+  -S <IP_Address>: Spoof source address
+  -e <iface>: Use specified interface
+  -g/--source-port <portnum>: Use given port number
+  --data-length <num>: Append random data to sent packets
+  --ip-options <options>: Send packets with specified ip options
+  --ttl <val>: Set IP time-to-live field
+  --spoof-mac <mac address/prefix/vendor name>: Spoof your MAC address
+  --badsum: Send packets with a bogus TCP/UDP/SCTP checksum
+OUTPUT:
+  -oN/-oX/-oS/-oG <file>: Output scan in normal, XML, s|<rIpt kIddi3,
+     and Grepable format, respectively, to the given filename.
+  -oA <basename>: Output in the three major formats at once
+  -v: Increase verbosity level (use -vv or more for greater effect)
+  -d: Increase debugging level (use -dd or more for greater effect)
+  --reason: Display the reason a port is in a particular state
+  --open: Only show open (or possibly open) ports
+  --packet-trace: Show all packets sent and received
+  --iflist: Print host interfaces and routes (for debugging)
+  --log-errors: Log errors/warnings to the normal-format output file
+  --append-output: Append to rather than clobber specified output files
+  --resume <filename>: Resume an aborted scan
+  --stylesheet <path/URL>: XSL stylesheet to transform XML output to HTML
+  --webxml: Reference stylesheet from Nmap.Org for more portable XML
+  --no-stylesheet: Prevent associating of XSL stylesheet w/XML output
+MISC:
+  -6: Enable IPv6 scanning
+  -A: Enable OS detection, version detection, script scanning, and traceroute
+  --datadir <dirname>: Specify custom Nmap data file location
+  --send-eth/--send-ip: Send using raw ethernet frames or IP packets
+  --privileged: Assume that the user is fully privileged
+  --unprivileged: Assume the user lacks raw socket privileges
+  -V: Print version number
+  -h: Print this help summary page.
+EXAMPLES:
+  nmap -v -A scanme.nmap.org
+  nmap -v -sn 192.168.0.0/16 10.0.0.0/8
+  nmap -v -iR 10000 -Pn -p 80
+SEE THE MAN PAGE (http://nmap.org/book/man.html) FOR MORE OPTIONS AND EXAMPLES
+[root@H51 ~]# 
+
+[root@H51 ~]# ping -i0.2 -c2 -w1 192.168.4.57
+
+PING 192.168.4.57 (192.168.4.57) 56(84) bytes of data.
+64 bytes from 192.168.4.57: icmp_seq=1 ttl=64 time=1.62 ms
+64 bytes from 192.168.4.57: icmp_seq=2 ttl=64 time=0.521 ms
+
+--- 192.168.4.57 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 201ms
+rtt min/avg/max/mdev = 0.521/1.071/1.622/0.551 ms
+
+[root@H51 ~]# nmap  -sP 192.168.4.0/24  ## 检查192.168.4.0/24网段内哪些主机可以ping通
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:42 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.00064s latency).
+....................
+MAC Address: 52:54:00:33:42:D8 (QEMU Virtual NIC)
+Nmap scan report for 192.168.4.57
+Host is up (0.0013s latency).
+MAC Address: 52:54:00:38:7A:87 (QEMU Virtual NIC)
+Nmap scan report for 192.168.4.254
+Host is up (0.00055s latency).
+MAC Address: 52:54:00:37:78:11 (QEMU Virtual NIC)
+Nmap scan report for 192.168.4.51
+Host is up.
+Nmap done: 256 IP addresses (9 hosts up) scanned in 1.83 seconds
+[root@H51 ~]#
+
+[root@H51 ~]# nmap  -p 80  192.168.4.50
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:44 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.00023s latency).
+PORT   STATE SERVICE
+80/tcp open  http
+MAC Address: 52:54:00:24:65:CB (QEMU Virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.03 seconds
+
+
+[root@H51 ~]# nmap  -p 20-80  192.168.4.50
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:45 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.00010s latency).
+Not shown: 58 closed ports
+PORT   STATE SERVICE
+21/tcp open  ftp
+22/tcp open  ssh
+80/tcp open  http
+MAC Address: 52:54:00:24:65:CB (QEMU Virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.03 seconds
+[root@H51 ~]# 
+
+
+[root@H51 ~]# nmap  -sS  192.168.4.50  ## 半开式 扫描 [tcp 只有2次 ,没有第3次确认]
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:46 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.000027s latency).
+Not shown: 995 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+111/tcp  open  rpcbind
+3306/tcp open  mysql
+MAC Address: 52:54:00:24:65:CB (QEMU Virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.04 seconds
+[root@H51 ~]# 
+[root@H51 ~]# 
+
+[root@H51 ~]# 
+[root@H51 ~]# nmap  -sT  192.168.4.50  #检查目标主机所开启的TCP服务
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:53 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.00093s latency).
+Not shown: 995 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+111/tcp  open  rpcbind
+3306/tcp open  mysql
+MAC Address: 52:54:00:24:65:CB (QEMU Virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.07 seconds
+[root@H51 ~]# 
+[root@H51 ~]# nmap  -sP  192.168.4.50-53
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:55 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.00026s latency).
+MAC Address: 52:54:00:24:65:CB (QEMU Virtual NIC)
+Nmap scan report for 192.168.4.52
+Host is up (0.00036s latency).
+MAC Address: 52:54:00:37:D5:6C (QEMU Virtual NIC)
+Nmap scan report for 192.168.4.53
+Host is up (0.00034s latency).
+MAC Address: 52:54:00:C0:09:7E (QEMU Virtual NIC)
+Nmap scan report for 192.168.4.51
+Host is up.
+Nmap done: 4 IP addresses (4 hosts up) scanned in 0.01 seconds
+[root@H51 ~]# 
+[root@H51 ~]# nmap  -sU  192.168.4.50    //指定-sU扫描UDP
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:55 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+/****
+53/udp   open          domain
+111/udp  open          rpcbind
+***************/
+/**********全面分析目标主机192.168.4.100和192.168.4.5的操作系统信息
+[root@proxy ~]# nmap -A 192.168.4.100,5
+****************************************/
+
+[root@H51 ~]# nmap  -A  192.168.4.50  #*全面分析目标主机192.168.4.50 的操作系统信息
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2018-11-06 17:57 CST
+mass_dns: warning: Unable to determine any DNS servers. Reverse DNS is disabled. Try using --system-dns or specify valid servers with --dns-servers
+Nmap scan report for 192.168.4.50
+Host is up (0.00060s latency).
+Not shown: 995 closed ports
+PORT     STATE SERVICE VERSION
+21/tcp   open  ftp     vsftpd 3.0.2
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+| drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+|_drwxr-xrwx    2 0        0               6 Nov 06 08:04 sharedir [NSE: writeable]
+22/tcp   open  ssh     OpenSSH 7.4 (protocol 2.0)
+| ssh-hostkey: 2048 d1:df:2f:c5:20:ec:71:8f:0b:97:8f:7a:a8:0b:02:6e (RSA)
+|_256 7e:6e:95:ed:84:fe:5b:8e:26:94:73:9b:c3:4b:90:cb (ECDSA)
+80/tcp   open  http    Apache httpd 2.4.6 ((Red Hat Enterprise Linux))
+| http-methods: Potentially risky methods: TRACE
+|_See http://nmap.org/nsedoc/scripts/http-methods.html
+|_http-title: Site doesn't have a title (text/html; charset=UTF-8).
+111/tcp  open  rpcbind 2-4 (RPC #100000)
+| rpcinfo: 
+|   program version   port/proto  service
+|   100000  2,3,4        111/tcp  rpcbind
+|_  100000  2,3,4        111/udp  rpcbind
+3306/tcp open  mysql   MySQL (unauthorized)
+MAC Address: 52:54:00:24:65:CB (QEMU Virtual NIC)
+No exact OS matches for host (If you know what OS is running on it, see http://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=6.40%E=4%D=11/6%OT=21%CT=1%CU=37525%PV=Y%DS=1%DC=D%G=Y%M=525400%T
+............................................
+OS:G%RIPCK=G%RUCK=G%RUD=G)IE(R=Y%DFI=N%T=40%CD=S)
+
+Network Distance: 1 hop
+Service Info: OS: Unix
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.60 ms 192.168.4.50
+
+OS and Service detection performed. Please report any incorrect results at http://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 17.96 seconds
+[root@H51 ~]# 
+/**************
+检查192.168.4.0/24网段内哪些主机开启了FTP、SSH服务
+[root@proxy ~]# nmap -p 21-22 192.168.4.0/24
+
+使用-n选项可以不执行DNS解析
+[root@proxy ~]# nmap -n -sP  192.168.4.100
+
+//基本用法：
+# nmap  [扫描类型]  [选项]  <扫描目标 ...>
+//常用的扫描类型
+// -sS，TCP SYN扫描（半开）
+// -sT，TCP 连接扫描（全开）
+// -sU，UDP扫描
+// -sP，ICMP扫描
+// -A，目标系统全面分析
+**********/
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

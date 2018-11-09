@@ -1,0 +1,904 @@
+
+
+
+                        移动的文件(夹),原有的安全上下文值 不变
+[root@H50 ~]# mv  /son/  /var/www/html/
+
+[root@H50 ~]# ls -ldZ /var/www/html/son/   ## 注意 
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son.html    ## 注意 
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /var/www/html/son/son.html
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son2.html    ## 注意 
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /var/www/html/son/son2.html
+[root@H50 ~]# 
+
+[root@H50 ~]# ls -ldZ /var/www/html/     ## 注意 httpd_sys_content_t
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+
+[root@H50 ~]# chcon  -R -t httpd_sys_content_t   /var/www/html/son/   ## ## 注意 
+
+[root@H50 ~]# ls -ldZ /var/www/html/son/    ## 注意 httpd_sys_content_t
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son.html    ## 注意 httpd_sys_content_t
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son.html
+
+[root@H50 ~]# ls -lZ /var/www/html/son/son2.html     ## 注意 httpd_sys_content_t
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son2.html
+[root@H50 ~]# 
+
+[root@H50 ~]# ls -ldZ  /var/www/html/son/
+drwxr-xr-x. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/son.html
+
+[root@H50 ~]# restorecon  /var/www/html/son/son.html   ## 注意 
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son.html
+[root@H50 ~]# 
+
+[root@H50 ~]# ls -ldZ  /var/www/html/son/
+drwxr-xr-x. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son2.html 
+-rw-r--r--. root root unconfined_u:object_r:admin_home_t:s0 /var/www/html/son/son2.html
+[root@H50 ~]# 
+[root@H50 ~]# restorecon -R /var/www/html/son/   ## 注意 
+
+[root@H50 ~]# ls -lZ  /var/www/html/son/son2.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/son2.html
+
+[root@H50 ~]# ls -ldZ  /var/www/html/son/
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/son/
+[root@H50 ~]# 
+/***************
+文件已经存放到共享目录下，但客户端无法访问下载，是因为被SELinux拦截了！
+[root@proxy ~]# ls -Z /var/ftp/
+-rw-r--r--. root root unconfined_u:object_r:public_content_t:s0 log1.tar
+-rw-r--r--. 1 root root unconfined_u:object_r:admin_home_t:s0   log2.tar
+
+[root@proxy ~]# chcon -t public_content_t /var/ftp/d2.tar.gz   ## 注意 
+
+[root@proxy ~]# ls -Z /var/ftp/log2.tar
+-rw-r--r--. root root unconfined_u:object_r:public_content_t:s0 log2.tar
+
+[root@proxy ~]# wget ftp://192.168.4.5/log2.tar            //再次下载，成功
+
+注意：上例中的chcon操作可替换为（效果相同）：
+
+# restorecon /var/ftp/log2.tar.gz  #    ## 注意 
+# restorecon 使当前目录下的文件安全上下文值 自动和父目录保持一致
+或者
+# chcon --reference=/var/ftp/log1.tar.gz   /var/ftp/log2.tar.gz
+
+======================
+
+[root@H56 ~]# systemctl start firewalld.service 
+
+[root@H56 ~]# systemctl is-active  firewalld.service
+active
+[root@H56 ~]# vim /etc/selinux/config 
+
+[root@H56 ~]# sed -n  '$p' /etc/selinux/config
+SELINUXTYPE=targeted 
+
+[root@H56 ~]# sed -n '/enforcing/,+3p;$p' /etc/selinux/config
+#     enforcing - SELinux security policy is enforced.
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+SELINUX=permissive
+SELINUXTYPE=targeted 
+
+[root@H56 ~]# sestatus 
+SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+Loaded policy name:             targeted
+Current mode:                   permissive
+Mode from config file:          permissive
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Max kernel policy version:      28
+[root@H56 ~]# firewall-cmd  --get-default-zone 
+public
+[root@H56 ~]# firewall-cmd  --set-default-zone=trusted
+success
+[root@H56 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@H56 ~]# getenforce 
+Permissive
+[root@H56 ~]# yum -y install  vsftpd |tail -3
+  vsftpd.x86_64 0:3.0.2-22.el7                                                  
+
+完毕！
+[root@H56 ~]# rpm -q vsftpd
+vsftpd-3.0.2-22.el7.x86_64
+[root@H56 ~]# systemctl start vsftpd
+[root@H56 ~]# systemctl enable vsftpd
+
+[root@H56 ~]# netstat -npult |grep vsftpd
+tcp6       0      0 :::21                   :::*                    LISTEN      8351/vsftpd         
+[root@H56 ~]# ls /var/ftp/
+pub
+[root@H56 ~]# mkdir /var/ftp/sharedir  /download
+
+[root@H56 ~]# ls -ldZ  /var/ftp/sharedir/  /download/
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /download/
+drwxr-xr-x. root root unconfined_u:object_r:public_content_t:s0 /var/ftp/sharedir/
+
+[root@H56 ~]# chmod o+w  /download/  /var/ftp/sharedir/
+
+[root@H56 ~]# ls -ldZ  /var/ftp/sharedir/  /download/
+drwxr-xrwx. root root unconfined_u:object_r:default_t:s0 /download/
+drwxr-xrwx. root root unconfined_u:object_r:public_content_t:s0 /var/ftp/sharedir/
+
+[root@H56 ~]# cp  /etc/passwd /var/ftp/sharedir/
+
+[root@H56 ~]# ls -lZ /var/ftp/sharedir/passwd 
+-rw-r--r--. root root unconfined_u:object_r:public_content_t:s0 /var/ftp/sharedir/passwd
+
+[root@H56 ~]# vim /etc/vsftpd/vsftpd.conf 
+
+[root@H56 ~]# sed -n '12p;29p;33p' /etc/vsftpd/vsftpd.conf
+anonymous_enable=YES
+anon_upload_enable=YES
+anon_mkdir_write_enable=YES
+
+ 12 anonymous_enable=YES    //开启匿名访问
+
+ 29 anon_upload_enable=YES  ## 允许匿名用户上传//允许上传文件
+
+ 33 anon_mkdir_write_enable=YES  # //允许上传目录
+
+[root@H56 ~]# 
+
+[root@H56 ~]# systemctl restart  vsftpd
+[root@H56 ~]# netstat -npult |grep vsftpd
+tcp6       0      0 :::21                   :::*                    LISTEN      8515/vsftpd         
+[root@H56 ~]# yum -y install  ftp |tail -3
+  ftp.x86_64 0:0.17-67.el7                                                      
+
+完毕！
+[root@H56 ~]# netstat -npult |grep ftp
+tcp6       0      0 :::21                   :::*                    LISTEN      8515/vsftpd         
+[root@H56 ~]# rpm -qf /bin/ftp
+ftp-0.17-67.el7.x86_64
+[root@H56 ~]# which ftp
+/usr/bin/ftp
+[root@H56 ~]# rpm -q  ftp
+ftp-0.17-67.el7.x86_64
+[root@H56 ~]# 
+[root@H56 ~]# ls /var/ftp/
+pub  sharedir
+[root@H56 ~]# ls /var/ftp/sharedir/
+passwd
+[root@H56 ~]# echo "aaa" > /var/ftp/sharedir/a.txt
+[root@H56 ~]# echo "aaa222" > /var/ftp/sharedir/a2.txt
+[root@H56 ~]# echo "aaa2223333333" > /var/ftp/sharedir/a3.txt
+[root@H56 ~]# ls /var/ftp/sharedir/
+a2.txt  a3.txt  a.txt  passwd
+
+[root@H56 ~]# ls /download/
+
+
+[root@H56 ~]# getsebool  -a |grep -i ftpd
+ftpd_anon_write --> off
+ftpd_connect_all_unreserved --> off
+ftpd_connect_db --> off
+ftpd_full_access --> off
+ftpd_use_cifs --> off
+ftpd_use_fusefs --> off
+ftpd_use_nfs --> off
+ftpd_use_passive_mode --> off
+
+[root@H56 ~]# setsebool  -P ftpd_anon_write  on
+
+[root@H56 ~]# setsebool  -P  ftpd_full_access on
+[root@H56 ~]# 
+[root@H56 ~]# getsebool  -a |grep -i ftpd
+
+ftpd_anon_write --> on
+
+ftpd_connect_all_unreserved --> off
+ftpd_connect_db --> off
+
+ftpd_full_access --> on
+
+ftpd_use_cifs --> off
+ftpd_use_fusefs --> off
+ftpd_use_nfs --> off
+ftpd_use_passive_mode --> off
+
+[root@H56 ~]# 
+[root@H56 ~]# ftp 192.168.4.56
+Connected to 192.168.4.56 (192.168.4.56).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.56:root): ftp   ## 注意输入默认用户ftp #####注意输入默认用户ftp ####
+331 Please specify the password.
+Password:     ## 无密码直接回车确认
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+
+/**************
+FTP命令行连接设置主动和被动模式
+linux默认是PASV模式，并通过passive on  | off  来进行切换
+*************/
+
+ftp> passive  ## 注意必须passive mode off 注意off 注意off#!!
+Passive mode off.
+ftp> 
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        0               6 Mar 23  2017 pub
+drwxr-xrwx    2 0        0              61 Nov 06 12:28 sharedir
+226 Directory send OK.
+
+ftp> cd  sharedir/    ##不支持多层目录,必须cd切换相应目录下载
+250 Directory successfully changed.
+
+ftp> !ls   ## 如果你不指定下载目录，文件将会下载到你登录 FTP 时候的工作目录[/root]
+..................
+下载
+音乐
+桌面
+ftp> 
+
+## 在下载一个文件之前，我们首先需要使用lcd命令设定本地接受目录位置。
+
+ftp> lcd  /download        ## 指定本地 下载 文件 的目录
+Local directory now /download
+ftp> !ls
+ftp> pwd
+257 "/sharedir"
+
+ftp> get passwd    ## 一次只能下载一个文件
+local: passwd remote: passwd
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for passwd (2112 bytes).
+226 Transfer complete.
+2112 bytes received in 6.1e-05 secs (34622.95 Kbytes/sec)
+
+ftp> !ls    ##/download  ## 指定本地 下载 文件 的目录
+passwd
+
+ftp> mget a*      ## 一次 能下载 多 个文件
+mget a.txt? y
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for a.txt (4 bytes).
+226 Transfer complete.
+4 bytes received in 5.6e-05 secs (71.43 Kbytes/sec)
+
+mget a2.txt? y
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for a2.txt (7 bytes).
+226 Transfer complete.
+7 bytes received in 5.2e-05 secs (134.62 Kbytes/sec)
+
+mget a3.txt? y
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for a3.txt (14 bytes).
+226 Transfer complete.
+14 bytes received in 5.3e-05 secs (264.15 Kbytes/sec)
+
+ftp> !ls    ##!ls 这是 lcd  /download  文件
+
+a2.txt	a3.txt	a.txt  passwd
+
+ftp> ls    ##这是 cd sharedir/ 注意 /var/ftp/sharedir/目录文件
+
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+-rw-r--r--    1 0        0               4 Nov 06 12:27 a.txt
+-rw-r--r--    1 0        0               7 Nov 06 12:28 a2.txt
+-rw-r--r--    1 0        0              14 Nov 06 12:28 a3.txt
+-rw-r--r--    1 0        0            2112 Nov 06 12:12 passwd
+226 Directory send OK.
+ftp> by
+221 Goodbye.
+[root@H56 ~]# ls /download/
+a2.txt  a3.txt  a.txt  passwd
+
+[root@H56 ~]# ls /var/ftp/sharedir/
+a2.txt  a3.txt  a.txt  passwd
+
+[root@H56 ~]# rm -f /var/ftp/sharedir/*
+
+[root@H56 ~]# ls /var/ftp/sharedir/
+
+[root@H56 ~]# ftp 192.168.4.56
+Connected to 192.168.4.56 (192.168.4.56).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.56:root): ftp ##注意输入用户名ftp匿名登陆
+331 Please specify the password.
+Password:  #回车无密码确认
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> 
+ftp> passive
+Passive mode off.
+
+ftp> lcd  /download/   ## 指定本地上传文件的目录
+Local directory now /download
+
+ftp> !ls
+a2.txt	a3.txt	a.txt  passwd
+ftp> cd sharedir/   ## 指定ftp 接 收文件的 共享目录
+250 Directory successfully changed.
+ftp> pwd
+257 "/sharedir"
+
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+226 Directory send OK.
+
+ftp> put passwd      ## 一次上传 1 个文件
+local: passwd remote: passwd
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+2112 bytes sent in 5.2e-05 secs (40615.38 Kbytes/sec)
+
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+-rw-------    1 14       50           2112 Nov 06 12:51 passwd
+226 Directory send OK.
+
+ftp> 
+ftp> mput *.txt    ## 一次上传多个文件
+mput a.txt? y
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+4 bytes sent in 4.2e-05 secs (95.24 Kbytes/sec)
+mput a2.txt? y
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+7 bytes sent in 4e-05 secs (175.00 Kbytes/sec)
+mput a3.txt? y
+200 PORT command successful. Consider using PASV.
+150 Ok to send data.
+226 Transfer complete.
+14 bytes sent in 4.1e-05 secs (341.46 Kbytes/sec)
+
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+-rw-------    1 14       50              4 Nov 06 12:52 a.txt
+-rw-------    1 14       50              7 Nov 06 12:52 a2.txt
+-rw-------    1 14       50             14 Nov 06 12:52 a3.txt
+-rw-------    1 14       50           2112 Nov 06 12:51 passwd
+226 Directory send OK.
+
+ftp> by
+221 Goodbye.
+[root@H56 ~]# ls /var/ftp/sharedir/
+a2.txt  a3.txt  a.txt  passwd
+[root@H56 ~]# ll /var/ftp/sharedir/
+总用量 16
+-rw-------. 1 ftp ftp    7 11月  6 20:52 a2.txt
+-rw-------. 1 ftp ftp   14 11月  6 20:52 a3.txt
+-rw-------. 1 ftp ftp    4 11月  6 20:52 a.txt
+-rw-------. 1 ftp ftp 2112 11月  6 20:51 passwd
+[root@H56 ~]# ll /download/
+总用量 16
+-rw-r--r--. 1 root root    7 11月  6 20:40 a2.txt
+-rw-r--r--. 1 root root   14 11月  6 20:40 a3.txt
+-rw-r--r--. 1 root root    4 11月  6 20:40 a.txt
+-rw-r--r--. 1 root root 2112 11月  6 20:39 passwd
+[root@H56 ~]# 
+[root@H56 ~]# rm -f /download/*
+[root@H56 ~]# ls /download/
+[root@H56 ~]# 
+[root@H56 ~]# tail -3 /var/log/messages
+Nov  6 21:01:01 H56 systemd: Starting Session 92 of user root.
+Nov  6 21:10:01 H56 systemd: Started Session 93 of user root.
+Nov  6 21:10:01 H56 systemd: Starting Session 93 of user root.
+[root@H56 ~]# vim /var/log/messages
+[root@H56 ~]# > /var/log/messages
+[root@H56 ~]# cat /var/log/messages
+[root@H56 ~]# setsebool  ftpd_anon_write  off
+[root@H56 ~]# setsebool  ftpd_full_access  off
+[root@H56 ~]# getsebool  -a |grep ftpd_*_*
+ftpd_anon_write --> off
+ftpd_connect_all_unreserved --> off
+ftpd_connect_db --> off
+ftpd_full_access --> off
+ftpd_use_cifs --> off
+ftpd_use_fusefs --> off
+ftpd_use_nfs --> off
+ftpd_use_passive_mode --> off
+[root@H56 ~]# 
+
+
+  639  vim /var/log/messages
+  640  tail -3 /var/log/messages
+  641  tail -f /var/log/messages
+  642  tail -3 /var/log/messages
+  643  vim /var/log/messages
+  644  grep shoot /var/log/messages 
+  645  tail -3 /var/log/messages
+  646  sealert  -l 
+  647  tail -3 /var/log/messages
+  648  grep shoot /var/log/messages 
+  649  ll /sbin/restorecon 
+  650  ll /sbin/setfiles 
+  651  rpm  -qa | grep  -i shoot
+  652  ls  /var/log/messages
+  653  grep setrouble  /var/log/messages
+  654  grep setrouble  /var/log/messages |tail -3
+  655  sealert  -l  run:xxxidend
+  656   
+
+[root@H56 ~]# ftp 192.168.4.56
+Connected to 192.168.4.56 (192.168.4.56).
+220 (vsFTPd 3.0.2)
+Name (192.168.4.56:root): ftp
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> lcd  /download
+Local directory now /download
+ftp> !ls
+ftp> cd sharedir/
+250 Directory successfully changed.
+ftp> ls
+227 Entering Passive Mode (192,168,4,56,102,238).
+150 Here comes the directory listing.
+-rw-------    1 14       50              4 Nov 06 12:52 a.txt
+-rw-------    1 14       50              7 Nov 06 12:52 a2.txt
+-rw-------    1 14       50             14 Nov 06 12:52 a3.txt
+-rw-------    1 14       50           2112 Nov 06 12:51 passwd
+226 Directory send OK.
+ftp> get passwd
+local: passwd remote: passwd
+227 Entering Passive Mode (192,168,4,56,212,224).
+550 Failed to open file.
+ftp> !ls
+ftp> by
+221 Goodbye.
+[root@H56 ~]# ls /download/
+[root@H56 ~]# ls /var/ftp/sharedir/
+a2.txt  a3.txt  a.txt  passwd
+[root@H56 ~]# vim  /var/log/messages
+
+[root@H56 ~]# cat /var/log/messages
+Nov  6 21:16:18 H56 setsebool: The ftpd_anon_write policy boolean was changed to off by root
+Nov  6 21:16:18 H56 dbus-daemon: dbus[680]: avc:  received policyload notice (seqno=6)
+Nov  6 21:16:18 H56 dbus[680]: avc:  received policyload notice (seqno=6)
+Nov  6 21:16:18 H56 dbus[680]: [system] Reloaded configuration
+Nov  6 21:16:18 H56 dbus-daemon: dbus[680]: [system] Reloaded configuration
+Nov  6 21:16:38 H56 setsebool: The ftpd_full_access policy boolean was changed to off by root
+Nov  6 21:16:38 H56 dbus-daemon: dbus[680]: avc:  received policyload notice (seqno=7)
+Nov  6 21:16:38 H56 dbus[680]: avc:  received policyload notice (seqno=7)
+Nov  6 21:16:38 H56 dbus[680]: [system] Reloaded configuration
+Nov  6 21:16:38 H56 dbus-daemon: dbus[680]: [system] Reloaded configuration
+Nov  6 21:20:01 H56 systemd: Started Session 94 of user root.
+Nov  6 21:20:01 H56 systemd: Starting Session 94 of user root.
+
+[root@H56 ~]# cat /var/log/messages |grep setsebool
+Nov  6 21:16:18 H56 setsebool: The ftpd_anon_write policy boolean was changed to off by root
+Nov  6 21:16:38 H56 setsebool: The ftpd_full_access policy boolean was changed to off by root
+[root@H56 ~]# 
+[root@H56 ~]# sealert  
+[root@H56 ~]# sealert   -l
+Usage: sealert [options]
+
+sealert: error: -l option requires an argument
+[root@H56 ~]# ll /sbin/restorecon 
+lrwxrwxrwx. 1 root root 8 1月  30 2018 /sbin/restorecon -> setfiles
+[root@H56 ~]# ll /sbin/setfiles 
+-rwxr-xr-x. 1 root root 27808 5月  26 2017 /sbin/setfiles
+[root@H56 ~]# tail -2  /sbin/setfiles
+
+ �``0Hd[root@H56 ~]# ^C
+[root@H56 ~]# sealert   -l  seqno=7
+Error
+query_alerts error (1003): id (seqno=7) not found
+[root@H56 ~]# 
+
+
+
+[root@hiys ~]# ls /home/
+Student  usera  userb
+[root@hiys ~]# userdel -r usera
+[root@hiys ~]# userdel -r userb 
+[root@hiys ~]# ls /home/
+Student
+
+[root@hiys ~]# passwd -l root
+锁定用户 root 的密码 。
+passwd: 操作成功
+[root@hiys ~]# passwd  -u root 
+解锁用户 root 的密码。
+passwd: 操作成功
+[root@hiys ~]# passwd  -S  root 
+root PS 2018-11-07 0 99999 7 -1 (密码已设置，使用 SHA512 算法。)
+[root@hiys ~]# passwd  -?
+用法: passwd [选项...] <帐号名称>
+  -k, --keep-tokens       保持身份验证令牌不过期
+  -d, --delete            删除已命名帐号的密码(只有根用户才能进行此操作)
+  -l, --lock              锁定指名帐户的密码(仅限 root 用户)
+  -u, --unlock            解锁指名账户的密码(仅限 root 用户)
+  -e, --expire            终止指名帐户的密码(仅限 root 用户)
+  -f, --force             强制执行操作
+  -x, --maximum=DAYS      密码的最长有效时限(只有根用户才能进行此操作)
+  -n, --minimum=DAYS      密码的最短有效时限(只有根用户才能进行此操作)
+  -w, --warning=DAYS      在密码过期前多少天开始提醒用户(只有根用户才能进行此操作)
+  -i, --inactive=DAYS     当密码过期后经过多少天该帐号会被禁用(只有根用户才能进行此操作)
+  -S, --status            报告已命名帐号的密码状态(只有根用户才能进行此操作)
+  --stdin                 从标准输入读取令牌(只有根用户才能进行此操作)
+
+Help options:
+  -?, --help              Show this help message
+  --usage                 Display brief usage message
+
+
+[root@hiys ~]# echo 123 |passwd  --stdin  root 
+更改用户 root 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+
+[root@hiys ~]# grep  root  /etc/shadow
+root:$6$eYc7UGfF$NWw3DmcCgddri4gHDCryRqGEUwcZu9zpoOdJ5zftOWcFwq1X5YHsKe/WtbqfGDQHT7sIV3uwAYqkZWTUcWmtt.:17842:0:99999:7:::
+
+[root@hiys ~]# passwd  -S root 
+root PS 2018-11-07 0 99999 7 -1 (密码已设置，使用 SHA512 算法。)
+
+[root@hiys ~]# grep -v  '^$\|^#' /etc/login.defs 
+MAIL_DIR	/var/spool/mail
+PASS_MAX_DAYS	99999
+PASS_MIN_DAYS	0
+PASS_MIN_LEN	5
+PASS_WARN_AGE	7
+UID_MIN                  1000
+UID_MAX                 60000
+SYS_UID_MIN               201
+SYS_UID_MAX               999
+GID_MIN                  1000
+GID_MAX                 60000
+SYS_GID_MIN               201
+SYS_GID_MAX               999
+CREATE_HOME	yes
+UMASK           077
+USERGROUPS_ENAB yes
+ENCRYPT_METHOD SHA512 
+[root@hiys ~]# 
+[root@hiys ~]# passwd  -d  root 
+清除用户的密码 root。
+passwd: 操作成功
+[root@hiys ~]# grep  root /etc/shadow
+root::17842:0:99999:7:::
+[root@hiys ~]# passwd  -S root 
+root NP 2018-11-07 0 99999 7 -1 (密码为空。)
+[root@hiys ~]# 
+[root@hiys ~]# vim  /etc/ssh/sshd_config 
+
+ 17 Port 22
+ 18 #AddressFamily any
+ 19 #ListenAddress 0.0.0.0
+ 20 #ListenAddress ::
+
+ 22 HostKey /etc/ssh/ssh_host_rsa_key
+ 23 #HostKey /etc/ssh/ssh_host_dsa_key
+ 24 HostKey /etc/ssh/ssh_host_ecdsa_key
+ 25 HostKey /etc/ssh/ssh_host_ed25519_key
+
+ 38 PermitRootLogin yes    ## 允许 root用户登录
+ 39 #StrictModes yes
+ 40 #MaxAuthTries 6  #注释 每连接最多认证次数
+
+ 64 #PermitEmptyPasswords no   #注释 禁止密码为空的用户登录
+ 65 PasswordAuthentication yes  ## 允许密码验证
+
+115 #UseDNS no   #注释 不解析客户机地址
+[root@hiys ~]# systemctl restart  sshd
+[root@H50 ~]# scp -o StrictHostKeyChecking=no  /tmp/ftp.cap  /tmp/tcpdump.cap /tmp/ssh.cap root@192.168.4.254:/root/
+Warning: Permanently added '192.168.4.254' (ECDSA) to the list of known hosts.
+root@192.168.4.254's password:  123
+ftp.cap                                                       100% 1239     1.5MB/s   00:00    
+tcpdump.cap                                                   100%  230   286.0KB/s   00:00    
+ssh.cap                                                       100%   24    27.2KB/s   00:00    
+[root@H50 ~]# 
+[root@hiys ~]# sed -n 17p /etc/ssh/sshd_config
+Port 22
+[root@hiys ~]# 
+
+[root@H50 ~]# sed -n 17,20p  /etc/ssh/sshd_config
+#Port 22
+#Port  2222
+#AddressFamily any
+#ListenAddress  192.168.4.50
+[root@H50 ~]# sed  -n '17s/#//p' /etc/ssh/sshd_config
+Port 22
+[root@H50 ~]# sed  -i '17s/#//' /etc/ssh/sshd_config
+
+[root@H50 ~]# sed -n 17,20p  /etc/ssh/sshd_config
+Port 22
+#Port  2222
+#AddressFamily any
+#ListenAddress  192.168.4.50
+[root@H50 ~]# 
+[root@H50 ~]# systemctl is-active httpd
+active
+[root@H50 ~]# iptables -t filter -A INPUT \
+> -p  tcp  --dport  80  -j ACCEPT
+[root@H50 ~]# service iptables  save
+iptables: Saving firewall rules to /etc/sysconfig/iptables:[  确定  ]
+[root@H50 ~]# iptables -t filter  -L
+Chain INPUT (policy DROP)
+target     prot opt source               destination         
+ACCEPT     tcp  --  gateway              anywhere             tcp dpt:ssh
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:http
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+[root@H50 ~]# curl http://192.168.4.50
+^C
+[root@H50 ~]# ls /var/www/html/
+index.html  son  test2.html  test.html
+[root@H50 ~]# curl 192.168.4.50
+^C
+[root@H50 ~]# 
+
+
+Linux系统的route命令用于显示和操作IP路由表（show / manipulate the IP routing table）。
+要实现两个不同的子网之间的通信，需要一台连接两个网络的路由器，或者同时位于两个网络的网关来实现。
+在Linux系统中，设置路由通常是为了解决以下问题：
+该Linux系统在一个局域网中，局域网中有一个网关，
+能够让机器访问Internet，那么就需要将这台机器的IP地址设置为Linux机器的默认路由。
+要注意的是，直接在命令行下执行route命令来添加路由，不会永久保存，
+当网卡重启或者机器重启之后，该路由就失效了；
+可以在/etc/rc.local中添加route命令来保证该路由设置永久有效。
+
+1．命令格式：
+
+route [-f] [-p] [Command [Destination] [mask Netmask] [Gateway] [metric Metric]] [if Interface]] 
+
+2．命令功能：
+
+Route命令是用于操作基于内核ip路由表，它的主要作用是创建一个静态路由让指定一个主机或者一个网络通过一个网络接口，如eth0。当使用"add"或者"del"参数时，路由表被修改，如果没有参数，则显示路由表当前的内容。
+
+3．命令参数：
+
+-c 显示更多信息
+
+-n 不解析名字
+
+-v 显示详细的处理信息
+
+-F 显示发送信息
+
+-C 显示路由缓存
+
+-f 清除所有网关入口的路由表。 
+
+-p 与 add 命令一起使用时使路由具有永久性。
+
+ 
+
+add:添加一条新路由。
+
+del:删除一条路由。
+
+-net:目标地址是一个网络。
+
+-host:目标地址是一个主机。
+
+netmask:当添加一个网络路由时，需要使用网络掩码。
+
+gw:路由数据包通过网关。注意，你指定的网关必须能够达到。
+
+metric：设置路由跳数。
+
+Command 指定您想运行的命令 (Add/Change/Delete/Print)。 
+
+Destination 指定该路由的网络目标。 
+
+mask Netmask 指定与网络目标相关的网络掩码（也被称作子网掩码）。 
+
+Gateway 指定网络目标定义的地址集和子网掩码可以到达的前进或下一跃点 IP 地址。 
+
+metric Metric 为路由指定一个整数成本值标（从 1 至 9999），当在路由表(与转发的数据包目标地址最匹配)的多个路由中进行选择时可以使用。 
+
+if Interface 为可以访问目标的接口指定接口索引。若要获得一个接口列表和它们相应的接口索引，使用 route print 命令的显示功能。可以使用十进制或十六进制值进行接口索引。
+
+4．使用实例：
+
+实例1：显示当前路由
+
+命令：
+
+route
+
+route -n
+
+输出：
+
+复制代码
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+e192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+[root@localhost ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+0.0.0.0         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+复制代码
+ 
+
+说明：
+
+第一行表示主机所在网络的地址为192.168.120.0，若数据传送目标是在本局域网内通信，则可直接通过eth0转发数据包;
+
+第四行表示数据传送目的是访问Internet，则由接口eth0，将数据包发送到网关192.168.120.240
+
+其中Flags为路由标志，标记当前网络节点的状态。
+
+Flags标志说明：
+
+U Up表示此路由当前为启动状态
+
+H Host，表示此网关为一主机
+
+G Gateway，表示此网关为一路由器
+
+R Reinstate Route，使用动态路由重新初始化的路由
+
+D Dynamically,此路由是动态性地写入
+
+M Modified，此路由是由路由守护程序或导向器动态修改
+
+! 表示此路由当前为关闭状态
+
+备注：
+
+route -n (-n 表示不解析名字,列出速度会比route 快)
+
+实例2：添加网关/设置网关
+
+命令：
+
+route add -net 224.0.0.0 netmask 240.0.0.0 dev eth0
+
+输出：
+
+复制代码
+[root@localhost ~]# route add -net 224.0.0.0 netmask 240.0.0.0 dev eth0
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+224.0.0.0       *               240.0.0.0       U     0      0        0 eth0
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+复制代码
+[root@localhost ~]#  
+
+说明：
+
+增加一条 到达244.0.0.0的路由
+
+实例3：屏蔽一条路由
+
+命令：
+
+route add -net 224.0.0.0 netmask 240.0.0.0 reject
+
+输出：
+
+复制代码
+[root@localhost ~]# route add -net 224.0.0.0 netmask 240.0.0.0 reject
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+224.0.0.0       -               240.0.0.0       !     0      -        0 -
+224.0.0.0       *               240.0.0.0       U     0      0        0 eth0
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+复制代码
+ 
+
+说明：
+
+增加一条屏蔽的路由，目的地址为 224.x.x.x 将被拒绝
+
+实例4：删除路由记录
+
+命令：
+
+route del -net 224.0.0.0 netmask 240.0.0.0
+
+route del -net 224.0.0.0 netmask 240.0.0.0 reject
+
+输出：
+
+复制代码
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+224.0.0.0       -               240.0.0.0       !     0      -        0 -
+224.0.0.0       *               240.0.0.0       U     0      0        0 eth0
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+[root@localhost ~]# route del -net 224.0.0.0 netmask 240.0.0.0
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+224.0.0.0       -               240.0.0.0       !     0      -        0 -
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+[root@localhost ~]# route del -net 224.0.0.0 netmask 240.0.0.0 reject
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+[root@localhost ~]# 
+//////////////****************************
+实例5：删除和添加设置默认网关
+
+命令：
+
+route del default gw 192.168.120.240
+
+route add default gw 192.168.120.240
+
+***************************/
+
+[root@localhost ~]# route del default gw 192.168.120.240
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+[root@localhost ~]# route add default gw 192.168.120.240
+[root@localhost ~]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.120.0   *               255.255.255.0   U     0      0        0 eth0
+192.168.0.0     192.168.120.1   255.255.0.0     UG    0      0        0 eth0
+10.0.0.0        192.168.120.1   255.0.0.0       UG    0      0        0 eth0
+default         192.168.120.240 0.0.0.0         UG    0      0        0 eth0
+[root@localhost ~]# 
+复制代码
+ 
+
+
+
+
+
+
+
+
+
+

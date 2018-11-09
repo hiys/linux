@@ -1,0 +1,728 @@
+[root@room9pc01 ~]# systemctl is-active vsftpd
+unknown
+[root@room9pc01 ~]# yum -y install  vsftpd |tail -4
+
+[root@room9pc01 ~]# rpm -q vsftpd
+vsftpd-3.0.2-22.el7.x86_64
+[root@room9pc01 ~]# systemctl  start  vsftpd
+[root@room9pc01 ~]# systemctl  enable  vsftpd
+
+[root@room9pc01 ~]# systemctl is-active vsftpd
+active
+[root@room9pc01 ~]# 
+
+[root@room9pc01 ~]# ls /var/lib/libvirt/images/iso/
+CentOS-7-x86_64-DVD-1708.iso  rhel-server-6.7-x86_64-dvd.iso  Win10_Pro_X64_zh_CN.iso
+lost+found                    rhel-server-7.4-x86_64-dvd.iso
+
+[root@room9pc01 ~]# cp '/root/桌面/rhcs2.0-rhosp9-20161113-x86_64.iso' /var/lib/libvirt/images/iso/
+
+[root@room9pc01 ~]# ll /var/lib/libvirt/images/iso/rhcs2.0-rhosp9-20161113-x86_64.iso 
+-rw-r--r-- 1 root root 980799488 11月  4 14:04 /var/lib/libvirt/images/iso/rhcs2.0-rhosp9-20161113-x86_64.iso
+
+[root@room9pc01 ~]# cp '/root/桌面/rhcs2.0-rhosp9-20161113-x86_64.iso' /root/
+
+[root@room9pc01 ~]# mkdir /ceph/
+
+[root@room9pc01 ~]# cp '/root/桌面/mysql-5.7.20-linux-glibc2.12-x86_64.tar.gz'  /ceph/
+
+[root@room9pc01 ~]# ls /etc/libvirt/qemu/
+networks
+[root@room9pc01 ~]# ls  /etc/libvirt/qemu/*.xml  /var/lib/libvirt/images/*.img
+
+[root@room9pc01 ~]# ls  /etc/libvirt/qemu/    /var/lib/libvirt/images/
+/etc/libvirt/qemu/:
+networks
+
+/var/lib/libvirt/images/:
+bin      db    lost+found      server.qcow2           tedu-wallpaper-weekend.png  xw.qcow2
+conf.d   exam  qemu            Student.sh             vsftpd.conf
+content  iso   server-1.qcow2  tedu-wallpaper-01.png  Weekend.sh
+[root@room9pc01 ~]# 
+[root@room9pc01 ~]# ls  /etc/yum.repos.d/
+
+[root@room9pc01 ~]# vim  /etc/yum.repos.d/rhel7.repo
+
+[root@room9pc01 ~]# cat /etc/yum.repos.d/rhel7.repo
+
+[rhel7]
+name=rhel7.4
+enabled=1
+baseurl=file:///var/ftp/rhel7
+gpgcheck=0
+
+[root@room9pc01 ~]# yum clean all  >/dev/null && yum repolist |tail -3
+
+源标识                               源名称                                状态
+rhel7                                rhel7.4                               4,986
+repolist: 4,986
+
+[root@room9pc01 ~]# yum -y install  expect |tail -3
+  tcl.x86_64 1:8.5.13-8.el7                                                     
+
+完毕！
+[root@room9pc01 ~]# rpm -q expect
+expect-5.45-14.el7_1.x86_64
+
+[root@room9pc01 ~]# vim  /etc/fstab 
+
+[root@room9pc01 ~]# tail -2 /etc/fstab
+/var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso  /var/ftp/rhel7 iso9660 defaults 0 0
+/var/lib/libvirt/images/iso/rhcs2.0-rhosp9-20161113-x86_64.iso  /var/ftp/ceph  iso9660  defaults 0  0
+
+[root@room9pc01 ~]# mkdir /var/ftp/ceph
+[root@room9pc01 ~]# ls /var/ftp/
+ceph  docker  pub  rhel7  share
+[root@room9pc01 ~]# ls  /etc/yum.repos.d/
+rhel7.repo
+[root@room9pc01 ~]# vim  /etc/yum.repos.d/ceph.repo
+[root@room9pc01 ~]# cat /etc/yum.repos.d/ceph.repo
+[mon]
+name=mon
+baseurl=file:/var/ftp/ceph/rhceph-2.0-rhel-7-x86_64/MON/
+gpgcheck=0
+enabled=1
+[osd]
+name=osd
+baseurl=file:/var/ftp/ceph/rhceph-2.0-rhel-7-x86_64/OSD/
+gpgcheck=0
+enabled=1
+[tools]
+name=tools
+baseurl=file:///var/ftp/ceph/rhceph-2.0-rhel-7-x86_64/Tools/
+gpgcheck=0
+enabled=1
+[root@room9pc01 ~]# 
+[root@room9pc01 ~]# mount -a
+mount: /dev/loop1 写保护，将以只读方式挂载
+
+[root@room9pc01 ~]# df -hT /var/ftp/ceph/
+文件系统       类型     容量  已用  可用 已用% 挂载点
+/dev/loop1     iso9660  936M  936M     0  100% /var/ftp/ceph
+
+[root@room9pc01 ~]# tail -2  /etc/fstab 
+/var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso  /var/ftp/rhel7 iso9660 defaults 0 0
+/var/lib/libvirt/images/iso/rhcs2.0-rhosp9-20161113-x86_64.iso  /var/ftp/ceph  iso9660  defaults 0  0
+
+[root@room9pc01 ~]# yum clean all  >/dev/null && yum repolist |tail -9
+已加载插件：fastestmirror, langpacks
+Determining fastest mirrors
+源标识                               源名称                                状态
+mon                                  mon                                      41
+osd                                  osd                                      28
+rhel7                                rhel7.4                               4,986
+tools                                tools                                    33
+repolist: 5,088
+[root@room9pc01 ~]# 
+[root@room9pc01 ~]# ll  lnmp_soft.tar.gz  mysql-5.7.17.tar  s3cmd-2.0.1-1.el7.noarch.rpm  libev-4.15-1.el6.rf.x86_64.rpm  percona-xtrabackup-24-2.4.7-1.el7.x86_64.rpm
+-rw-r--r-- 1 root root     74692 11月  4 15:40 libev-4.15-1.el6.rf.x86_64.rpm
+-rw-r--r-- 1 root root  63305912 11月  4 15:33 lnmp_soft.tar.gz
+-rw-r--r-- 1 root root 569651200 11月  4 15:33 mysql-5.7.17.tar
+-rw-r--r-- 1 root root   7688608 11月  4 15:39 percona-xtrabackup-24-2.4.7-1.el7.x86_64.rpm
+-rwxr----- 1 root root    190956 11月  4 15:39 s3cmd-2.0.1-1.el7.noarch.rpm
+[root@room9pc01 ~]# 
+
+[root@room9pc01 ~]# cp   lnmp_soft.tar.gz  mysql-5.7.17.tar  s3cmd-2.0.1-1.el7.noarch.rpm  libev-4.15-1.el6.rf.x86_64.rpm  percona-xtrabackup-24-2.4.7-1.el7.x86_64.rpm  /ceph/
+
+[root@room9pc01 ~]# ll /ceph/
+总用量 1267856
+-rw-r--r-- 1 root root     74692 11月  4 15:45 libev-4.15-1.el6.rf.x86_64.rpm
+-rw-r--r-- 1 root root  63305912 11月  4 15:44 lnmp_soft.tar.gz
+-rw-r--r-- 1 root root      3971 11月  4 14:06 master_ip_failover
+-rw-r--r-- 1 root root    113914 11月  4 14:06 mha4mysql-manager-0.56.tar.gz
+-rw-r--r-- 1 root root     36326 11月  4 14:06 mha4mysql-node-0.56-0.el6.noarch.rpm
+-rw-r--r-- 1 root root  15662280 11月  4 14:06 Mycat-server-1.6-RELEASE-20161028204710-linux.tar.gz
+-rw-r--r-- 1 root root 569651200 11月  4 15:44 mysql-5.7.17.tar
+-rw-r--r-- 1 root root 641127384 11月  4 14:37 mysql-5.7.20-linux-glibc2.12-x86_64.tar.gz
+-rw-r--r-- 1 root root   7688608 11月  4 15:45 percona-xtrabackup-24-2.4.7-1.el7.x86_64.rpm
+-rw-r--r-- 1 root root     25508 11月  4 14:06 perl-Config-Tiny-2.14-7.el7.noarch.rpm
+-rw-r--r-- 1 root root     17524 11月  4 14:06 perl-Email-Date-Format-1.002-15.el7.noarch.rpm
+-rw-r--r-- 1 root root     84300 11月  4 14:06 perl-Log-Dispatch-2.41-1.el7.1.noarch.rpm
+-rw-r--r-- 1 root root     60212 11月  4 14:06 perl-Mail-Sender-0.8.23-1.el7.noarch.rpm
+-rw-r--r-- 1 root root     29460 11月  4 14:06 perl-Mail-Sendmail-0.79-21.el7.art.noarch.rpm
+-rw-r--r-- 1 root root     98316 11月  4 14:06 perl-MIME-Lite-3.030-1.el7.noarch.rpm
+-rw-r--r-- 1 root root     39184 11月  4 14:06 perl-MIME-Types-1.38-2.el7.noarch.rpm
+-rw-r--r-- 1 root root     29128 11月  4 14:06 perl-Parallel-ForkManager-1.18-2.el7.noarch.rpm
+-rwxr----- 1 root root    190956 11月  4 15:45 s3cmd-2.0.1-1.el7.noarch.rpm
+[root@room9pc01 ~]# 
+===============  VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt === [ 1 ]===========
+
+[root@room9pc01 ~]# vim VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt 
+[root@room9pc01 ~]# cat VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt
+rh7_node:Va50:Vb50:H50:4.50:2.50:1.1.50:1.2.50:/ceph/:MySQLsetup.sh  
+rh7_node:Va51:Vb51:H51:4.51:2.51:1.1.51:1.2.51:/ceph/:MySQLsetup.sh
+rh7_node:Va52:Vb52:H52:4.52:2.52:1.1.52:1.2.52:/ceph/:MySQLsetup.sh
+rh7_node:Va53:Vb53:H53:4.53:2.53:1.1.53:1.2.53:/ceph/:MySQLsetup.sh
+rh7_node:Va54:Vb54:H54:4.54:2.54:1.1.54:1.2.54:/ceph/:MySQLsetup.sh
+rh7_node:Va55:Vb55:H55:4.55:2.55:1.1.55:1.2.55:/ceph/:MySQLsetup.sh
+rh7_node:Va56:Vb56:H56:4.56:2.56:1.1.56:1.2.56:/ceph/:MySQLsetup.sh
+rh7_node:Va57:Vb57:H57:4.57:2.57:1.1.57:1.2.57:/ceph/:MySQLsetup.sh
+rh7_node:Va58:Vb58:H58:4.58:2.58:1.1.58:1.2.58:/ceph/:MySQLsetup.sh
+[root@room9pc01 ~]#
+
+=================== VMname-hostname-eth0-eth1-eth2-eth3-cephsh.txt == [ 2 ] =============
+[root@room9pc01 ~]# vim VMname-hostname-eth0-eth1-eth2-eth3-cephsh.txt
+
+[root@room9pc01 ~]# cat  VMname-hostname-eth0-eth1-eth2-eth3-cephsh.txt
+rh7_node:Vc50:Vd50:H50:4.50:2.50:1.1.50:1.2.50:/ceph/:MySQLsetup.sh
+rh7_node:Vc51:Vd51:H51:4.51:2.51:1.1.51:1.2.51:/ceph/:MySQLsetup.sh
+rh7_node:Vc52:Vd52:H52:4.52:2.52:1.1.52:1.2.52:/ceph/:MySQLsetup.sh
+rh7_node:Vc53:Vd53:H53:4.53:2.53:1.1.53:1.2.53:/ceph/:MySQLsetup.sh
+rh7_node:Vc54:Vd54:H54:4.54:2.54:1.1.54:1.2.54:/ceph/:MySQLsetup.sh
+rh7_node:Vc55:Vd55:H55:4.55:2.55:1.1.55:1.2.55:/ceph/:MySQLsetup.sh
+rh7_node:Vc56:Vd56:H56:4.56:2.56:1.1.56:1.2.56:/ceph/:MySQLsetup.sh
+rh7_node:Vc57:Vd57:H57:4.57:2.57:1.1.57:1.2.57:/ceph/:MySQLsetup.sh
+rh7_node:Vc58:Vd58:H58:4.58:2.58:1.1.58:1.2.58:/ceph/:MySQLsetup.sh
+[root@room9pc01 ~]# 
+
+
+[root@room9pc01 ~]# vim  clone_manual.sh
+
+================clone_manual.sh  ====== [ 3 ] ================
+[root@room9pc01 ~]# cat  clone_manual.sh
+#!/bin/bash
+n=`sed -n $= /root/VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt` 
+x='';
+echo $n |clone-auto7
+for i in `virsh  list --all |awk '/rh7/{print $2}' |head -$n`
+do
+  let x++;
+  VMname=$i;echo $VMname;
+  j=`sed -n "${x}p" /root/VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt`
+  VMnameA=$(echo $j |awk -F: '{print $2}');
+  echo $VMnameA;
+  VMnameB=$(echo $j |awk -F: '{print $3}');
+  echo $VMnameB;
+done
+[root@room9pc01 ~]# 
+
+=================== MySQLsetup.sh ===== [ 4 ] ================
+
+[root@room9pc01 ~]# vim  MySQLsetup.sh
+[root@room9pc01 ~]# cat MySQLsetup.sh
+#!/bin/bash
+rm -rf /etc/yum.repos.d/*.repo
+echo "[rhel7]
+name=rhel7.4
+enabled=1
+gpgcheck=0
+baseurl=ftp://192.168.4.254/rhel7
+
+[rhel7-2]
+name=rhel7.4-2
+baseurl=ftp://192.168.2.254/rhel7
+gpgcheck=0
+enabled=1 
+
+[mon]
+name=mon
+baseurl=ftp://192.168.4.254/ceph/rhceph-2.0-rhel-7-x86_64/MON/
+gpgcheck=0
+enabled=1
+[osd]
+name=osd
+baseurl=ftp://192.168.4.254/ceph/rhceph-2.0-rhel-7-x86_64/OSD/
+gpgcheck=0
+enabled=1
+[tools]
+name=tools
+baseurl=ftp://192.168.4.254/ceph/rhceph-2.0-rhel-7-x86_64/Tools/
+gpgcheck=0
+enabled=1
+
+[mon-2]
+name=mon-2
+baseurl=ftp://192.168.2.254/ceph/rhceph-2.0-rhel-7-x86_64/MON/
+gpgcheck=0
+enabled=1
+[osd-2]
+name=osd-2
+baseurl=ftp://192.168.2.254/ceph/rhceph-2.0-rhel-7-x86_64/OSD/
+gpgcheck=0
+enabled=1
+[tools-2]
+name=tools-2
+baseurl=ftp://192.168.2.254/ceph/rhceph-2.0-rhel-7-x86_64/Tools/
+gpgcheck=0
+enabled=1
+" > /etc/yum.repos.d/ceph.repo
+yum clean all && yum repolist
+sleep 4
+rpm -qa |grep -i mariadb
+systemctl stop mariadb;systemctl disable mariadb;
+ss -anpult |grep :3306
+rpm  -e  --nodeps  mariadb-server  mariadb
+rm -rf /var/lib/mysql/
+rm -rf /etc/my.cnf*
+yum -y install perl-JSON 
+rpm -q perl-JSON 
+tar -xvf mysql-5.7.17.tar
+rpm -Uvh mysql-community-*.rpm
+sleep 10;
+rpm -qa |grep -i mariadb
+rpm -qa |grep -i mysql
+systemctl start mysqld  && systemctl enable mysqld
+sleep 5;
+ps  -C mysqld
+netstat -anpult |grep mysqld 
+for i in `awk '/root@localhost/{print $NF}' /var/log/mysqld.log`
+do
+ mysql -uroot -p${i}  -e "set global validate_password_policy=0;" -b --connect-expired-password
+ mysql -uroot -p${i}  -e "set global validate_password_length=4;" -b --connect-expired-password
+ mysql -uroot -p${i}  -e "alter user 'root'@'localhost' identified by'1234';" -b --connect-expired-password
+ mysql -uroot -p'1234' -e "flush privileges;"
+ mysql -uroot -p'1234' -e  "show variables like 'validate_password%';"
+ echo "mysql-Password has been set 1234"
+done
+
+sed -n '/\[mysqld\]/,+1p' /etc/my.cnf
+sed -i '/\[mysqld\]/a validate_password_policy=0\nvalidate_password_length=4'  /etc/my.cnf
+sed -n '/\[mysqld\]/,+3p' /etc/my.cnf
+systemctl restart mysqld
+sleep 3
+mysql -uroot -p1234 -e "show databases;"
+[root@room9pc01 ~]# 
+
+=========================== ip.sh ================== [ 5 ] =====================
+[root@room9pc01 ~]# vim ip.sh
+[root@room9pc01 ~]# cat ip.sh
+#!/usr/bin/expect  -f
+set   timeout  5
+set Vname    [lindex  $argv  0]
+set password  [lindex  $argv  1]
+set hostname  [lindex  $argv  2]
+set eth0      [lindex  $argv  3]
+set eth1      [lindex  $argv  4]
+set eth2      [lindex  $argv  5]
+set eth3      [lindex  $argv  6]
+spawn  virsh  console  $Vname
+expect "换码符为 ^]"  {send "\n"}
+expect "login:"   {send "root\r"}
+expect "密码："     {send "$password\r"}
+expect "#"  {send "echo 123 |passwd  --stdin root\r"}
+expect "#"  {send "echo $hostname >/etc/hostname\r"}
+expect "#"  {send "nmcli connection modify eth0 ipv4.method manual ipv4.addresses 192.168.$eth0/24  ipv4.gateway 192.168.4.254 connection.autoconnect yes \r"}
+expect "#"  {send "nmcli connection up eth0 \r"}
+
+expect "#"  {send "nmcli connection add con-name eth1 ifname eth1 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth1 ipv4.method manual ipv4.addresses 192.168.$eth1/24  ipv4.gateway 192.168.2.254 connection.autoconnect yes \r"} 
+expect "#"  {send "nmcli connection up eth1 \r"}
+
+expect "#"  {send "nmcli connection add con-name eth2 ifname eth2 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth2 ipv4.method manual ipv4.addresses 201.$eth2/24  ipv4.gateway 201.1.1.254 connection.autoconnect yes \r"}  
+expect "#"  {send "nmcli connection up eth2 \r"}
+
+expect "#"  {send "nmcli connection add con-name eth3 ifname eth3 type ethernet autoconnect yes\r"}
+expect "#"  {send "nmcli connection modify eth3 ipv4.method manual ipv4.addresses 201.$eth3/24  ipv4.gateway 201.1.2.254 connection.autoconnect yes \r"}
+expect "#"  {send "nmcli connection up eth3 \r"}
+
+expect "#"  {send "ifconfig | grep 'inet '\r"}
+expect "#"  {send "systemctl isolate graphical\r"}
+expect "#"  {send "sleep 1 && date\r"}
+expect "#"  {send "\r"}
+send "exit\r"
+expect eof
+[root@room9pc01 ~]# 
+================
+
+VMname $1 :VMnameA $2 :VMnameB $3 :hostname $4 :eth0 $5 :eth1 $6 : eth2 $7 :eth3 $8 :file $9 : mysql $10/NF
+rh7_node  :   Va58    :  Vb58     :     H58    : 4.58   : 2.58   :  1.1.58 : 1.2.58 : /ceph/ : MySQLsetup.sh
+
+VMname $1 :VMnameC $2 :VMnameD $3 :hostname $4 :eth0 $5 :eth1 $6 : eth2 $7 :eth3 $8 :file $9 : mysql $10/NF
+ rh7_node :   Vc58    :  Vd58     :     H58    : 4.58   : 2.58   :  1.1.58 : 1.2.58 : /ceph/ : MySQLsetup.sh
+
+ ============== Mysqlscp.sh ========== [ 6 ] =============
+
+[root@room9pc01 ~]# vim  Mysqlscp.sh
+[root@room9pc01 ~]# cat Mysqlscp.sh
+#!/usr/bin/expect  -f
+set timeout  -1
+set eth0    [lindex $argv 0]
+set file    [lindex $argv 1]
+set mysql   [lindex $argv 2]
+spawn  scp  -o  StrictHostKeyChecking=no  -r $file   $mysql  root@192.168.$eth0:/root/
+expect "password:"  {send  "123\r"}
+expect "#"  {send  "\r"}
+send "exit\r"
+expect eof
+[root@room9pc01 ~]# 
+
+============================ clusterdb  ===================== [ 7 ] ===========
+
+ mysql=$(echo $i |awk -F: '{print $10}');ll $mysql;
+ mysql=$(echo $i |awk -F: '{print $NF}');ll $mysql;
+
+[root@room9pc01 ~]# vim clusterdb
+[root@room9pc01 ~]# cat clusterdb
+#!/bin/bash
+password=123456;
+x="";
+for i in `cat $1`
+ do
+   VMname=$(echo $i |awk -F: '{print $1}');
+   echo $VMname;
+   VMnameA=$(echo $i |awk -F: '{print $2}');
+   VMnameB=$(echo $i |awk -F: '{print $3}');
+   hostname=$(echo $i |awk -F: '{print $4}');  
+   echo $hostname;
+   eth0=$(echo $i |awk -F: '{print $5}');
+   echo "192.168.$eth0";
+   eth1=$(echo $i |awk -F: '{print $6}');
+   echo "192.168.$eth1";
+   eth2=$(echo $i |awk -F: '{print $7}');
+   echo "201.$eth2";
+   eth3=$(echo $i |awk -F: '{print $8}');
+   echo "201.$eth3";
+   file=$(echo $i |awk -F: '{print $9}');ll $file;
+  mysql=$(echo $i |awk -F: '{print $10}');ll $mysql;
+  mysql=$(echo $i |awk -F: '{print $NF}');ll $mysql;
+ done
+[root@room9pc01 ~]# . clusterdb  /root/VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt
+rh7_node
+H50
+192.168.4.50
+192.168.2.50
+201.1.1.50
+201.1.2.50
+总用量 1267856
+-rw-r--r-- 1 root root     74692 11月  4 15:45 libev-4.15-1.el6.rf.x86_64.rpm
+-rw-r--r-- 1 root root  63305912 11月  4 15:44 lnmp_soft.tar.gz
+..................................
+-rwxr----- 1 root root    190956 11月  4 15:45 s3cmd-2.0.1-1.el7.noarch.rpm
+-rw-r--r-- 1 root root 2116 11月  4 16:24 MySQLsetup.sh
+-rw-r--r-- 1 root root 2116 11月  4 16:24 MySQLsetup.sh
+
+[root@room9pc01 ~]# 
+
+======================= clusterdb  ===================== [ 7 ] ===========
+
+[root@room9pc01 ~]# vim clusterdb
+[root@room9pc01 ~]# cat clusterdb
+#!/bin/bash
+password=123456;
+x="";
+for i in `cat $1`
+ do
+   VMname=$(echo $i |awk -F: '{print $1}');
+   echo $VMname;
+   if [[ "$1" = *rpmtarzipsh* ]];then 
+     VMnameA=$(echo $i |awk -F: '{print $2}');
+     VMnameB=$(echo $i |awk -F: '{print $3}');
+   elif [[ "$1" = *cephsh* ]];then
+     VMnameC=$(echo $i |awk -F: '{print $2}');
+     VMnameD=$(echo $i |awk -F: '{print $3}');
+   fi
+   hostname=$(echo $i |awk -F: '{print $4}');  
+   echo $hostname;
+   eth0=$(echo $i |awk -F: '{print $5}');
+   echo "192.168.$eth0";
+   eth1=$(echo $i |awk -F: '{print $6}');
+   echo "192.168.$eth1";
+   eth2=$(echo $i |awk -F: '{print $7}');
+   echo "201.$eth2";
+   eth3=$(echo $i |awk -F: '{print $8}');
+   echo "201.$eth3";
+   file=$(echo $i |awk -F: '{print $9}');ll $file;
+  mysql=$(echo $i |awk -F: '{print $10}');ll $mysql;
+  mysql=$(echo $i |awk -F: '{print $NF}');ll $mysql;
+  list=$(virsh list |awk '/V/||/rh7/{print $2}');
+  Vname(){
+    let x++;
+    if [ -z  "$list" ];then
+      echo $list;
+      echo "virtual machine is not running";
+    elif [[ -n $list ]];then
+      j=$(virsh list |awk '/V/||/rh7/{print $2}' |sed -n ${x}p)
+      nr=$(virsh list |awk '/V/||/rh7/{print $2}' |sed -n $=)
+      if [ "$x" -le "$nr" ];then
+        if [[ "$j" = Va* ]];then
+          Vname=$VMnameA
+          echo $Vname
+        elif [[ "$j" = Vb* ]];then
+          Vname=$VMnameB
+          echo $Vname
+        elif [[ "$j" = Vc* ]];then
+          Vname=$VMnameC
+          echo $Vname
+        elif [[ "$j" = Vd* ]];then
+          Vname=$VMnameD
+          echo $Vname
+        elif [[ "$j" != V* ]];then
+          Vname=$VMname
+          echo $Vname
+        fi
+      elif [ "$x" -gt "$nr" ];then
+        echo "${x} is  dayu ${nr}"
+      fi  
+    fi
+  }  
+  setip(){
+    expect /root/ip.sh $Vname  $password  $hostname  $eth0  $eth1  $eth2  $eth3
+    if [ $? -eq 0 ];then
+      echo "ip well done";
+    else
+      echo  "ip failed";
+    fi
+  }
+  scp(){
+   expect /root/Mysqlscp.sh  $eth0  $file   $mysql
+   if [ $? -eq 0 -o $? -eq 1 ];then
+       echo "scp is over";
+   else
+       echo  "scp failed";
+   fi
+  }
+  setsh(){
+/usr/bin/expect  << EOF
+    spawn virsh  console $Vname
+    set timeout  40
+    expect "换码符为 ^]"  {send "\n"}
+    expect "login:"   {send "root\r"}
+    expect "密码："     {send "123\r"}
+    expect "#"  {send "bash /root/$mysql\r"}
+    expect "#"  {send "sleep 20 && date\r"}
+    expect "#"  {send "\r"}
+    send "exit\r"
+    interact
+    expect eof
+EOF
+  if [ $? -ne 0 ];then
+    echo "faild"
+    exit 100
+  else
+    echo "yum mysql has been set done"
+  fi
+  }
+case $2 in
+  setip)
+    Vname
+    sleep 1
+    if [ $? -eq 0 ];then 
+      setip  &
+    else
+      echo "Vname is running bad"
+    fi
+    wait % $i;;
+  scp)
+    scp  &
+    wait % $i;;     
+  setsh)
+    Vname
+    sleep 1
+    if [ $? -eq 0 ];then
+       setsh  &
+    else
+      echo "Vname is running bad"
+    fi
+    wait & $i;;
+  startA)
+     virsh start $VMnameA;;
+  startB)
+     virsh start $VMnameB;;
+  startC)
+    virsh create /etc/libvirt/qemu/${VMnameC}.xml;;
+  startD)
+    virsh create /etc/libvirt/qemu/${VMnameD}.xml;;
+  stopA)
+    virsh shutdown $VMnameA;;
+  stopB)
+    virsh shutdown $VMnameB;;
+  stopC)
+    virsh shutdown $VMnameC;;
+  stopD)
+    virsh shutdown $VMnameD;;
+  delxmlimgC)
+    virsh shutdown $VMnameC;
+    sleep 4
+    ls  /etc/libvirt/qemu/${VMnameC}.xml  /var/lib/libvirt/images/${VMnameC}.img
+    rm -f  /etc/libvirt/qemu/${VMnameC}.xml  /var/lib/libvirt/images/${VMnameC}.img
+    ls  /etc/libvirt/qemu/${VMnameC}.xml  /var/lib/libvirt/images/${VMnameC}.img
+    rm -f /etc/libvirt/qemu/${VMnameC}*
+    ls  /etc/libvirt/qemu/${VMnameC}*
+    echo "delete ${VMnameC} well done";;
+  delxmlimgD)
+    virsh shutdown $VMnameD;
+    sleep 4
+    ls  /etc/libvirt/qemu/${VMnameD}.xml  /var/lib/libvirt/images/${VMnameD}.img
+    rm -f  /etc/libvirt/qemu/${VMnameD}.xml  /var/lib/libvirt/images/${VMnameD}.img
+    ls  /etc/libvirt/qemu/${VMnameD}.xml  /var/lib/libvirt/images/${VMnameD}.img
+    rm -f /etc/libvirt/qemu/${VMnameD}*
+    ls  /etc/libvirt/qemu/${VMnameD}*
+    echo "delete ${VMnameD} well done";;
+  *)
+    echo "input-Error";
+ esac
+done
+echo  "Amazing !" 
+[root@room9pc01 ~]# 
+
+================================== client ========= [ 8 ] ===========??????????????==============
+
+[root@room9pc01 ~]# vim client
+[root@room9pc01 ~]# cat client
+#!/bin/bash
+case $1 in
+ clone)
+  . clone_manual.sh
+ cloneC)
+  . clone_auto.sh VMnameC
+  sleep 16;;
+ cloneD)
+  . clone_auto.sh VMnameD
+  sleep 16;;
+ init)
+  list=$(virsh list |awk '/V/||/rh7/{print $2}');
+  if [ -n "$list" ];then
+   .  clusterdb  setip
+   sleep 30
+   if [ $? -ne 0 ];then
+    echo "faild set ip"
+    exit 120
+   else
+    echo "ip has been set done"
+   fi;
+    . clusterdb  scp
+    sleep 20
+   if [ $? -ne 0 ];then
+    echo "faild scp"
+    exit 130
+   else
+    echo "scp has been set done"
+   fi;
+    . clusterdb  setsh
+    sleep 30
+   if [ $? -ne 0 ];then
+    echo "faild"
+    exit 140
+   else
+    echo "yum mysql has been set done"
+   fi
+  else
+    echo "virtual machine is not running";  
+  fi;;
+ start)
+   list=$(virsh list |awk '/V/||/rh7/{print $2}');
+   if [ -z  "$list" ];then
+     . clusterdb  startA
+   elif [ -n "$list" ];then
+     j=$(virsh list |awk '/V/||/rh7/{print $2}' |sed -n 1p)
+     if [[ "$j" = Va* ]];then
+       . clusterdb stopA
+       sleep 15
+       . clusterdb startB
+     elif [[ "$j" = Vb* ]];then
+       . clusterdb  stopB
+       sleep 15
+       . clusterdb  startA
+     elif [[ "$j" = Vc* ]];then
+       . clusterdb  stopC
+       sleep 15
+       . clusterdb  startD
+     elif [[ "$j" = Vd* ]];then
+       . clusterdb  stopD
+       sleep 15
+       . clusterdb  startC
+     fi
+   fi;;
+ stop)
+   list=$(virsh list |awk '/V/||/rh7/{print $2}');
+   if [ -z  "$list" ];then
+     echo "now virtual machine is not running";
+   elif [ -n "$list" ];then
+     j=$(virsh list |awk '/V/||/rh7/{print $2}' |sed -n 1p)
+     if [[ "$j" = Va* ]];then
+       . clusterdb stopA
+     elif [[ "$j" = Vb* ]];then
+       . clusterdb  stopB
+     elif [[ "$j" = Vc* ]];then
+       . clusterdb  stopC
+     elif [[ "$j" = Vd* ]];then
+       . clusterdb  stopD
+     fi
+   fi;;
+ delete)
+#待修改   . clusterdb delxmlimg?????
+   echo "deleted well done";;
+ *)
+   echo "input-Error";;
+esac
+[root@room9pc01 ~]# 
+
+
+=================== clone_auto.sh =========== [ 9 ] =========???????????===========
+##可以加位置变量 $1 
+判断
+if [ "$1" = "VMnameA" ];then
+ VMnameX=$(echo $j |awk -F: '{print $2}');
+elif [ "$1" = "VMnameB" ];then
+ VMnameX=$(echo $j |awk -F: '{print $3}')
+fi
+&&###################
+[root@hiys ~]# 
+[root@hiys ~]# cat clone_auto.sh 
+#!/bin/bash
+n=`sed -n $= /root/VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt` 
+x='';
+echo $n |clone-auto7
+for i in `virsh  list --all |awk '/rh7/{print $2}' |head -$n`
+do
+  let x++;
+  VMname=$i;echo $VMname;
+  j=`sed -n "${x}p" /root/VMname-hostname-eth0-eth1-eth2-eth3-rpmtarzipsh.txt`
+
+  VMnameA=$(echo $j |awk -F: '{print $2}'); #这里可以做if else 判断,也可以case $1 in;
+/***[root@hiys ~]# case $1 in VMnameA) VMnameX=$(echo $j |awk -F: '{print $2}');; VMnameB) VMnameX=$(echo $j |awk -F: '{print $3}');; *) echo "input error";;
+**********/
+  echo $VMnameA;
+  cd /etc/libvirt/qemu/;ls
+  virsh dumpxml $VMname > ${VMnameA}.xml
+  ls;
+  cd /var/lib/libvirt/images/;ls
+  cp  ${VMname}.img  ${VMnameA}.img
+  ls
+  cd
+  sed -i '/<name>/s/'"$VMname"'/'"$VMnameA"'/' /etc/libvirt/qemu/${VMnameA}.xml
+  sed -n '/<name>/,+1p' /etc/libvirt/qemu/${VMnameA}.xml
+  sed  -i '/<source file/s/'"$VMname"'/'"$VMnameA"'/' /etc/libvirt/qemu/${VMnameA}.xml
+  sed  -n '/<source file/,+1p' /etc/libvirt/qemu/${VMnameA}.xml
+  sleep 1
+  virsh start $VMname
+  sleep 5
+  virsh destroy  $VMname
+  sed -i '/<uuid>/s/..<\/uuid>/xx<\/uuid>/' /etc/libvirt/qemu/${VMname}.xml
+  sed -n '/<uuid>/p' /etc/libvirt/qemu/${VMname}.xml
+  virsh  undefine  $VMname
+  if [ $? -eq 0 ];then
+    echo "undefine ok"
+  fi
+  sleep 1
+  rm -f  /var/lib/libvirt/images/${VMname}.img
+  virsh create /etc/libvirt/qemu/${VMnameA}.xml
+  if [ $? -ne 0 ];then
+    echo "define failed"
+  fi
+done
+[root@hiys ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
