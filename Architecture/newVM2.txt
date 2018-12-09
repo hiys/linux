@@ -565,6 +565,49 @@ loop1                          7:1    0    2G  0 loop
 └─docker-253:1-20971586-pool 252:0    0  100G  0 dm   
 [root@Va2 ~]# 
 
+================================
+[root@hiys ~]# tty
+/dev/pts/0
+
+[root@hiys ~]# virsh start Va9  && sleep 7  && virsh console Va9
+
+CentOS Linux 7 (Core)
+Kernel 3.10.0-693.el7.x86_64 on an x86_64
+
+Va9 login: root
+Password: 
+Last login: Mon Nov 26 13:43:39 from 192.168.1.254
+[root@Va9 ~]# tty
+/dev/ttyS0
+[root@Va9 ~]# [   57.035637] random: crng init done
+
+[root@Va9 ~]#  Ctrl  + ] 退出
+
+[root@hiys ~]#  virsh console Va9
+连接到域 Va9
+换码符为 ^]
+
+
+[root@Va9 ~]# tty
+/dev/ttyS0
+[root@Va9 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
