@@ -1,0 +1,341 @@
+
+
+[root@room9pc27 ~]# virsh  net-list  |grep  rhce
+ rhce                 活动     是           是
+[root@room9pc27 ~]# ifconfig  rhce |grep -A2 "flags=" ;
+                    ifconfig  rhce:0 |grep -A2 "flags="
+
+rhce: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.254.250  netmask 255.255.255.0  broadcast 172.25.254.255
+        ether 52:54:00:45:6a:61  txqueuelen 1000  (Ethernet)
+rhce:0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.250  netmask 255.255.0.0  broadcast 172.25.255.255
+        ether 52:54:00:45:6a:61  txqueuelen 1000  (Ethernet)
+[root@room9pc27 ~]# 
+
+
+[root@room9pc27 ~]# which  clone-auto7
+/usr/local/bin/clone-auto7
+
+[root@room9pc27 ~]# ls   /usr/local/bin/
+2to3         clone-vm          idle3.6   python3            python3-config
+2to3-3.6     clone-vm6         pip3      python3.6          pyvenv
+charm        clone-vm7         pip3.6    python3.6-config   pyvenv-3.6
+clone-auto6  easy_install-3.6  pydoc3    python3.6m         rht-vmctl
+clone-auto7  idle3             pydoc3.6  python3.6m-config
+
+
+[root@room9pc27 ~]# rht-vmctl   --help
+ Usage: rht-vmctl  VMCMD   VMNAME  
+  where VMCMD is one of:
+    start      - obtain and start up VMNAME
+    stop       - stop a running VMNAME
+    poweroff   - if running, force stop VMNAME
+    reset      - poweroff, return to saved or original state, start VMNAME
+    status     - display libvirt status of VMNAME 
+  where VMNAME is one of: 
+    classroom
+    server
+    desktop 
+[root@room9pc27 ~]# rht-vmctl    reset   classroom
+classroom [OK]
+域 classroom 已开始
+
+[root@room9pc27 ~]# rht-vmctl    reset   server
+server [OK]
+域 server 已开始
+
+[root@room9pc27 ~]# rht-vmctl    reset   desktop
+desktop [OK]
+域 desktop 已开始
+
+[root@room9pc27 ~]# 
+
+[root@room9pc27 ~]# cat  ReadMe.txt 
+RHCSA评分脚本:
+	教学环境下，在真机解压，server开机时执行./rht-checkcsa.py。按两下回车即可。
+
+
+Functions:
+	Input(1):         check_all        完整测试(测试所有项)
+	Input(ENTER):     check_no_user    部分测试(不包含用户密码的验证)
+	!!!测试用户密码采用expect方式，比较慢，不建议使用
+
+Files：
+ 	rht-checkcsa.py --> 主文件 
+	.checkcsa 		--> 检测脚本
+
+ISSUE:
+1、网络配置检查标准（命令配置），手工写文件的会失败 
+2、主机名必须修改，默认配置会检查失败.
+3、用户权限，必须先添加组（先添加的组号为1001，这里检查组号），再添加用户.
+4、如果检查用户口令，请不要做其他操作（采用expect方式，输入无关内容可能导致检测失败）.
+
+Versions:
+2.0	基本功能完成.
+2.1	增加颜色显示(正确:绿色，错误:红色),调整check_stu_f()、check_str()、check_tar()逻辑，
+检测到一个文件不符合就报错(不再列出所有不符合条件的文件).
+2.2	增加tar包压缩方式检测，必须能够使用tar jxf 命令解压.
+2.3	调整判断机制，/etc/gshadow不在时，去判断/etc/gshadow-(配置ldapuser0后会导致/etc/gshadow 消失，
+导致用户组检测失败,但会产生 /etc/gshadow-)
+2.4	修复find文件时只提示扣分，但未进行统计。
+
+
+[root@room9pc01 ~]# rm -rf /content/
+[root@room9pc01 ~]# cp -rpf /var/lib/libvirt/images/content/  /
+
+[root@room9pc27 ~]# ls /content/
+content  courses  lost+found  rhel7.0
+
+[root@room9pc27 ~]# ls  /var/lib/libvirt/images/content/
+content  courses  lost+found  rhel7.0
+
+[root@room9pc27 ~]# ls /content/courses/
+rh124  rh134  rh199  rh254  rh299  rhce
+
+[root@room9pc27 ~]# ls /content/content/
+
+[root@room9pc01 ~]# systemctl restart nfs-server.service 
+
+[root@room9pc27 ~]# ifconfig rhce   |grep  -A2  "flags=" ;ifconfig  rhce:0  |grep  -A2  "flags="
+rhce: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.254.250  netmask 255.255.255.0  broadcast 172.25.254.255
+        ether 52:54:00:45:6a:61  txqueuelen 1000  (Ethernet)
+
+rhce:0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.250  netmask 255.255.0.0  broadcast 172.25.255.255
+        ether 52:54:00:45:6a:61  txqueuelen 1000  (Ethernet)
+
+[root@room9pc27 ~]# systemctl  is-active   nfs-server
+active
+[root@room9pc27 ~]# showmount   -e
+Export list for room9pc27.tedu.cn:
+/content 172.25.254.0/24
+[root@room9pc27 ~]# cat  /etc/exports
+/content/  172.25.254.0/24(ro)
+
+[root@room9pc27 ~]# systemctl  is-enabled   nfs-server.service 
+enabled
+
+=====================cex200============================
+[root@room9pc01 ~]# tar -xPf /root/桌面/checkcsa-2.4.0.tar.gz 
+[root@room9pc27 ~]# tar  -xPf   checkcsa-2.4.0.tar.gz 
+
+[root@room9pc01 ~]# tar -tPf /root/桌面/checkcsa-2.4.0.tar.gz
+rht-checkcsa.py
+checkcsa.py
+.checkcsa
+ReadMe.txt
+[root@room9pc01 ~]# chmod +x rht-checkcsa.py
+[root@room9pc01 ~]# ls -l rht-checkcsa.py
+-rwxr-xr-x 1 root root 874 12月  5 2017 rht-checkcsa.py
+==============cex300====================================
+[root@room9pc01 ~]# tar -xPf /root/桌面/rht-labcheck.tar.gz 
+[root@room9pc01 ~]# tar -xPf /root/桌面/lab2.tar.gz 
+[root@room9pc01 ~]# tar -tPf /root/桌面/rht-labcheck.tar.gz
+/usr/local/sbin/.server0.sh
+/usr/local/sbin/.desktop0.sh
+/usr/local/sbin/rht-labcheck
+[root@room9pc01 ~]# tar -tPf /root/桌面/lab2.tar.gz 
+
+--------------------------- 检测成绩  -----------------------------------
+[root@room9pc27 ~]# chmod  a+x  rht-checkcsa.py
+[root@room9pc27 ~]# chmod  a+x  checkcsa.py   #检测脚本
+[root@room9pc27 ~]# ll  checkcsa.py  rht-checkcsa.py
+-rwxr-xr-x 1 root root 22103 12月  5 2017 checkcsa.py
+-rwxr-xr-x 1 root root   874 12月  5 2017 rht-checkcsa.py
+RHCSA评分脚本:
+	教学环境下，在真机解压，server开机时执行./rht-checkcsa.py。按两下回车即可。
+-----------------------------  server开机时执行./rht-checkcsa.py -------------
+
+Functions:
+	Input(1):         check_all        完整测试(测试所有项)
+	Input(ENTER):     check_no_user    部分测试(不包含用户密码的验证)
+	!!!测试用户密码采用expect方式，比较慢，不建议使用
+
+Files：
+ 	rht-checkcsa.py --> 主文件 
+	.checkcsa 		--> 检测脚本
+==================正式开考==========================
+
+
+--------------------  00a、重设 root 密码  ------------------------------
+
+1)重启虚拟机 server,出现 GRUB 启动菜单时按 e 键进入编辑状态
+2)找到 linux16 所在行, LANG=en_US.UTF-8 末尾
+                                 添加 rd.break console=tty0,
+   按 Ctrl+x 键 进入 恢复模式
+3)以可写方式挂载硬盘中的根目录,并重设 root 密码:
+
+-----------------  //以可读写方式重新挂载根系统  ----------------------
+switch_root:/# mount  -o   remount,rw  /sysroot
+
+---------------- //切换到临时根系统  /sysroot/------------ 
+switch_root:/# chroot   /sysroot/
+
+ ---------交互式  将系统的 root 账号密码设置为 redhat  //设置考试指定的密码------------
+sh-4.2# passwd  root
+   输入密码 redhat   回车确认
+
+/***************
+   --------- 非 交互式  将系统的 root 账号密码设置为 redhat ------------
+输入命令 echo redhat  |passwd  --stdin  root  回车确认
+注意若出现乱码,直接 Ctrl + c  结束当前命令,等到显示
+sh-4.2# 再接着 设置密码
+输入命令 echo redhat  |passwd  --stdin  root  回车确认
+***************/
+
+--------------------  //标记下一次启动重做 SELinux 标签  ----------------
+sh-4.2# touch  /.autorelabel
+sh-4.2# exit
+switch_root:/#reboot
+
+
+
+
+考试说明
+
+为了能够继续考试，您必须首先完成下述任务。
+
+将系统的 root 账号密码设置为 redhat 。
+配置您的虚拟机系统使用下述静态网络配置：
+ * Hostname：server0.example.com
+ * IP address：172.25.0.11
+ * Netmask：255.255.255.0
+ * Gateway：172.25.0.254
+ * Name server：172.25.254.254
+
+您必须完成对网络的修改，这样才能访问其余的考题，一旦您完成了上述修改，点击下面的URL地址：http://rhgls.domain254.example.com/exam/ex200/index2.html
+
+如果您已经成功完成了初始的题目，您将被重定向到考试的其余部分。
+
+防火墙默认是打开的，在您认为是适当的时候可以关闭。
+在评分之前您的系统会被重新启动，
+所以请您确保您所做的所有修改和服务配置在重新启动之后仍然能够生效，而无需人工干预。
+
+所有考试用的虚拟机实例必须能重启之后进入正确的用户级别，而无需人工协助。
+如果考试用的虚拟机不能启动或不能正常启动，将被评零分。
+
+您在考试中使用的Red Hat Enterprise Linux操作系统版本对应的分发包
+可以通过YUM在下面的链接中找到：http://content.example.com/rhel7.0/x86_64/dvd
+
+注意一些考试题目可能依赖于其他考试题目。
+比如说，在考试题目中可能要求您针对一个用户执行一系列的限制，
+但是这个用户的创建可能是在其他题目中要求的。
+
+为了方便您的标识，每个考试题目都有一些选取按钮
+以协助您去标识哪个题目您已经完成了，哪些还没有。
+当然，如果您觉得用不着，您也可以不去理会这些按钮。
+----------------------------------------------------------------------------
+
+
+-------------- 00b、配置主机名、IP 地址/掩码/默认网关/DNS 地址
+
+将系统的 root 账号密码设置为 redhat 。
+配置您的虚拟机系统使用下述静态网络配置：
+ * Hostname：server0.example.com
+ * IP address：172.25.0.11
+ * Netmask：255.255.255.0
+ * Gateway：172.25.0.254
+ * Name server：172.25.254.254
+
+
+[root@room9pc27 ~]# virsh  console  server
+连接到域 server
+换码符为 ^]
+
+
+Red Hat Enterprise Linux Server 7.0 (Maipo)
+Kernel 3.10.0-123.el7.x86_64 on an x86_64
+
+server0 login: root
+Password: redhat
+Last login: Fri Jan 12 18:54:14 from 172.25.0.250
+
+[root@server0 ~]# echo  redhat  |passwd  --stdin  root
+Changing password for user root.
+passwd: all authentication tokens updated successfully.
+
+[root@server0 ~]# hostnamectl   set-hostname   server0.example.com
+[root@server0 ~]# hostname
+server0.example.com
+
+[root@server0 ~]# cat  /etc/hostname 
+server0.example.com
+
+[root@server0 ~]# nmcli 
+connection  device      general     help        networking  radio
+
+
+[root@server0 ~]# nmcli  device   status
+DEVICE  TYPE      STATE         CONNECTION  
+eth0    ethernet  connected     System eth0 
+eth1    ethernet  disconnected  --          
+eth2    ethernet  disconnected  --          
+lo      loopback  unmanaged     --    
+
+[root@server0 ~]# ifconfig |grep  -A2  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.11  netmask 255.255.255.0  broadcast 172.25.0.255
+        inet6 fe80::5054:ff:fe00:b  prefixlen 64  scopeid 0x20<link>
+--
+eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 52:54:00:f8:86:c1  txqueuelen 1000  (Ethernet)
+        RX packets 1003  bytes 65045 (63.5 KiB)
+--
+eth2: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 52:54:00:38:79:d9  txqueuelen 1000  (Ethernet)
+        RX packets 1003  bytes 65045 (63.5 KiB)
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+
+[root@server0 ~]# nmcli   connection show
+NAME         UUID                                  TYPE            DEVICE 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0   
+
+[root@server0 ~]# echo  $PS1
+[\u@\h \W]\$
+[root@server0 ~]# echo  $PS2
+>
+[root@server0 ~]# nmcli   connection  show
+NAME         UUID                                  TYPE            DEVICE 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+
+[root@server0 ~]# nmcli connection   modify  "System eth0"  \
+> ipv4.method manual  ipv4.addresses 
+
+[root@serverX ~]# nmcli
+connection
+modify
+"System eth0"
+ipv4.method
+manual
+ipv4.addresses "172.25.X.11/24 172.25.X.254" ipv4.dns 172.25.254.254
+[root@serverX ~]# nmcli connection modify "System eth0" connection.autoconnect yes
+//需要时允许自动连接
+[root@serverX ~]# nmcli connection up "System eth0"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

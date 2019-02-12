@@ -25,7 +25,224 @@ nm-connection-editor-1.8.0-3.el7.x86_64
 [root@room9pc27 ~]# type  nm-connection-editor
 nm-connection-editor 已被哈希 (/usr/bin/nm-connection-editor)
 
+
+[root@V10 ~]# echo  'testcat' 
+testcat
+[root@V10 ~]# echo  'testcat'  |cat
+testcat
+
+--------------  直接在命令的最后指定 -  则表示从标准输入中读取 --------------
+[root@V10 ~]# echo  'testcat'  |cat  -
+testcat
+
+[root@V10 ~]# echo  -e  "test1\ntest2bbb"  > test.txt
+[root@V10 ~]# cat  test.txt
+test1
+test2bbb
+
+[root@V10 ~]# echo  'testcat------'  |cat  - test.txt
+testcat------
+test1
+test2bbb
+[root@V10 ~]# echo  'testcat------'  |cat  test.txt  -
+test1
+test2bbb
+testcat------
+[root@V10 ~]# 
+
+-----------  grep会同时处理标准输入和文件test.txt中的内容，
+也就是说会在标准输入中搜索 'at' 
+也会在文件 test.txt (该文件名从grep命令行参数中获得)中搜索 'at'
+
+[root@V10 ~]# echo  'testcat------'  |grep  "at"  test.txt  -
+(标准输入):testcat------
+[root@V10 ~]# echo  'testcat------'  |grep  "bb"  test.txt  -
+test.txt:test2bbb
+
+xargs命令可以通过管道接受字符串，
+并将接收到的字符串通过 空格 分割成 许多参数
+(默认情况下是通过空格分割) 然后将参数传递给其后面的命令，
+作为后面命令的命令行参数
+
+echo '--help' | xargs cat 等价于 cat --help 
+
+[root@V10 ~]# echo '--help' | xargs cat
+用法：cat [选项]... [文件]...
+将[文件]或标准输入组合输出到标准输出。
+
+  -A, --show-all           等于-vET
+  -b, --number-nonblank    对非空输出行编号
+  -e                       等于-vE
+  -E, --show-ends          在每行结束处显示"$"
+  -n, --number             对输出的所有行编号
+...............
+------ xargs将其接受的字符串 --help 做成cat的一个命令参数来 运行cat命令
+
+[root@V10 ~]# type   xargs
+xargs 已被哈希 (/usr/bin/xargs)
+
+[root@V10 ~]# cat  test.txt
+test1
+test2bbb
+[root@V10 ~]# echo  test.txt  |xargs  cat
+test1
+test2bbb
+[root@V10 ~]# echo  test.txt  |xargs  grep  bb
+test2bbb
+-------------  注意" {}   \; " 空格 -------------
+[root@V10 ~]# find  ./  -name  "test*" -type  f  -exec  ls  {}\;
+find: 遗漏“-exec”的参数
+[root@V10 ~]# find  ./  -name  "test*" -type  f  -exec  ls  {} \;
+./test.txt
+
+find命令如果不加-print0其搜索结果的每一条字符串后面实际上是加了换行
+默认情况下find的输出结果是每条记录后面加上换行，也就是每条记录是一个新行
+[root@V10 ~]# find  ./  -name  "test*" -type  f  
+./test.txt
+./test2.txt
+
+## -0 选项表示以 '\0' 为分隔符，一般与find结合使用,# 注意是数字"0"零print0
+
+[root@V10 ~]# find  ./  -name  "test*" -type  f  -print0 # 注意是数字"0"零print0
+./test.txt./test2.txt[root@V10 ~]# 
+-----------  加上 -print0 参数表示find输出的每条结果后面加上 '\0' 而不是换行 ----------
+
+[root@V10 ~]# 
+
+-----------  xargs 使用 -d 命令指定分隔符  ---------------
+
+[root@V10 ~]# echo "haha\0xixi\0hehe"
+haha\0xixi\0hehe
+[root@V10 ~]# echo  -e  "haha\0xixi\0hehe"
+hahaxixihehe
+[root@V10 ~]# echo  -e  "haha\0xixi\0hehe" |xargs  -d  "\0"  echo
+haha xixi hehe
+
+[root@V10 ~]# echo  -e  "haha\0xixi\0hehe" |xargs  -0  echo
+haha xixi hehe
+--------------- xargs的 -0 和 -d '\0' 表示其从标准输入中读取的内容使用 '\0' 来分割，
+由于 find 的结果是使用 '\0' 分隔的，所以xargs使用 '\0' 将 find的结果分隔之后得到
+haha xixi hehe
+
+------------ 目录下的所有文件中查找字符串 --------------------
+
+[root@V10 ~]# find ./  |xargs   grep  "2bb"
+grep: ./: 是一个目录
+grep: ./.cache: 是一个目录
+grep: ./.cache/dconf: 是一个目录
+..............
+grep: ./.local/share/webkitgtk/localstorage: 是一个目录
+grep: ./.ssh: 是一个目录
+./test.txt:test2bbb
+./test2.txt:test2bbb
+[root@V10 ~]#  
+
+------------ 目录下的所有文件中查找字符串 ------------------- 
+
+[root@V10 ~]# find ./  |xargs   grep  -ri  "2bb"
+./test.txt:test2bbb
+./test2.txt:test2bbb
+grep: ./.cache/yelp/WebKitCache/Version: 没有那个文件或目录
+grep: 10: 没有那个文件或目录
+grep: ./.cache/yelp/WebKitCache/Version: 没有那个文件或目录
+grep: 10/Blobs: 没有那个文件或目录
+./test.txt:test2bbb
+./test2.txt:test2bbb
+[root@V10 ~]# 
+
+----------- 目录下的所有文件中查找字符串,并且只打印出含有该字符串的文件名 -------------
+
+[root@V10 ~]# find ./  |xargs   grep  -lri  "2bb"
+./test.txt
+./test2.txt
+grep: ./.cache/yelp/WebKitCache/Version: 没有那个文件或目录
+grep: 10: 没有那个文件或目录
+grep: ./.cache/yelp/WebKitCache/Version: 没有那个文件或目录
+grep: 10/Blobs: 没有那个文件或目录
+./test.txt
+./test2.txt
+
+表示在 当前目录 ./ 下面搜索
+并且 列出文件内容中包含 2bb 字符串的文件名，并且是递归的搜索
+
+参数说明：
+-l 列出文件名称
+-r递归的搜索
+-i 不区分大小写搜索
+
+
+--------  配置文件 
+/etc/httpd/conf/httpd.conf 系统自带，管理员配置 
+
+[root@room9pc27 ~]# tail   -2  /etc/httpd/conf/httpd.conf
+# Load config files in the "/etc/httpd/conf.d" directory, if any.
+   在“/etc/httpd/conf.d”目录中加载配置文件（如果有）
+IncludeOptional conf.d/*.conf
+
+[root@room9pc27 ~]# ls  /etc/httpd/
+conf  conf.d  conf.modules.d  logs  modules  run
+
+[root@room9pc27 ~]# ls  /etc/httpd/conf.d/
+00-aa.conf  autoindex.conf  README  rhce.conf  userdir.conf  welcome.conf
+
+[root@room9pc27 ~]# ll /etc/httpd/conf.d/rhce.conf 
+lrwxrwxrwx 1 root root 40 3月  19 2018 /etc/httpd/conf.d/rhce.conf -> /var/lib/libvirt/images/conf.d/rhce.conf
+
+[root@room9pc27 ~]# cat  /etc/httpd/conf.d/rhce.conf 
+Alias  /exam	/var/www/exam
+
+[root@room9pc27 ~]# ll /var/lib/libvirt/images/conf.d/rhce.conf 
+-rw-r--r-- 1 root root 27 1月  10 2018 /var/lib/libvirt/images/conf.d/rhce.conf
+
+[root@room9pc27 ~]# cat   /var/lib/libvirt/images/conf.d/rhce.conf
+Alias  /exam	/var/www/exam
+
 [root@room9pc27 ~]# firefox  http://127.0.0.1/exam
+
+[root@room9pc27 ~]# find   /etc/httpd/  |xargs  grep   -lri  "/var/www/exam"
+/etc/httpd/conf.d/rhce.conf
+
+[root@room9pc27 ~]# find   /etc/httpd/  |xargs  grep   -lri  "exam"
+/etc/httpd/conf/httpd.conf
+/etc/httpd/conf.d/userdir.conf
+/etc/httpd/conf/httpd.conf
+/etc/httpd/conf/httpd.conf
+.................
+/etc/httpd/conf.d/userdir.conf
+/etc/httpd/conf.d/userdir.conf
+/etc/httpd/conf.d/rhce.conf
+[root@room9pc27 ~]# 
+
+[root@room9pc27 ~]# ls  /var/www/
+cgi-bin  exam  html
+[root@room9pc27 ~]# ls  /var/www/exam/
+ex200  ex300  index.html  rht-ex300.desktop
+
+[root@room9pc27 ~]# ls  /var/www/exam/ex200/
+.................
+[root@room9pc27 ~]# ls  /var/www/exam/ex300/
+................
+
+[root@room9pc27 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
