@@ -1,0 +1,42 @@
+
+[root@room9pc27 ~]# which  nm-connection-editor
+/usr/bin/nm-connection-editor
+
+[root@room9pc27 ~]# yum  provides  /usr/bin/nm-connection-editor 
+...........
+nm-connection-editor-1.8.0-3.el7.x86_64 : A network connection configuration
+                                        : editor for NetworkManager
+源    ：rhel7
+匹配来源：
+文件名    ：/usr/bin/nm-connection-editor
+
+nm-connection-editor-1.8.0-3.el7.x86_64 : A network connection configuration
+                                        : editor for NetworkManager
+源    ：@anaconda
+匹配来源：
+文件名    ：/usr/bin/nm-connection-editor
+
+[root@room9pc27 ~]# rpm  -q  nm-connection-editor 
+nm-connection-editor-1.8.0-3.el7.x86_64
+[root@room9pc27 ~]# 
+
+[root@room9pc27 ~]# nm-connection-editor 
+..............
+[root@room9pc27 ~]# type  nm-connection-editor
+nm-connection-editor 已被哈希 (/usr/bin/nm-connection-editor)
+
+[root@room9pc27 ~]# firefox  http://127.0.0.1/exam
+
+
+
+
+
+
+
+
+
+
+
+
+
+
