@@ -223,17 +223,208 @@ ex200  ex300  index.html  rht-ex300.desktop
 [root@room9pc27 ~]# ls  /var/www/exam/ex300/
 ................
 
-[root@room9pc27 ~]# 
+[root@room9pc27 ~]# tail  -2  /etc/profile
+unset -f pathmunge
+/bin/uftpd -D /public
+
+[root@room9pc27 ~]# tail  -3  /etc/bashrc 
+# vim:ts=4:sw=4
+/usr/sbin/ifconfig rhce:0 172.25.0.250
+echo Taren1 | passwd --stdin root &> /dev/null
+
+[root@room9pc27 ~]# lsattr   /etc/bashrc
+----i--------e-- /etc/bashrc
+
+chattr命令的用法：
+chattr [ -RVf ] [ -v version ] [ mode ] files…
+最关键的是在[mode]部分，
+[mode]部分是由 + - = 和 [ASacDdIijsTtu] 这些字符 组合的，
+这部分是用来控制文件的属性。
+
++ ：在原有参数设定基础上，追加参数。
+- ：在原有参数设定基础上，移除参数。
+= ：更新为指定参数设定。
+A：文件或目录的 atime (access time)不可被修改(modified), 
+可以有效预防例如手提电脑磁盘I/O错误的发生。
+
+S：硬盘I/O同步选项，功能类似sync,文件内容变更后立即同步到硬盘(sync)。
+
+a：即append，设定该参数后，只能向文件中添加数据，而不能删除，
+多用于服务器日志文件安全，只有root才能设定这个属性。
+
+i：设定文件不能被删除、改名、设定链接关系，同时不能写入或新增内容。
+  i参数对于文件 系统的安全设置有很大帮助。
+  i是更为严格的安全设定，只有superuser (root) 
+  或具有CAP_LINUX_IMMUTABLE处理能力（标识）的进程能够施加该选项。
+  i若对目录设置后 则仅能修改 子文件 而不能 新建或删除。
+
+j：即journal，设定此参数使得当通过mount参数：data=ordered 或者 data=writeback 挂 载的文件系统，文件在写入时会先被记录(在journal中)。
+如果filesystem被设定参数为 data=journal，则该参数自动失效。
+
+ ------------ 显示(目录的)文件系统属性 这些文件 设置了“e”属性，即可执行   ----
+
+[root@room9pc27 ~]# lsattr   testsed.txt 
+-------------e-- testsed.txt
+
+[root@room9pc27 ~]# chattr  -i  /etc/bashrc
+
+[root@room9pc27 ~]# lsattr   /etc/bashrc
+-------------e-- /etc/bashrc
+
+[root@room9pc27 ~]# vim   /etc/bashrc
+[root@room9pc27 ~]# tail   -1  /etc/bashrc
+echo 1 | passwd --stdin root &> /dev/null
+
+[root@room9pc27 ~]# . /etc/bashrc
+[root@room9pc27 ~]# echo  $?
+0
+[root@room9pc27 ~]# ll  /etc/bashrc
+-rw-r--r-- 1 root root 2934 2月  13 10:12 /etc/bashrc
+
+[root@room9pc27 ~]# vim  .bash_history
+[root@room9pc27 ~]# > .bash_history
+
+[root@room9pc27 ~]# ll .bash_history
+-rw------- 1 root root 0 2月  13 10:33 .bash_history
+[root@room9pc27 ~]# lsattr  .bash_history
+-------------e-- .bash_history
+[root@room9pc27 ~]# history  -c
+[root@room9pc27 ~]# history  -w
+[root@room9pc27 ~]# history 
+    1  history  -w
+    2  history 
 
 
+POSIX标准
+  POSIX（Portable Operating System Interface for Computing Systems）
+是由IEEE 和ISO/IEC 开发的一簇标准。
+该标准是基于现有的UNIX 实践和经验，描述了操作系统的调用服务接口。
+
+查找 Linux 系统中的僵尸进程
+#!/bin/bash 
+#awk 判断 ps 命令输出的第 8 列为 Z 是,显示该进程的 PID 和进程命令 
+ps aux |awk '{if($8 == "Z"){print $2,$11}}' 
+
+Shell 脚本的 fork 炸弹
+#!/bin/bash 
+#快速消耗计算机资源,致使计算机死机 
+#定义函数名为.(点), 函数中递归调用自己并放入后台执行 
+.() { .|.& };. 
+
+生成自签名私钥和证书
+#!/bin/bash 
+#Author:丁丁历险(Jacob) 
+read ‐p "请输入存放证书的目录:" dir 
+if [ ! ‐d $dir ];then 
+  echo "该目录不存在" 
+  exit 
+fi 
+read ‐p "请输入密钥名称:" name 
+#使用 openssl 生成私钥 
+openssl genrsa ‐out ${dir}/${name}.key 
+
+#使用 openssl 生成证书 
+
+#subj 选项可以在生成证书时,非交互自动填写 Common Name 信息 
+openssl req ‐new ‐x509 ‐key ${dir}/${name}.key ‐subj "/CN=common" ‐out ${dir}/${name}.crt 
+
+=================
+generate key
+
+创建EC参数和私钥文件 #使用 openssl 生成私钥 
+openssl ecparam -genkey -name prime256v1 -out attestation_key.pem
+
+#使用 openssl 生成私钥 
+openssl genrsa ‐out ${dir}/${name}.key 
 
 
+查看EC私钥 
+openssl ecparam -in attestation_key.pem -text
 
+验证EC参数 
+openssl ecparam -in attestation_key.pem -check
 
+self-signed certificate
 
+创建公钥证书 
+openssl req -new -sha256 -key attestation_key.pem -out csr.csr -subj “/C=CN/ST=Shanghai/O=WhoAreYou/CN=WAY\ Fingerprint\ U2F\ Authenticator”
 
+自签发公钥证书至attestation.pem 
+openssl req -config opnssl.cnf -x509 -sha256 -days 3650 -key attestation_key.pem -in csr.csr -out attestation.pem
 
+convert to der
 
+openssl x509 -outform der -in attestation.pem -out attestation.der 
+openssl ec -in attestation_key.pem -outform der -out attestation_key.der
+
+generate C code
+
+python dump-der.py > certificates.c || ( rm certificates.c && exit 1 )
+
+gen.sh
+
+#!/bin/bash
+
+set -e
+
+cat > opnssl.cnf <<EOF
+[req]
+distinguished_name = req_distinguished_name
+[req_distinguished_name]
+EOF
+
+# generate key and self-signed certificate
+openssl ecparam -genkey -name prime256v1 -out attestation_key.pem
+openssl req -new -sha256 -key attestation_key.pem -out csr.csr -subj "/CN=U2F Token"
+openssl req -config opnssl.cnf -x509 -sha256 -days 3650 -key attestation_key.pem -in csr.csr -out attestation.pem
+
+# convert to der
+openssl x509 -outform der -in attestation.pem -out attestation.der
+openssl ec -in attestation_key.pem -outform der -out attestation_key.der
+
+# generate C code
+python dump-der.py > certificates.c || ( rm certificates.c && exit 1 )
+
+dump-der.py
+
+from __future__ import print_function
+from asn1crypto.keys import ECPrivateKey
+
+def pk_to_c_array(name, pk_der):
+    # parse der format
+    pk = ECPrivateKey.load(pk_der)
+
+    # extract private key
+    pk_native = pk['private_key'].native
+
+    # translate to hex string
+    pk_hex = format(pk_native, '064x')
+
+    # split by pairs of characters
+    hex_bytes = ["0x" + pk_hex[i:i + 2] for i in range(0, len(pk_hex), 2)]
+
+    # make string C array declaration
+    return "const uint8_t " + name + "[32] = {" + ", ".join(hex_bytes) + "};"
+
+def cert_to_c_array(name, der):
+    defname = name.upper() + "_LEN"
+    if hasattr(der, 'hex'):
+        hex_str = der.hex()
+    else:
+        hex_str = der.encode('hex')
+    hex_bytes = ["0x" + hex_str[i:i + 2] for i in range(0, len(hex_str), 2)]
+
+    define = "#define " + defname + " " + str(len(der))
+    array = "const uint8_t " + name + "[" + defname + "] = {" + ", ".join(hex_bytes) + "};"
+    return define + "\n" + array
+
+with open("attestation.der", "rb") as f:
+    print(cert_to_c_array("attestation_der", f.read()))
+
+with open("attestation_key.der", "rb") as f:
+    print(pk_to_c_array("attestation_key", f.read()))
+--------------------- 
+======================
 
 
 
