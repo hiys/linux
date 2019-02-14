@@ -1114,7 +1114,7 @@ Select (default p): l
 添加逻辑分区 5
 起始 扇区 (4096-6293503，默认为 4096)：  
 将使用默认值 4096
-Last 扇区, +扇区 or +size{K,M,G} (4096-6293503，默认为 6293503)：+450M
+Last 扇区, +扇区 or +size{K,M,G} (4096-6293503，默认为 6293503)：+450M ##这是为 试题调整逻辑卷的大小准备的
 分区 5 已设置为 Linux 类型，大小设为 450 MiB
 
 命令(输入 m 获取帮助)：n
@@ -1136,7 +1136,7 @@ Select (default p): l
 添加逻辑分区 7
 起始 扇区 (1978368-6293503，默认为 1978368)：
 将使用默认值 1978368
-Last 扇区, +扇区 or +size{K,M,G} (1978368-6293503，默认为 6293503)：+1G
+Last 扇区, +扇区 or +size{K,M,G} (1978368-6293503，默认为 6293503)：+1G  #这是为后面的PE试题准备的,最好设2G
 分区 7 已设置为 Linux 类型，大小设为 1 GiB
 
 命令(输入 m 获取帮助)：w       ------------- #/保存分区更改
@@ -1401,7 +1401,8 @@ user 任何用户都可以挂载
 设置 为  0  时，忽略备份操作；
 
 第六列是fsck磁盘检查设置。
-其值是一个顺序。 当其值为0时，永远不检查；
+其值是一个顺序。 
+当其值为 0 时，永远不检查；
 而 / 根目录分区永远都为1。
 其它分区从2开始，
 数字越小 优先 检查，
@@ -1900,7 +1901,7 @@ authconfig-tui - (c) │                                         │
                  │                                                                   │ 
                  │           [*] 使用 TLS                                  │ 
                  │  服务器： classroom.example.com___________________   │---指定服务器主机名
-                 │ 基础 DN： dc=example,dc=com_______________________   │---指定服务端域名
+                 │ 基础 DN： dc=example,dc=com_______________________   │-指定服务端域名(用DNS域名的不同部分组成的基准DN)
                  │                                                                   │ 
                  │         ┌──────┐                 ┌──────┐       │ 
                  │         │ 后退       │                  │ 确定 (点击)│       │ 
@@ -1908,6 +1909,9 @@ authconfig-tui - (c) │                                         │
                  │                                                                   │ 
                  │                                                                   │ 
                  └───────────────────────────────┘ 
+LDAP目录树的最顶部就是根，也就是所谓的“基准DN"
+LDAP目录记录的标识名（Distinguished Name，简称DN）
+https://baike.baidu.com/item/LDAP/2875565?fr=aladdin
 
                  ┌─────────────┤ 警告 ├─────────────┐
                  │                                                                  │ 
@@ -2044,7 +2048,7 @@ ln -s '/usr/lib/systemd/system/sshd.socket' '/etc/systemd/system/sockets.target.
 [root@server0 ~]# ls  /home/
 admins  harry  natasha  sarah  student
 
-[root@server0 ~]# id  ldapuser0
+[root@server0 ~]# id  ldapuser0     #验证 LDAP 用户
 uid=1700(ldapuser0) gid=1700(ldapuser0) 组=1700(ldapuser0)
 
 [root@server0 ~]# id  admins
@@ -2057,20 +2061,1315 @@ uid=1001(natasha) gid=1002(natasha) 组=1002(natasha),1001(adminuser)
 [root@server0 ~]# id    sarah
 uid=1003(sarah) gid=1004(sarah) 组=1004(sarah)
 
+===========================================
+-------------------------9 autofs的配置
+
+按照下述要求配置 autofs 用来自动挂载 LDAP 用户的主目录：
+classroom.example.com（172.25.0.11）通过 NFS 输出 /home/guests 目录到您的系统，
+这个文件系统包含了用户ldapuser0的主目录，并且已经预先配置好了
+
+ldapuser0用户的主目录是 classroom.example.com:/home/guests/ldapuser0
+ldapuser0的主目录应该按需挂载到本地的/home/guests/ldapuser0 目录下
+用户对其主目录必须是可写的
+ldapuser0用户的密码是password
+
+[root@server0 ~]# id  ldapuser0
+uid=1700(ldapuser0) gid=1700(ldapuser0) 组=1700(ldapuser0)
+[root@server0 ~]# yum  -y  install  autofs
+............
+已安装:
+  autofs.x86_64 1:5.0.7-40.el7                                                    
+
+作为依赖被安装:
+  hesiod.x86_64 0:3.2.1-3.el7                                                     
+
+完毕！
+[root@server0 ~]# rpm  -q  autofs
+autofs-5.0.7-40.el7.x86_64
+
+.列出服务器上的一个文件属于哪一个RPM包 
+#rpm -qf 
+
+[root@server0 ~]# rpm  -qf  /etc/auto.master
+autofs-5.0.7-40.el7.x86_64
+
+[root@server0 ~]# mkdir   /home/guests
+
+/***********
+http://rpmfind.net/linux/RPM/mageia/3/x86_64/media/core/release/autofs-5.0.7-4.mga3.x86_64.html
+
+Autofs非常方便，主要有两点：
+1、设置开机不一定要挂载的目录，当用的时候才实现自动挂载。
+2、用户不使用自动挂载的目录一段的时间，会自动卸载。（默认时间为5分钟）
+Autofs 是一项可自动挂载相应文件系统的客户端服务。
+以下是协同工作以完成自动挂载的组件：
+automount 命令
+autofs 文件系统
+Autofs 是支持自动挂载和取消挂载的内核文件系统
+automountd 守护进程
+
+请求访问 autofs 挂载点处的文件系统时，将发生下列情况：
+Autofs 拦截请求。 
+Autofs 将消息发送到 automountd，以便挂载请求的文件系统。 
+automountd 在映射中查找文件系统信息，创建触发节点并执行挂载。 
+Autofs 允许继续处理被拦截的请求。
+当文件系统在一段时间内没有活动后，Autofs 将取消挂载该文件系统。
+
+编辑/etc/auto.master主配置文件，加入
+/home/guests             /etc/guests.rule        ##指定监控点
+被监控的目录路径 		自定义操作策略文件的路径
+/****
+左边为挂载点，右边为映射文件名（绝对路径）
+/mnt       /etc/auto.cc     --timeout=5  #设置自动卸载时间（单位秒）
+**********/
+#vim  /etc/auto.XXX         #建立映射文件
+  触发点     选项                          挂载资源           
+redhat   -fstype=ext4       192.168.0.2:/dev/sda5
+           读写，软，可中断               ：为本地资源
+*************/
+
+[root@server0 ~]# vim   /etc/auto.master
+[root@server0 ~]# grep  -Env  "^(#|$)"   /etc/auto.master
+7:/misc	/etc/auto.misc
+13:/net	-hosts
+17:+dir:/etc/auto.master.d
+27:+auto.master
+28:/home/guests    /etc/guests.rule
+被监控的目录路径 	 自定义操作策略文件的路径
+/****************
+ /etc/auto_master中有下面这一句 +auto_master， 
+根据这一句的指示，automount又去联系NIS，
+找相应的map影射auto_master了。
+/etc/auto_master中有个+auto_master
+那就已经指示automountd 去联系 nis server 去得到auto_master的映射文件
+
+[root@server0 ~]# file   /etc/nsswitch.conf  #定义服务搜索顺序
+/etc/nsswitch.conf: ASCII text
+
+/*************
+nsswitch全称为: network service switch,
+其是一个通用框架,与各种类型存储交互的公共实现,实现名称解析服务. 
+例如: 用户名到ID,或者ID到用户名,再或者IP到域名的查找方式.
+ nsswitch加载了各存储的api接口,
+并以模块方式装载进nsswitch中,
+当程序发起nsswitch的api调用时,
+ns会自动完成到各存储中查找内容
+
+[root@server0 ~]# egrep  -nv  "^(#|$)"   /etc/nsswitch.conf
+
+33:passwd:     files sss
+34:shadow:     files sss
+35:group:      files sss
+39:hosts:      files dns
+49:bootparams: nisplus [NOTFOUND=return] files
+51:ethers:     files
+52:netmasks:   files
+53:networks:   files
+54:protocols:  files
+55:rpc:        files
+56:services:   files sss
+58:netgroup:   files sss
+60:publickey:  nisplus
+62:automount:  files sss
+63:aliases:    files nisplus
+[root@server0 ~]# 
+
+/*************
+编辑/etc/auto.master主配置文件，加入
+/home/guests             /etc/guests.rule        ##指定监控点
+被监控的目录路径 		自定义操作策略文件的路径
+*********/
+
+2、创建编辑子配置文件 操作策略文件 /etc/guests.rule ,加入
+
+告诉autofs当访问哪个目录时挂载哪个设备 
+# vim /etc/guests.rule    # #建立映射文件
+
+**********/
+#vim  /etc/auto.XXX         #建立映射文件
+  触发点     选项                          挂载资源           
+redhat   -fstype=ext4       192.168.0.2:/dev/sda5
+           读写，软，可中断               ：为本地资源
+
+# vim /etc/auto.ldap   #建立映射文件
+ldapuser0   -fstype=nfs,rw   classroom.example.com:/home/guests/ldapuser0 
+              读写，软，可中断                                 ：为本地资源
+*************/
+
+[root@server0 ~]# vim  /etc/guests.rule   # 注意减号" - "
+[root@server0 ~]# cat   /etc/guests.rule
+*           -rw   classroom.example.com:/home/guests/&
+挂载点目录名   -挂载参数               服务器地址:设备路径 
+/*********
+或者ldapuser0  -rw  classroom.example.com:/home/guests/ldapuser0
+ldapuser1    -rw  classroom.example.com:/home/guests/ldapuser1
+********/
+
+[root@server0 ~]# systemctl  start   autofs  && systemctl  enable  autofs  #起服务 
+
+ln -s '/usr/lib/systemd/system/autofs.service' '/etc/systemd/system/multi-user.target.wants/autofs.service'
+[root@server0 ~]# su   -  ldapuser0   -c   pwd  ## 注意减号" - "
+/home/guests/ldapuser0
+
+/**********su的作用是变更为其它使用者的身份，超级用户除外，需要键入该使用者的密码
+-c command：变更账号为USER的使用者，并执行指令（command）后再变回原来使用者
+
+su - ldapuser0  -c  command   # -c是command的缩写
+这样的好处就是不用切换到ldapuser0用户下去执行，
+如果是在脚本中就更方便了
+
+[root@server0 ~]# su  - ldapuser1  -c  pwd  ## 注意减号" - "和空格"  "
+/home/guests/ldapuser1
+[root@server0 ~]# su  - ldapuser1  -c  "ls /home/guests/"
+ldapuser1
+
+[root@server0 ~]# su  - ldapuser20  -c  "ls /home/guests/"
+ldapuser1  ldapuser20
+[root@server0 ~]# su  - ldapuser0  -c  "ls /home/guests/"
+ldapuser0  ldapuser1  ldapuser20
+
+/********
+[root@server0 ~]# ssh  -l ldapuser20  172.25.0.11  ls  /home/guests/
+ldapuser20@172.25.0.11's password: 
+ldapuser0
+ldapuser20
+[root@server0 ~]# ssh  -lldapuser10  172.25.0.11  ls  /home/guests/
+ldapuser10@172.25.0.11's password: 
+ldapuser0
+ldapuser10
+ldapuser20
+*********/
+
+[root@server0 ~]# su  - ldapuser21  -c  "ls /home/guests/"
+su: user ldapuser21 does not exist
+
+通过sudo，我们能把某些超级权限有针对性的下放，
+并且不需要普通用户知道root密码，
+所以sudo 相对于权限无限制性的su来说，还是比较安全的，
+所以sudo 也能被称为受限制的su ；
+另外sudo 是需要授权许可的，所以也被称为授权许可的su；
+
+[root@server0 ~]# su  - ldapuser0
+上一次登录：四 2月 14 12:24:27 CST 2019pts/0 上
+[ldapuser0@server0 ~]$ echo  $USER
+ldapuser0
+
+[ldapuser0@server0 ~]$ echo  $HOME
+/home/guests/ldapuser0
+
+[ldapuser0@server0 ~]$ ls  /home/guests/
+ldapuser0
+[ldapuser0@server0 ~]$ exit
+logout
+[root@server0 ~]# 
+[root@server0 ~]# ssh  -l ldapuser0 172.25.0.11
+...........
+Are you sure you want to continue connecting (yes/no)? yes
+..............
+ldapuser0@172.25.0.11's password: password
+...........
+[ldapuser0@server0 ~]$ ls
+[ldapuser0@server0 ~]$ pwd
+/home/guests/ldapuser0
+[ldapuser0@server0 ~]$ ls  /home/guests/
+ldapuser0
+[ldapuser0@server0 ~]$ exit
+登出
+Connection to 172.25.0.11 closed.
+[root@server0 ~]# 
+[root@server0 ~]# ssh  ldapuser0@172.25.0.11
+
+ldapuser0@172.25.0.11's password: password
+Last login: Thu Feb 14 12:33:53 2019 from server0.example.com
+[ldapuser0@server0 ~]$ echo $USER
+ldapuser0
+[ldapuser0@server0 ~]$ exit
+登出
+Connection to 172.25.0.11 closed.
+[root@server0 ~]# 
+
+==========================
+------------  10 配置NTP网络时间客户端
+
+配置您的系统，让其作为 NTP 服务器 classroom.example.com 的客户端 
+
+[root@server0 ~]# yum  -y  install   chrony
+............
+[root@server0 ~]# rpm  -q   chrony
+chrony-1.29.1-1.el7.x86_64
+[root@server0 ~]# vim  /etc/chrony.conf 
+
+[root@server0 ~]# egrep  -v "^#|^$"   /etc/chrony.conf
+ #                            //注释掉默认的 server 配置
+
+server  classroom.example.com  iburst  #手动添加服务器//添加新的配置
+
+# stratumweight指令设置当chronyd从可用源中选择同步源时，
+每个层应该添加多少距离到同步距离。
+默认情况下，stratumweight设置为0，让chronyd在选择源时忽略源的层级。
+
+stratumweight 0
+
+driftfile /var/lib/chrony/drift
+rtcsync
+/***********
+# 通常，chronyd将根据需求通过减慢或加速时钟，使得系统逐步纠正所有时间偏差。
+在某些特定情况下，系统时钟可能会漂移过快，
+导致该调整过程消耗很长的时间来纠正系统时钟。
+该指令强制chronyd在调整期大于某个阀值时步进调整系统时钟，
+但只有在因为chronyd启动时间超过指定限制
+（可使用负值来禁用限制），没有更多时钟更新时才生效。
+makestep 10 3
+
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
+keyfile /etc/chrony.keys
+commandkey 1
+generatecommandkey
+noclientlog
+logchange 0.5
+logdir /var/log/chrony
+
+[root@server0 ~]# systemctl  restart  chronyd
+[root@server0 ~]# systemctl   enable  chronyd
+
+[root@server0 ~]# type  timedatectl
+timedatectl 是 /usr/bin/timedatectl
+
+列出服务器上的一个文件属于哪一个RPM包 
+#rpm -qf 
+[root@server0 ~]# rpm  -qf  /usr/bin/timedatectl 
+systemd-208-11.el7.x86_64
+
+/******************
+[root@server0 ~]# timedatectl   set-ntp   no
+[root@server0 ~]# timedatectl  |grep  -i ntp
+     NTP enabled: no
+NTP synchronized: yes
+********/
+
+-----------  开启网络时间同步服务 ----------------
+[root@server0 ~]# timedatectl   set-ntp   yes
+[root@server0 ~]# timedatectl  |grep  -i ntp
+     NTP enabled: yes
+NTP synchronized: yes
+[root@server0 ~]# timedatectl   #//查看状态
+      Local time: 四 2019-02-14 13:16:16 CST
+  Universal time: 四 2019-02-14 05:16:16 UTC
+        RTC time: 四 2019-02-14 05:16:17
+        Timezone: Asia/Shanghai (CST, +0800)
+     NTP enabled: yes     //NTP 是否已经启用
+NTP synchronized: yes
+ RTC in local TZ: no
+      DST active: n/a
+[root@server0 ~]# systemctl  enable  chronyd
+[root@server0 ~]# systemctl   restart   chronyd
+[root@server0 ~]# 
+[root@server0 ~]# type  date
+date 是 /usr/bin/date
+[root@server0 ~]# rpm  -qf  /usr/bin/date
+coreutils-8.22-11.el7.x86_64
+/******************** 验证 时间服务器 是否 配置成功  
+
+[root@server0 ~]# date  -s  "2018-12-22 12:55:33"
+2018年 12月 22日 星期六 12:55:33 CST
+
+[root@server0 ~]# date
+2018年 12月 22日 星期六 12:55:36 CST
+
+[root@server0 ~]# date
+2018年 12月 22日 星期六 12:56:03 CST
+[root@server0 ~]# systemctl  restart   chronyd
+[root@server0 ~]# date
+2018年 12月 22日 星期六 12:56:34 CST
+[root@server0 ~]# 
+[root@server0 ~]# date
+2019年 02月 14日 星期四 13:29:52 CST
+[root@server0 ~]# 
+****************/
+
+
+==============================
+-----------------  11  配置一个用户帐户
+
+创建一个名为alex的用户，用户ID是 3456，密码是flectrag 
+[root@server0 ~]# useradd   -u  3456  alex
+[root@server0 ~]# echo  flectrag |passwd   --stdin   alex
+更改用户 alex 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@server0 ~]# id  alex
+uid=3456(alex) gid=3456(alex) 组=3456(alex)
+
+
+=========================
+------------ 12 添加一个swap分区
+
+在您的系统中添加一个大小为 512 MiB 的swap分区：
+当您的系统启动时，swap 分区应该可以自动挂载
+不要移除或者修改其他已经存在于您的系统中的 swap 分区
+
+[root@server0 ~]# lsblk   /dev/vdb6
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+
+vdb6 252:22   0  512M  0 part 
+[root@server0 ~]# blkid   /dev/vdb6
+
+/**********系统在什么情况下才会使用SWAP？
+什么时候使用 是 由 swappiness 参数值 控制
+[root@server0 ~]# cat  /proc/sys/vm/swappiness 
+30      #swappiness 参数值 
+/****** 该值默认值是  30
+swappiness=0的时候表示最大限度使用物理内存，然后才是 swap空间，
+
+swappiness＝100的时候表示积极的使用swap分区，
+并且把内存上的数据及时的搬运到swap空间里面
+
+可以把这个参数值设置的低一些，
+让操作系统尽可能的使用物理内存，
+降低系统对swap的使用，
+从而提高系统的性能
+
+[root@server0 ~]# file   /proc/sys/vm/swappiness
+/proc/sys/vm/swappiness: empty
+
+临时性修改 swappiness参数
+[root@server0 ~]# sysctl   vm.swappiness=22
+vm.swappiness = 22
+
+[root@server0 ~]# cat  /proc/sys/vm/swappiness 
+22
+-------------- sysctl   -w   临时改变某个指定参数的值 ---------
+[root@server0 ~]# sysctl  -w  vm.swappiness=29
+vm.swappiness = 29
+[root@server0 ~]# cat  /proc/sys/vm/swappiness 
+29
+
+[root@server0 ~]# sysctl   vm.swappiness=30
+vm.swappiness = 30
+[root@server0 ~]# cat  /proc/sys/vm/swappiness 
+30
+[root@server0 ~]# 
+永久修改 swappiness参数：
+在/etc/sysctl.conf 文件里添加如下参数：
+vm.swappiness=30
+[root@server0 ~]# vim  /etc/sysctl.conf 
+
+[root@server0 ~]# egrep  -v  "^#|^$"  /etc/sysctl.conf
+vm.swappiness=30        #注意关键字 swappiness 书写正确
+
+[root@server0 ~]# ll  /etc/sysctl.conf
+-rw-r--r--. 1 root root 240 2月  14 13:57 /etc/sysctl.conf
+
+[root@server0 ~]# vim    /etc/sysctl.conf 
+
+[root@server0 ~]# egrep  -v  "^#|^$"  /etc/sysctl.conf
+vm.swappiness=30         #注意关键字 swappiness 书写正确
+
+---- sysctl  -p  从指定的文件加载系统参数，如不指定即从/etc/sysctl.conf中加载
+
+[root@server0 ~]# sysctl  -p  /etc/sysctl.conf  #使内核马上生效
+vm.swappiness = 30
+[root@server0 ~]# cat  /proc/sys/vm/swappiness 
+30
+********************/
+/***********
+mount    -o
+   ro:只读挂载    -r
+   rw:读写，默认
+   noatime:关闭 更新 访问时间
+   auto：是否能够由mount -a挂载。默认
+   sync：同步写入
+   async：异步写入
+   noexec：不允许程序执行
+   remount：重新挂载
+
+创建交换分区：mkswap device  #表示格式化文件
+  mkswap -f  device   # #表示强制格式化文件
+启用交换分区：swapon device   # swapon   -a 
+禁用交换分区：swapoff device   # swapoff -a
+swapon -s         //查看swap是否挂载
+*********/
+[root@server0 ~]# lsblk   /dev/vdb6
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+
+vdb6 252:22   0  512M  0 part 
+[root@server0 ~]# blkid   /dev/vdb6
+
+[root@server0 ~]# mkswap   /dev/vdb6  #创建交换分区,格式化交换文件系统
+正在设置交换空间版本 1，大小 = 524284 KiB
+无标签，UUID=323dfa95-9d43-4e5d-86fe-48521bcdf08d
+
+[root@server0 ~]# blkid   /dev/vdb6   # 查看文件系统
+/dev/vdb6: UUID="323dfa95-9d43-4e5d-86fe-48521bcdf08d" TYPE="swap" 
+
+[root@server0 ~]# vim  /etc/fstab 
+[root@server0 ~]# tail   -3   /etc/fstab
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1  /       xfs     defaults   1   1
+/dev/systemvg/vo    /vo      ext4    defaults   0   0
+/dev/vdb6     swap   swap      defaults   0     0
+设备路径     挂载点  此分区的文件系统类型  参数  备份标记  检测顺序
+第 5 列是dump备份设置。
+当其值设置 为  1  时，
+将允许dump备份程序备份；
+设置 为  0  时，忽略备份操作；
+
+第 6 列是fsck磁盘检查设置。
+其值是一个顺序,数字越小 优先 检查. 当其值为 0 时，永远不检查；
+
+启用交换分区：swapon device   # swapon   -a 
+禁用交换分区：swapoff device   # swapoff -a
+
+[root@server0 ~]# swapoff  /dev/vdb6   #禁用交换分区
+[root@server0 ~]# lsblk 
+NAME            MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vda             252:0    0   10G  0 disk 
+└─vda1          252:1    0   10G  0 part /
+vdb             252:16   0   10G  0 disk 
+├─vdb4          252:20   0    1K  0 part 
+├─vdb5          252:21   0  450M  0 part 
+│ └─systemvg-vo 253:0    0  316M  0 lvm  /vo
+├─vdb6          252:22   0  512M  0 part 
+└─vdb7          252:23   0    1G  0 part 
+
+[root@server0 ~]# swapon   /dev/vdb6   #启用交换分区
+[root@server0 ~]# lsblk   /dev/vdb6  //查看swap是否挂载
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb6 252:22   0  512M  0 part [SWAP]
+
+[root@server0 ~]# swapon -s        #-s 显示简短的装置讯息  //查看swap是否挂载
+........
+[root@server0 ~]# swapon   -s |column  -t
+文件名        类型          大小    已用   权限
+/dev/vdb6  partition  524284  0     -1
+
+------ swapoff  -a  # 将/etc/fstab文件中所有设置为swap的设备关闭
+------ swapon   -a  # -a 参数是开启全部的交换空间
+--- swapon 　-s 显示简短的装置讯息 
+　　-a 自动启动所有SWAP装置 
+　　-p 设定优先权，你可以在0到32767中间选一个数字给他。
+或是在 /etc/fstab 里面加上 pri=[value] ([value]就是0~32767中间一个数字)，
+然后你就可以很方便的直接使用
+ swapon -a 来启动他们，而且有优先权设定。 
+ swapon 是开启swap. 
+相对的,便有一个关闭swap的指令,swapoff.
+
+[root@server0 ~]# swapoff   -a   # 将/etc/fstab文件中所有设置为swap的设备关闭
+[root@server0 ~]# lsblk  /dev/vdb6
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb6 252:22   0  512M  0 part 
+[root@server0 ~]# swapon  -s    #-s 显示简短的装置讯息,查看swap是否挂载,无输出表示无挂载
+
+[root@server0 ~]# swapon  -a   ## -a 参数是开启全部的交换空间
+[root@server0 ~]# swapon  -s   #查看交换分区启用情况
+文件名		 类型         大小    已用   权限
+/dev/vdb6    partition 524284  0    -1
+
+[root@server0 ~]# lsblk  /dev/vdb6
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb6 252:22   0  512M  0 part [SWAP]
+
+/*********  df -h：--human-readable，以人们易读的GB、MB、KB等格式显示
+df  -T：--print-type，显示文件系统类型
+df  -a：--all，显示所有的文件系统，包括虚拟文件系统，
+[root@server0 ~]# df  |head  -4
+文件系统                   1K-块    已用    可用 已用% 挂载点
+/dev/vda1               10473900 3425916 7047984   33% /
+devtmpfs                  922256       0  922256    0% /dev
+tmpfs                     942648      80  942568    1% /dev/shm
+[root@server0 ~]# df  -a |head  -4
+文件系统                   1K-块    已用    可用 已用% 挂载点
+rootfs                  10473900 3425916 7047984   33% /
+proc                           0       0       0     - /proc
+sysfs                          0       0       0     - /sys
+*************/
+
+[root@server0 ~]# df  -hT  /dev/vdb6
+文件系统       类型      容量  已用  可用 已用% 挂载点
+devtmpfs       devtmpfs  901M     0  901M    0% /dev
+
+[root@server0 ~]# tail  -1  /etc/fstab 
+/dev/vdb6     swap   swap    defaults   0   0
+
+[root@server0 ~]# blkid  /dev/vdb6
+/dev/vdb6: UUID="323dfa95-9d43-4e5d-86fe-48521bcdf08d" TYPE="swap" 
+
+
+===============
+-----------  xargs 使用 -d 命令指定分隔符  ---------------
+
+[root@V10 ~]# echo "haha\0xixi\0hehe"
+haha\0xixi\0hehe
+[root@V10 ~]# echo  -e  "haha\0xixi\0hehe"
+hahaxixihehe
+[root@V10 ~]# echo  -e  "haha\0xixi\0hehe" |xargs  -d  "\0"  echo
+haha xixi hehe
+
+[root@V10 ~]# echo  -e  "haha\0xixi\0hehe" |xargs  -0  echo
+haha xixi hehe
+--------------- xargs的 -0 和 -d '\0' 表示其从标准输入中读取的内容使用 '\0' 来分割，
+由于 find 的结果是使用 '\0' 分隔的，所以xargs使用 '\0' 将 find的结果分隔之后得到
+haha xixi hehe
+
+------------ 目录下的所有文件中查找字符串 --------------
+---------- 目录下的所有文件中查找字符串,并且只打印出含有该字符串的文件名 -------
+
+[root@room9pc27 ~]# find   /etc/httpd/  |xargs  grep   -lri  "/var/www/exam"
+/etc/httpd/conf.d/rhce.conf
+
+grep 参数说明：
+-l 列出文件名称
+-r递归的搜索
+-i 不区分大小写搜索
+=============================
+------------------------------------------ 13 查找文件
+
+找出所有用户student拥有的文件，并且把它们拷贝到/root/findfiles 目录中 
+
+[root@server0 ~]# find  --help
+用法: find [-H] [-L] [-P] [-Olevel] [-D help|tree|search|stat|rates|opt|exec] [path...] [expression]
+................
+.... -gid N -group 名称......
+.... -mtime N -name 匹配模式 ...........
+.................
+
+[root@server0 ~]# mkdir   /root/findfiles
+[root@server0 ~]# ls  -ld  /root/findfiles/
+drwxr-xr-x. 2 root root 6 2月  14 15:06 /root/findfiles/
+
+find 根据用户、组查找
+-uid n：文件的所属用户uid为n。
+-user name：文件的所属用户为name。
+-gid n：文件的所属组gid为n。
+-group name：所属组为name的文件。
+
+[root@server0 ~]# find  /  -user  student  -type  f  -exec  cp  -p {} /root/findfiles/ \;
+
+find: ‘/proc/7293/task/7293/fdinfo/6’: 没有那个文件或目录
+find: ‘/proc/7293/fdinfo/6’: 没有那个文件或目录
+
+[root@server0 ~]# ls  /root/findfiles/
+authorized_keys  gnome-initial-setup-done  monitors.xml  student
+
+[root@server0 ~]# ll /root/findfiles/student
+-rw-rw----. 1 student mail 0 7月  11 2014 /root/findfiles/student
+
+[root@server0 ~]# ll  /root/findfiles/authorized_keys 
+-rw-------. 1 student student 1651 7月  11 2014 /root/findfiles/authorized_keys
+
+[root@server0 ~]# ll  /root/findfiles/monitors.xml 
+-rw-r--r--. 1 student student 1443 7月  11 2014 /root/findfiles/monitors.xml
+/************
+/*****************************************
+
+[root@server0 ~]# find  /home/  -name  "authorize*"  -type  f -exec  ls {} \;
+/home/student/.ssh/authorized_keys
+
+[root@server0 ~]# find  /home/  -name  "authorize*"  -type  f 
+/home/student/.ssh/authorized_keys
+
+[root@server0 ~]# ll  /home/student/.ssh/authorized_keys 
+-rw-------. 1 student student 1651 7月  11 2014 /home/student/.ssh/authorized_keys
+[root@server0 ~]# 
+
+----------------  查看 二天 之前的 文件夹 属性  ,注意 符号 " + " -mtime  +2代表 ..之前-----------------
+-atime：以天为单位通过文件的最后存取时间（access time）查找文件
+-ctime：以天为单位通过文件的状态修改时间（change time）查找文件
+-mtime：以天为单位通过文件的数据修改时间（change time）查找文件
+参数中会出现指定一个数字n，一般会出现以下三种写法：
++n：表示大于n。
+-n：表示小于n。
+n：表示等于n。
+
+[root@server0 ~]# find  /var/log/  -mtime  +2  -type  d  -exec  ls -ld  {} \;
+drwx------. 2 root root 6 1月  27 2014 /var/log/ppp
+drwxr-xr-x. 2 root root 22 7月  11 2014 /var/log/tuned
+......................
+
+---------- 查看 二天 之内(最近二天内)的 文件 属性  ,注意 符号 " - " -mtime  -2代表 ..之内 ----------------
+
+[root@server0 ~]# find  /var/log/  -mtime  -2  -type  f  -exec  ls  -l  {} \;
+-rw-r--r--. 1 root root 1009444 2月  14 13:32 /var/log/lastlog
+..............
+-rw-------. 1 root root 0 2月  13 21:13 /var/log/sssd/sssd_autofs.log
+..........
+
+--------- 查看 二天 之内(最近二天内)的 文件 ,每个文件有多少行 内容 ---------------
+[root@server0 ~]# find  /var/log/  -mtime  -2  -type  f  -exec  wc  -l  {} \;
+0 /var/log/lastlog
+4 /var/log/wtmp
+0 /var/log/btmp
+140 /var/log/tuned/tuned.log
+..........
+
+------- 查看 二天 之内(最近二天内)的 文件 中包含文件名是 sssd_autofs  的文件,注意管道 " | "
+[root@server0 ~]# find  /var/log/  -mtime  -2  -type  f  -exec  ls  {} \;|grep  "sssd_autofs"
+
+/var/log/sssd/sssd_autofs.log
+
+[root@server0 ~]# find  /var/log/  -mtime  -2  -type  f  |grep  "ssd_autofs"
+/var/log/sssd/sssd_autofs.log
+
+[root@server0 ~]# find /var/log/ -mtime -2 -name "*ssd_autofs*"  -type f -exec ls {} \;
+/var/log/sssd/sssd_autofs.log
+[root@server0 ~]# find  /var/log/  -mtime  -2 -name "*ssd_autofs*"  -type  f  
+/var/log/sssd/sssd_autofs.log
+
+**************/
+
+
+========================
+--------------  14  查找一个字符串
+
+在文件/usr/share/dict/words中查找到所有包含字符串seismic的行：
+将找出的行按照原文的先后顺序拷贝到/root/wordlist文件中
+/root/wordlist文件不要包含空行，
+并且其中的所有行的内容都必须是 /usr/share/dict/words文件中原始行的准确副本
+
+[root@server0 ~]# ll  /usr/share/dict/words
+lrwxrwxrwx. 1 root root 11 7月  11 2014 /usr/share/dict/words -> linux.words
+[root@server0 ~]# ll  /usr/share/dict/linux.words 
+-rw-r--r--. 1 root root 4953680 12月 29 2013 /usr/share/dict/linux.words
+
+[root@server0 ~]# grep   "seismic"  /usr/share/dict/words  > /root/wordlist
+
+[root@server0 ~]# cat   /root/wordlist 
+anaseismic
+antiseismic
+aseismic
+...............
+teleseismic
+unseismic
+[root@server0 ~]# grep   -n  "seismic"  /usr/share/dict/words 
+15128:anaseismic
+20181:antiseismic
+....................
+411237:teleseismic
+450283:unseismic
+[root@server0 ~]# 
+
+=============================
+
+------------------------  15 创建一个逻辑卷
+
+根据下面的要求创建一个新的逻辑卷：
+逻辑卷命名为database，
+属于datastore卷组，
+并且逻辑卷的大小为50个物理扩展单元 (physical extent)
+在datastore卷组中的逻辑卷，
+物理扩展单元 (physical extent) 大小应为 16 MiB
+使用ext3文件系统对新的逻辑卷进行格式化，
+此逻辑卷应该在系统启动的时候自动挂载在 /mnt/database 目录下
+
+/**************
+创建逻辑卷 格式：lvcreate  -L  逻辑卷大小  -n  逻辑卷的名称   卷组名
+------------------  注意 大 写字母 L   -L  16G-----------------
+          例：  lvcreate  -L   16G     -n     mylv     myvg
+
+/********* 卷组没有足够的剩余空间
+  1.先扩展卷组  格式：vgextend   扩展的卷组名    分区
+                例：  vgextend    myvg        /dev/sda5
+  2.扩展逻辑卷组的空间 #lvextend  -L  逻辑卷大小  /dev/卷组名/逻辑卷名
+********/
+
+直接扩展逻辑卷的空间 lvextend  -L  逻辑卷大小  /dev/卷组名/逻辑卷名
+------------------  注意 大 写字母 L  -L  18G------------------
+            #    lvextend   -L  18G       /dev/myvg/mylv
+
+扩展文件系统
+ 扩展ext4文件系统：resize2fs     分区
+    例：# resize2fs   /dev/myvg/mylv
+
+ 扩展xfs文件系统： xfs_growfs    分区
+    # xfs_growfs  /dev/卷组名/逻辑卷名
+     ------------------------------------------
+ PE：卷组划分空间的单位，默认4M。
+    作用：可以更加精准的创建逻辑卷的大小。
+
+ 1 创建卷组的时候设置PE的大小
+ 格式：vgcreate  -s   PE大小   卷组名    空闲的物理卷分区
+   例如 # vgcreate  -s  2M   myvg    /dev/vdc3
+
+---------------  注意 小写字母  l  20 ------------------
+创建逻辑卷 设置 PE的个数(大小)
+      lvcreate  -l  PE的个数   -n  test   卷组名
+  例 # lvcreate  -l  20      -n  mylv   myvg
+
+2 卷组已经存在,修改卷组PE大小
+   vgchange  -s  PE大小    卷组名   
+ 
+
+[root@server0 ~]# lsblk 
+NAME            MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vda             252:0    0   10G  0 disk 
+└─vda1          252:1    0   10G  0 part /
+vdb             252:16   0   10G  0 disk 
+├─vdb4          252:20   0    1K  0 part 
+├─vdb5          252:21   0  450M  0 part 
+│ └─systemvg-vo 253:0    0  316M  0 lvm  /vo
+├─vdb6          252:22   0  512M  0 part [SWAP]
+└─vdb7          252:23   0    1G  0 part 
+[root@server0 ~]# vgdisplay  /dev/systemvg
+  --- Volume group ---
+  VG Name               systemvg
+...............
+  VG Access             read/write
+  VG Status             resizable
+.............
+  VG Size               448.00 MiB
+  PE Size               4.00 MiB    #注意 默认的PE单位是 4.00 MiB
+  Total PE              112
+  Alloc PE / Size       79 / 316.00 MiB
+  Free  PE / Size       33 / 132.00 MiB
+  VG UUID               pgIVYd-Q0TG-I3E3-UXfg-nXSY-WLoi-n3YnQd
+   
+[root@server0 ~]# 
+===========================
+
+------------------------  15 创建一个逻辑卷
+
+根据下面的要求创建一个新的逻辑卷：
+逻辑卷命名为database，
+属于datastore卷组，
+并且逻辑卷的大小为50个物理扩展单元 (physical extent)
+在datastore卷组中的逻辑卷，
+物理扩展单元 (physical extent) 大小应为 16 MiB
+使用ext3文件系统对新的逻辑卷进行格式化，
+此逻辑卷应该在系统启动的时候自动挂载在 /mnt/database 目录下
+
+[root@server0 ~]# lsblk  /dev/vdb7
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vdb7 252:23   0   1G  0 part 
+
+[root@server0 ~]# blkid  /dev/vdb7
+
+----------------- 创建卷组 datastore  的时候设置PE的大小 16MiB   ---------------
+
+[root@server0 ~]# vgcreate   -s  16MiB   datastore  /dev/vdb7
+
+  Physical volume "/dev/vdb7" successfully created
+  Volume group "datastore" successfully created
+
+[root@server0 ~]# vgs
+  VG        #PV #LV #SN Attr   VSize    VFree   
+  datastore   1   0   0 wz--n- 1008.00m 1008.00m
+  systemvg    1   1   0 wz--n-  448.00m  132.00m
+
+[root@server0 ~]# type  vgdisplay 
+vgdisplay 已被哈希 (/usr/sbin/vgdisplay)
+
+[root@server0 ~]# vgdisplay  /dev/datastore  |grep  -i  size
+  VG Size               1008.00 MiB
+  PE Size               16.00 MiB    #注意 修改后的 PE单位是 16.00 MiB
+  Alloc PE / Size       0 / 0   
+  Free  PE / Size       63 / 1008.00 MiB
+
+[root@server0 ~]# vgdisplay  /dev/systemvg  |grep  -i  size
+  VG Size               448.00 MiB
+  PE Size               4.00 MiB    #注意 默认的PE单位是 4.00 MiB
+  Alloc PE / Size       79 / 316.00 MiB
+  Free  PE / Size       33 / 132.00 MiB
+
+[root@server0 ~]# echo  16*50 |bc
+800
+
+------------   创建逻辑卷database  设置 PE的个数50 ---------------------------
+
+[root@server0 ~]# lvcreate   -l  50  -n  database   /dev/datastore
+  Logical volume "database" created
+
+
+-------------------  查看 逻辑卷/dev/datastore/database  的信息----------
+
+[root@server0 ~]# lvdisplay  /dev/datastore/database 
+  --- Logical volume ---
+  LV Path                /dev/datastore/database
+  LV Name                database
+  VG Name                datastore
+  LV UUID                3O530V-SUhX-GfrR-K2mz-DUKQ-WGAb-MTkk0N
+  LV Write Access        read/write
+  LV Creation host, time server0.example.com, 2019-02-14 16:55:12 +0800
+  LV Status              available
+  # open                 0
+  LV Size                800.00 MiB
+  Current LE             50
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     8192
+  Block device           253:1
+   
+[root@server0 ~]# lvs
+  LV       VG        Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  database datastore -wi-a----- 800.00m                                             
+  vo       systemvg  -wi-ao---- 316.00m     
+
+[root@server0 ~]# lvscan 
+  ACTIVE            '/dev/systemvg/vo' [316.00 MiB] inherit
+  ACTIVE            '/dev/datastore/database' [800.00 MiB] inherit
+
+[root@server0 ~]# vgs
+  VG        #PV #LV #SN Attr   VSize    VFree  
+  datastore   1   1   0 wz--n- 1008.00m 208.00m
+  systemvg    1   1   0 wz--n-  448.00m 132.00m
+
+[root@server0 ~]# fdisk   -l  /dev/vdb7  #显示/dev/vdb7 信息,观察硬盘之实体使用情形
+
+磁盘 /dev/vdb7：1073 MB, 1073741824 字节，2097152 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+
+[root@server0 ~]# lsblk  /dev/vdb7
+NAME                 MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7                 252:23   0    1G  0 part 
+└─datastore-database 253:1    0  800M  0 lvm  
+
+[root@server0 ~]# vgs   /dev/datastore
+  VG        #PV #LV #SN Attr   VSize    VFree  
+  datastore   1   1   0 wz--n- 1008.00m 208.00m
+
+[root@server0 ~]# lvs  /dev/datastore/database 
+  LV       VG        Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  database datastore -wi-a----- 800.00m  
+
+---------------------- 使用ext3文件系统对新的逻辑卷进行格式化，
+此逻辑卷应该在系统启动的时候自动挂载在 /mnt/database 目录下
+
+    
+[root@server0 ~]# mkfs.ext3  /dev/datastore/database  #格式化 ext3 文件系统
+mke2fs 1.42.9 (28-Dec-2013)
+文件系统标签=
+OS type: Linux
+块大小=4096 (log=2)
+分块大小=4096 (log=2)
+Stride=0 blocks, Stripe width=0 blocks
+51296 inodes, 204800 blocks
+10240 blocks (5.00%) reserved for the super user
+第一个数据块=0
+Maximum filesystem blocks=209715200
+7 block groups
+32768 blocks per group, 32768 fragments per group
+7328 inodes per group
+Superblock backups stored on blocks: 
+	32768, 98304, 163840
+
+Allocating group tables: 完成                            
+正在写入inode表: 完成                            
+Creating journal (4096 blocks): 完成
+Writing superblocks and filesystem accounting information: 完成
+
+[root@server0 ~]# 
+/******** mount  -o  loop 用来把一个文件当成硬盘分区挂载上系统
+-o auto   #默认 开启自动挂载模式
+-o noauto  # 关闭自动挂载模式
+
+ mount -o 详细选项:
+  loop ：用来把一个文件当成硬盘分区挂接上系统
+  ro ：采用只读方式挂接设备
+   rw ：采用读写方式挂接设备
+   iocharset ：指定访问文件系统所用字符集,例如iocharset=utf8
+   remount ：重新挂载
+
+ # mount -o loop -t iso9660  源路径   目标路径
+
+---------------  //以可读写方式重新挂载根系统  ----------------------
+switch_root:/# mount  -o   remount,rw  /sysroot
+
+
+ mount  -t 类型  -o 挂接方式   源路径   目标路径
+ mount  -t 详细选项:
+ 光盘或光盘镜像：iso9660
+  DOS fat16文件系统：msdos
+  Windows 9x fat32文件系统：vfat
+  Windows NT ntfs文件系统：ntfs
+  Mount Windows文件网络共享：smbfs（需内核支持）推荐cifs
+   UNIX(LINUX) 文件网络共享：nfs
+
+[root@room9pc27 ~]# tail  -1  /etc/fstab 
+/var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso  /var/ftp/rhel7 iso9660 defaults  0  0
+[root@room9pc27 ~]# df  -hT   /var/ftp/rhel7/
+文件系统       类型     容量  已用  可用 已用% 挂载点
+/dev/loop0     iso9660  3.8G  3.8G     0  100% /var/ftp/rhel7
+
+#  挂载ISO镜像: [root@room9pc27 ~]# mount  -o  loop  -t iso9660    \
+/var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso   /var/ftp/rhel7/
+
+**********/
+
+[root@desktop0 ~]# tail -2 /etc/fstab 
+172.25.0.11:/public  /mnt/nfsmount    nfs    defaults,_netdev   0    0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,sec=krb5p,_netdev   0    0
+
+    挂载windows文件共享:
+# sudo mount -t cifs -o username=user,password=passwd //192.168.6.6/share /mnt/share
+  #  mount -t cifs -o username=xxx,password=xxx //IP/sharename /mnt/dirname
+
+# yum -y install ntfs-3g
+## mount ntfs-3g /dev/sdb1 /mnt/ukey
+~]# mount.ntfs-3g   /dev/sdb1  /mnt/
+ 挂载USB移动硬盘: mount -t ntfs /dev/sdc1 /root/usb
+  挂载CDROM:  mount /dev/cdrom  /home/ping.bao/cd
+
+挂载Linux文件nfs共享: mount -t nfs -o rw 192.168.1.2:/usr/www  /usr/www
+
+  挂载ISO镜像:   mount -o loop -t iso9660 /usr/mydisk.iso  /mnt/
+
+------------------------  临时挂载  逻辑卷 /dev/datastore/database  -------------------
+~]# mount  -t  ext3  -o  defaults /dev/datastore/database   /mnt/database/
+
+***************/
+---------------------- 使用ext3文件系统对新的逻辑卷进行格式化，
+此逻辑卷应该在系统启动的时候自动挂载在 /mnt/database 目录下
+
+    
+[root@server0 ~]# mkfs.ext3  /dev/datastore/database  #格式化 ext3 文件系统
+..........
+
+[root@server0 ~]# mkdir   /mnt/database
+[root@server0 ~]# ls  /mnt/database/
+
+/******------------------------  临时挂载  逻辑卷 /dev/datastore/database  -------------------
+
+[root@server0 ~]# mount  -t  ext3  -o  defaults /dev/datastore/database   /mnt/database/
+[root@server0 ~]# ls  /mnt/database/
+lost+found
+[root@server0 ~]# lsblk  /dev/datastore/database
+NAME               MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+datastore-database 253:1    0  800M  0 lvm  /mnt/database
+
+[root@server0 ~]# df  -hT  /dev/datastore/database
+文件系统       类型      容量  已用  可用 已用% 挂载点
+devtmpfs       devtmpfs  901M     0  901M    0% /dev
+
+[root@server0 ~]# df  -hT  /mnt/database/
+文件系统                       类型  容量  已用  可用 已用% 挂载点
+/dev/mapper/datastore-database ext3  772M  828K  715M    1% /mnt/database
+
+[root@server0 ~]# umount   /mnt/database/
+
+***********/
+
+------------- 开机自动 挂载  逻辑卷 /dev/datastore/database  ------
+
+[root@server0 ~]# vim  /etc/fstab 
+[root@server0 ~]# tail   -3   /etc/fstab
+/dev/systemvg/vo    /vo      ext4    defaults   0   0
+/dev/vdb6     swap   swap    defaults   0   0
+/dev/datastore/database   /mnt/database   ext3  defaults   0   0
+
+[root@server0 ~]# mount  -a
+
+[root@server0 ~]# df  -hT   /mnt/database/
+文件系统                       类型  容量  已用  可用 已用% 挂载点
+/dev/mapper/datastore-database ext3  772M  828K  715M    1% /mnt/database
+
+[root@server0 ~]# lsblk  /dev/vdb7
+NAME                 MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7                 252:23   0    1G  0 part 
+└─datastore-database 253:1    0  800M  0 lvm  /mnt/database
+
+[root@server0 ~]# blkid   /dev/vdb7
+/dev/vdb7: UUID="GdI6zX-3pMR-dVwL-XKDT-y8qs-blbK-VPO7bp" TYPE="LVM2_member" 
+
+[root@server0 ~]# blkid    /dev/datastore/database
+/dev/datastore/database: UUID="3ae0bfc5-4a80-4441-b5bc-323d83762abb" TYPE="ext3" 
+
+[root@server0 ~]# blkid   /dev/vdb6
+/dev/vdb6: UUID="323dfa95-9d43-4e5d-86fe-48521bcdf08d" TYPE="swap" 
+
+[root@server0 ~]# lsblk 
+NAME                   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vda                    252:0    0   10G  0 disk 
+└─vda1                 252:1    0   10G  0 part /
+vdb                    252:16   0   10G  0 disk 
+├─vdb4                 252:20   0    1K  0 part 
+├─vdb5                 252:21   0  450M  0 part 
+│ └─systemvg-vo        253:0    0  316M  0 lvm  /vo
+├─vdb6                 252:22   0  512M  0 part [SWAP]
+└─vdb7                 252:23   0    1G  0 part 
+  └─datastore-database 253:1    0  800M  0 lvm  /mnt/database
+
+=====================
+tar命令
+[root@linux ~]# tar [-cxtzjvfpPN] 文件与目录 ....
+参数：
+-c ：建立(创建)一个压缩文件的参数指令(create 的意思)；
+-x ：解开(解压)一个压缩文件的参数指令！
+-t ：查看 tarfile 里面的文件！
+特别注意，在参数的下达中， c/x/t 仅能存在一个！不可同时存在！
+因为不可能同时压缩与解压缩。
+-z ：是否同时具有 gzip 的属性？亦即是否需要用 gzip 压缩？
+-z：有gzip属性的  .tar.gz
+-j ：是否同时具有 bzip2 的属性？亦即是否需要用 bzip2 压缩？
+-j：有bz2属性的   .tar.bz2
+
+-J ：有xz属性的   .tar.xz
+
+-v ：压缩的过程中显示文件！这个常用，但不建议用在背景执行过程！
+-f ：使用档名，请留意，在 f 之后要立即接档名喔！不要再加参数！
+　　　例如使用『 tar -zcvfP tfile sfile』就是错误的写法，要写成
+　　　『 tar -zcvPf tfile sfile』才对喔！
+-p ：使用原文件的原来属性（属性不会依据使用者而变）
+
+-P ：可以使用绝对路径来压缩！
+
+
+tar -xjvf file.tar.bz2 //解压 tar.bz2
+
+=============
+
+---------------------------------------------------------------------
+
+[root@V10 ~]# zip  text.txt.zip   test2.txt  test.txt  #压缩文件test2.txt 和 test.txt 
+  adding: test2.txt (stored 0%)
+  adding: test.txt (stored 0%)
+[root@V10 ~]# ll  text.txt.zip  # 生成新的压缩包 文件  text.txt.zip 
+-rw-r--r-- 1 root root 342 2月  14 19:46 text.txt.zip
+
+[root@V10 ~]# ll  test2.txt   test.txt  #原有文件还存在
+-rwsr-xr-x 1 root root 15 2月  12 18:36 test2.txt
+-rwSr--r-- 1 root root 15 2月  12 18:09 test.txt
+
+---------------------------------------------------------------------------
+*.zip　 　//　　 zip压缩文件 #{ # unzip  *.zip [ -d ]  /指定解压的目标文件夹/}
+------------------------------------------------------------
+unzip -j : 目录结构不重新创建
+
+*.zip 用 unzip 解压
+unzip   file.zip //解压zip
+unzip   *.zip  解压的输出目录,默认当前目录
+
+[root@V10 ~]# ls   /zip/
+[root@V10 ~]# cd  /zip/
+[root@V10 zip]# unzip  /root/text.txt.zip  #解压的输出目录,默认当前目录
+Archive:  /root/text.txt.zip
+ extracting: test2.txt               
+ extracting: test.txt 
+               
+[root@V10 zip]# ls
+test2.txt  test.txt
+
+[root@V10 zip]# rm  -f *
+[root@V10 zip]# ls
+[root@V10 zip]# cd
+[root@V10 ~]# ls  /zip/
+[root@V10 ~]# ls  text.txt.zip  ##解压后原有的压缩包依旧存在
+text.txt.zip
+
+----- # unzip   *.zip  -d   /指定解压的目标文件夹/ ------------
+
+[root@V10 ~]# unzip  text.txt.zip  -d  /zip/
+Archive:  text.txt.zip
+ extracting: /zip/test2.txt          
+ extracting: /zip/test.txt    
+       
+[root@V10 ~]# ls    /zip/
+test2.txt  test.txt
+-------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------
+*.gz 用 gzip -d或者gunzip 解压
+
+*.gz   // gzip程序压缩产生的文件  {# gzip  -d   *.gz 解压} {压缩#gzip [Options] file1 file2 file3  }
+
+# gzip exp1.txt exp2.txt　　 //分别将exp1.txt和exp2.txt压缩，且" 不 "保留原文件。
+                      注意对于多个文件参数是将多个文件分别进行压缩，而不是压缩在一起
+# gzip -c test.txt > /root/test.gz 
+这样压缩,不但可以将原有的文件保留，而且可以将压缩包放到任何目录中
+
+#gzip [Options] file1 file2 file3
+　　指令选项：(默认功能为压缩)
+　　-c　　　　　　　//将输出写至标准输出，并保持原文件不变
+　　-d　　　　　　　//进行解压操作
+　　-v　　　　　　　//输出压缩/解压的文件名和压缩比等信息
+
+# 想要保留原文件可以使用 -c 参数结合数据流重定向操作
+# gzip -cd exp1.gz > exp.1　 //将exp1.gz解压的结果放置在文件exp.1中，并且原压缩文件exp1.gz不会消失
+# gunzip -c /root/test.gz > ./test.txt  #解压后,原有压缩文件依旧 存在, 使用" -c "参数结合数据流重定向 >" 操作
+
+#　gzip -dv exp1.gz //将exp1.gz解压，并显示压缩比等信息
+注意，使用 gzip 指令压缩/解压文件均会使得源文件消失，
+即源文件会被直接解压/压缩而 " 不 " 保留备份
+
+# gunzip test.txt.gz 
+它会将文件解压缩为文件 test.txt，原来的文件则没有了
+-----------------------------------------------------------------------------------
+*.tar.gz{压缩效果最差,速度最快} // 由tar程序打包并由gzip程序压缩产生的文件# tar -xzf *.tar.gz [ -C ] /指定解压的目标文件夹/
+
+================================
+-----------------------------------------------------------------------------------------------
+*.bz2         //    bzip2程序压缩产生的文件
+*.bz2 用 bzip2 -d 或者用bunzip2 解压
+
+bzip2 -[option] [file_name]
+
+-c 将压缩过程中产生的数据输出到屏幕上
+-d 解压缩参数
+-k 保留原文件
+-z 压缩的参数
+-v 显示压缩比
+
+[root@V10 ~]# ls   /bzip2/
+[root@V10 ~]# cd  /bzip2/
+[root@V10 bzip2]# bzip2   /root/test.txt   #默认压缩后的压缩包在原有的文件所在的文件夹下/root/test.txt.bz2
+[root@V10 bzip2]# ls
+[root@V10 bzip2]# ll   /root/test.txt.bz2 
+-rw-r--r-- 1 root root 51 2月  12 18:09 /root/test.txt.bz2
+[root@V10 bzip2]# cp  /root/test.txt.bz2  ./
+[root@V10 bzip2]# ls
+test.txt.bz2
+[root@V10 bzip2]# bunzip2   test.txt.bz2  #解压压缩包 后 ,产生的文件默认在当前路径下
+[root@V10 bzip2]# ls
+test.txt
+
+[root@V10 bzip2]# rm  -f *.txt
+[root@V10 bzip2]# ls
+[root@V10 bzip2]# cp  /root/test.txt.bz2  ./
+
+[root@V10 bzip2]# ls
+test.txt.bz2
+[root@V10 bzip2]# bzip2  -d  test.txt.bz2  #解压压缩包 后 ,产生的文件默认在当前路径下
+[root@V10 bzip2]# ls
+test.txt
+
+--------------------------------------------------------------
+================================
+*.tar.bz2 {一般性}  //   由tar程序打包并由bzip2程序压缩产生的文件  # tar -xjf *.tar.bz2  [ -C ] /指定解压的目标文件夹/
+
+
+
+*.tar         //    tar程序打包产生的文件
+*.tar.xz {压缩效果最好,速度最慢}// tar程序打包产生的文件  # tar -xJf *.tar.xz [ -C ] /指定解压的目标文件夹/
+
+*.tar.bz2 {一般性}  //   由tar程序打包并由bzip2程序压缩产生的文件  # tar -xjf *.tar.bz2  [ -C ] /指定解压的目标文件夹/
+tar -xjvf file.tar.bz2 //解压 tar.bz2
+
+*.tar.gz{压缩效果最差,速度最快} // 由tar程序打包并由gzip程序压缩产生的文件# tar -xzf *.tar.gz [ -C ] /指定解压的目标文件夹/
+================
+=====================
+tar命令
+[root@server0 ~]# tar  --help 
+用法: tar [选项...] [FILE]...
+示例
+  tar -cf archive.tar foo bar  # 从文件 foo 和 bar 创建归档文件
+archive.tar。
+  tar -tvf archive.tar         # 详细列举归档文件 archive.tar
+中的所有文件。
+  tar -xf archive.tar          # 展开归档文件 archive.tar
+中的所有文件。
+ 主操作模式:
+  -A, --catenate, --concatenate   追加 tar 文件至归档
+  -c, --create               创建一个新归档
+# tar [-cxtzjvfpPN] 文件与目录 ....
+参数：
+-c ：建立(创建)一个压缩文件的参数指令(create 的意思)；
+-x ：解开(解压)一个压缩文件的参数指令！
+-t ：查看 tarfile 里面的文件！
+特别注意，在参数的下达中， c/x/t 仅能存在一个！不可同时存在！
+因为不可能同时压缩与解压缩。
+-z ：是否同时具有 gzip 的属性？亦即是否需要用 gzip 压缩？
+-z：有gzip属性的  .tar.gz
+-j ：是否同时具有 bzip2 的属性？亦即是否需要用 bzip2 压缩？
+-j：有bz2属性的   .tar.bz2
+
+-J ：有xz属性的   .tar.xz
+
+-v ：压缩的过程中显示文件！这个常用，但不建议用在背景执行过程！
+-f ：使用档名，请留意，在 f 之后要立即接档名喔！不要再加参数！
+　　　例如使用『 tar -zcvfP tfile sfile』就是错误的写法，要写成
+　　　『 tar -zcvPf tfile sfile』才对喔！
+-p ：使用原文件的原来属性（属性不会依据使用者而变）
+
+-P ：可以使用绝对路径来压缩！
+
+
+tar -xjvf file.tar.bz2 //解压 tar.bz2
+==========================
+---------------------- 16 创建一个归档
+
+创建一个名为/root/backup.tar.bz2的归档文件，
+其中包含/usr/local目录中的内容，
+tar归档必须使用bzip2进行压缩
+/**********
+-c ：建立(创建)一个压缩文件的参数指令(create 的意思)；
+-j ：是否同时具有 bzip2 的属性？亦即是否需要用 bzip2 压缩？
+-j：有bz2属性的   .tar.bz2
+-P ：可以使用绝对路径来压缩！
+-f ：使用档名，请留意，在 f 之后要立即接档名
+-t ：查看 tarfile 里面的文件
+*********/
+
+[root@server0 ~]# ls  /usr/local/
+bin  etc  games  include  lib  lib64  libexec  sbin  share  src
+[root@server0 ~]# tar  -jcPf   /root/backup.tar.bz2  /usr/local/
+[root@server0 ~]# ll   backup.tar.bz2 
+-rw-r--r--. 1 root root 1891 2月  14 20:43 backup.tar.bz2
+
+[root@server0 ~]# tar  -jtf  backup.tar.bz2   #查看 backup.tar.bz2 里面的文件
+tar: 从成员名中删除开头的“/”
+/usr/local/
+/usr/local/bin/
+/usr/local/bin/lab
+/usr/local/etc/
+.............
+/usr/local/share/man/mann/
+/usr/local/src/
+[root@server0 ~]# 
+
+=====================cex200============================
+[root@room9pc01 ~]# tar -xPf /root/桌面/checkcsa-2.4.0.tar.gz 
+[root@room9pc27 ~]# tar  -xPf   checkcsa-2.4.0.tar.gz 
+
+[root@room9pc01 ~]# tar -tPf /root/桌面/checkcsa-2.4.0.tar.gz
+rht-checkcsa.py
+checkcsa.py
+.checkcsa
+ReadMe.txt
+[root@room9pc01 ~]# chmod +x rht-checkcsa.py
+[root@room9pc01 ~]# ls -l rht-checkcsa.py
+-rwxr-xr-x 1 root root 874 12月  5 2017 rht-checkcsa.py
+
+[root@room9pc27 ~]# cat ReadMe.txt 
+RHCSA评分脚本:
+	教学环境下，在真机解压，server开机时执行./rht-checkcsa.py。按两下回车即可。
+
+
+Functions:
+	Input(1):         check_all        完整测试(测试所有项)
+	Input(ENTER):     check_no_user    部分测试(不包含用户密码的验证)
+	!!!测试用户密码采用expect方式，比较慢，不建议使用
+
+Files：
+ 	rht-checkcsa.py --> 主文件 
+	.checkcsa 		--> 检测脚本
+
+ISSUE:
+1、网络配置检查标准（命令配置），手工写文件的会失败 
+2、主机名必须修改，默认配置会检查失败.
+3、用户权限，必须先添加组（先添加的组号为1001，这里检查组号），再添加用户.
+4、如果检查用户口令，请不要做其他操作（采用expect方式，输入无关内容可能导致检测失败）.
+
+Versions:
+2.0	基本功能完成.
+2.1	增加颜色显示(正确:绿色，错误:红色),调整check_stu_f()、check_str()、check_tar()逻辑，检测到一个文件不符合就报错(不再列出所有不符合条件的文件).
+2.2	增加tar包压缩方式检测，必须能够使用tar jxf 命令解压.
+2.3	调整判断机制，/etc/gshadow不在时，去判断/etc/gshadow-(配置ldapuser0后会导致/etc/gshadow 消失，导致用户组检测失败,但会产生 /etc/gshadow-)
+2.4	修复find文件时只提示扣分，但未进行统计。
 
 
 
 
+[root@room9pc27 ~]#  ls  -l  rht-checkcsa.py 
+-rwxr-xr-x 1 root root 874 12月  5 2017 rht-checkcsa.py
+
+[root@room9pc27 ~]# ./rht-checkcsa.py  #RHCSA评分脚本
+
+12、检查开机挂载
+
+ERROR: Mount Point: "/vo" check failure !!!        -10
 
 
-
-
-
-
-
-
-
-
+============== ===================================
 
 
 

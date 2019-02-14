@@ -425,8 +425,22 @@ with open("attestation_key.der", "rb") as f:
     print(pk_to_c_array("attestation_key", f.read()))
 --------------------- 
 ======================
+[root@server0 ~]# tail  -2   /etc/fstab
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1  /    xfs   defaults   1   1
+/dev/systemvg/vo   /vo      ext4          defaults   0    0
+设备路径              挂载点  此分区的文件系统类型  参数     备份标记  检测顺序
+第五列是dump备份设置。
+当其值设置 为  1  时，
+将允许dump备份程序备份；
+设置 为  0  时，忽略备份操作；
 
-
+第六列是fsck磁盘检查设置。
+其值是一个顺序。 
+当其值为 0 时，永远不检查；
+而 / 根目录分区永远都为1。
+其它分区从2开始，
+数字越小 优先 检查，
+如果两个分区的数字相同，则同时检查。
 
 
 
