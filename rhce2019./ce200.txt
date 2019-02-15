@@ -1067,7 +1067,8 @@ Device does not contain a recognized partition table
    m   print this menu
    n   add a new partition
    p   print the partition table
-   w   write table to disk and exit
+   q   quit without saving changes   #不保存退出
+   w   write table to disk and exit  #保存并退出
 
 命令(输入 m 获取帮助)：p
 
@@ -1251,9 +1252,9 @@ vdb             253:16   0   10G  0 disk
 mkfs.ext2  mkfs.ext3  mkfs.ext4  
 
 ------------------  格式化为ext3文件系统并挂载到 /vo  ------------
-------------       -f :强制格式化  -------------
+------------     mkfs.ext3  -f :强制格式化  -------------
 
-[root@server0 ~]# mkfs.ext4   /dev/systemvg/vo 
+[root@server0 ~]# mkfs.ext4   /dev/systemvg/vo  #注意ext3,非ext4 ,这里写错了扣 10分
 
 mke2fs 1.42.9 (28-Dec-2013)
 文件系统标签=
@@ -1370,9 +1371,9 @@ lost+found
 
 -------------------  完成开机自动挂载  -------------------
 
-[root@server0 ~]# vim  /etc/fstab    # 开机自动挂载
+[root@server0 ~]# vim  /etc/fstab    # 开机自动挂载  #注意考题要求ext3 ,这里写错了,扣10分
 
-[root@server0 ~]# tail  -2   /etc/fstab
+[root@server0 ~]# tail  -2   /etc/fstab   #注意这里文件系统写错了,非ext4,而是ext3
 UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1  /    xfs   defaults   1   1
 /dev/systemvg/vo   /vo      ext4          defaults   0    0
 设备路径              挂载点  此分区的文件系统类型  参数     备份标记  检测顺序
@@ -1417,7 +1418,7 @@ hahaend
 
 [root@server0 ~]# df  -hT  /vo/   ##查看所有 正在挂载使用  的分区的信息
 
-文件系统                类型  容量  已用  可用 已用% 挂载点
+文件系统                       类型   容量   已用  可用 已用% 挂载点
 /dev/mapper/systemvg-vo ext4  302M  2.1M  281M    1% /vo
 
 ==================================
@@ -1574,13 +1575,13 @@ crontabs-1.11-6.20121102git.el7.noarch
 
 [root@server0 ~]# which crontab 
 /usr/bin/crontab
-[root@server0 ~]# ll  /usr/bin/crontab  #文件有 set gid属性
+[root@server0 ~]# ll  /usr/bin/crontab  #文件有 set uid属性
 -rwsr-xr-x. 1 root root 57536 1月  28 2014 /usr/bin/crontab
 /************
 [root@V10 ~]# ll  test.txt 
 -rw-r--r-- 1 root root 15 2月  12 18:09 test.txt
 
-[root@V10 ~]# chmod  u+s  test.txt   #set gid 注意 无 x 执行权限 S
+[root@V10 ~]# chmod  u+s  test.txt   #set uid 注意 无 x 执行权限 S
 [root@V10 ~]# ll  test.txt
 -rwSr--r-- 1 root root 15 2月  12 18:09 test.txt
 
@@ -1655,7 +1656,7 @@ root  rpc  student
 ******************/
 
 
-===========================
+=========================== 
 --------------- 6 创建一个共享目录
 
 创建一个共享目录/home/admins ，特性如下：
@@ -3370,6 +3371,649 @@ ERROR: Mount Point: "/vo" check failure !!!        -10
 
 
 ============== ===================================
+/**********************************************
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): p
+分区号 (1-3，默认 1)：1
+起始 扇区 (6293504-20971519，默认为 6293504)：
+将使用默认值 6293504
+Last 扇区, +扇区 or +size{K,M,G} (6293504-20971519，默认为 20971519)：1M
+值超出范围。
+Last 扇区, +扇区 or +size{K,M,G} (6293504-20971519，默认为 20971519)：+1M
+分区 1 已设置为 Linux 类型，大小设为 1 MiB
+
+命令(输入 m 获取帮助)：d 1
+分区号 (1,4-6，默认 6)：1
+分区 1 已删除
+*******************/
+文件系统的扩展
+   resize2fs : ext4,ext3文件系统扩展命令
+   xfs_growfs : xfs文件系统扩展命令
+第二代扩展文件系统（Second extended filesystem）Ext2的文件系统
+
+第三代扩展文件系统（Third extended filesystem）Ext3的文件系统
+mkfs.ext3 /dev/sdb  //格式化分区
+~]# resize2fs   /dev/systemvg/vo  #刷新文件系统ext3(刷新扩展文件系统)
+
+第四代扩展文件系统（Fourth extended filesystem） Ext4文件系统
+
+resize2fs (选项) (参数)
+选项
+-d：打开调试特性； 
+-p：打印已完成的百分比进度条； 
+-f：强制执行调整大小操作，覆盖掉安全检查操作； 
+-F：开始执行调整大小前，刷新文件系统设备的缓冲区。
+[root@desktop0 ~]# uname  -r
+3.10.0-123.el7.x86_64 
+#注意3.10.0是 kernel 2.6以后的内核版本,仅仅支持mount在线扩容ext3
+
+===============================
+
+[root@room9pc27 ~]# ssh  172.25.0.10
+................
+
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+[root@desktop0 ~]# fdisk  /dev/vdb
+欢迎使用 fdisk (util-linux 2.23.2)。
+
+更改将停留在内存中，直到您决定将更改写入磁盘。
+使用写入命令前请三思。
+
+Device does not contain a recognized partition table
+使用磁盘标识符 0x9fb1f70a 创建新的 DOS 磁盘标签。
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended
+Select (default p): e
+分区号 (1-4，默认 1)：4
+起始 扇区 (2048-20971519，默认为 2048)：
+将使用默认值 2048
+Last 扇区, +扇区 or +size{K,M,G} (2048-20971519，默认为 20971519)：+3G
+分区 4 已设置为 Extended 类型，大小设为 3 GiB
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): l
+添加逻辑分区 5
+起始 扇区 (4096-6293503，默认为 4096)：
+将使用默认值 4096
+Last 扇区, +扇区 or +size{K,M,G} (4096-6293503，默认为 6293503)：+210M   #考题/vo
+分区 5 已设置为 Linux 类型，大小设为 210 MiB
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): l
+添加逻辑分区 6
+起始 扇区 (436224-6293503，默认为 436224)：
+将使用默认值 436224
+Last 扇区, +扇区 or +size{K,M,G} (436224-6293503，默认为 6293503)：+110M  #考题/vo
+分区 6 已设置为 Linux 类型，大小设为 110 MiB
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): l
+添加逻辑分区 7
+起始 扇区 (663552-6293503，默认为 663552)：
+将使用默认值 663552
+Last 扇区, +扇区 or +size{K,M,G} (663552-6293503，默认为 6293503)：+320M  #考题/vo
+分区 7 已设置为 Linux 类型，大小设为 320 MiB
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): l
+添加逻辑分区 8
+起始 扇区 (1320960-6293503，默认为 1320960)：
+将使用默认值 1320960
+Last 扇区, +扇区 or +size{K,M,G} (1320960-6293503，默认为 6293503)：+512M  #考题/swap
+分区 8 已设置为 Linux 类型，大小设为 512 MiB
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): l
+添加逻辑分区 9
+起始 扇区 (2371584-6293503，默认为 2371584)：
+将使用默认值 2371584
+Last 扇区, +扇区 or +size{K,M,G} (2371584-6293503，默认为 6293503)：+1G  #考题/PE
+分区 9 已设置为 Linux 类型，大小设为 1 GiB
+
+命令(输入 m 获取帮助)：p
+
+磁盘 /dev/vdb：10.7 GB, 10737418240 字节，20971520 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+磁盘标签类型：dos
+磁盘标识符：0x9fb1f70a
+
+   设备 Boot      Start         End      Blocks   Id  System
+/dev/vdb4            2048     6293503     3145728    5  Extended
+/dev/vdb5            4096      434175      215040   83  Linux
+/dev/vdb6          436224      661503      112640   83  Linux
+/dev/vdb7          663552     1318911      327680   83  Linux
+/dev/vdb8         1320960     2369535      524288   83  Linux
+/dev/vdb9         2371584     4468735     1048576   83  Linux
+
+命令(输入 m 获取帮助)：w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+正在同步磁盘。
+[root@desktop0 ~]# partprobe  /dev/vdb   # 刷新分区表
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vda    253:0    0   10G  0 disk 
+└─vda1 253:1    0   10G  0 part /
+vdb    253:16   0   10G  0 disk 
+├─vdb4 253:20   0    1K  0 part 
+├─vdb5 253:21   0  210M  0 part 
+├─vdb6 253:22   0  110M  0 part 
+├─vdb7 253:23   0  320M  0 part 
+├─vdb8 253:24   0  512M  0 part 
+└─vdb9 253:25   0    1G  0 part 
+
+[root@desktop0 ~]# reboot     # 强烈建议重启一次
+
+[root@room9pc27 ~]# ssh  172.25.0.10
+................
+[root@desktop0 ~]# fdisk   -l   /dev/vdb
+
+磁盘 /dev/vdb：10.7 GB, 10737418240 字节，20971520 个扇区
+..........
+磁盘标签类型：dos
+...........
+--------------------   #创建 物理卷(可以不执行此命令,在创建卷组时会自动创建物理卷) ---
+
+[root@desktop0 ~]# pvcreate  /dev/vdb7
+  Physical volume "/dev/vdb7" successfully created
+
+[root@desktop0 ~]# vgcreate  systemvg   /dev/vdb7  #创建卷组
+  Volume group "systemvg" successfully created
+
+[root@desktop0 ~]# lsblk  /dev/vdb7 
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7 253:23   0  320M  0 part 
+
+[root@desktop0 ~]# vgs        #显示卷组信息
+  VG       #PV #LV #SN Attr   VSize   VFree  
+  systemvg   1   0   0 wz--n- 316.00m 316.00m
+
+----------  自行建立一个200MiB的逻辑卷 /dev/systemvg/vo，--------
+
+[root@desktop0 ~]# lvcreate   -L  200MiB  -n  vo  systemvg 
+  Logical volume "vo" created
+
+[root@desktop0 ~]# lvs
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-a----- 200.00m 
+                                            
+[root@desktop0 ~]# lsblk  /dev/vdb7 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  200M  0 lvm  
+
+[root@desktop0 ~]# vgs  /dev/systemvg
+  VG       #PV #LV #SN Attr   VSize   VFree  
+  systemvg   1   1   0 wz--n- 316.00m 116.00m
+
+[root@desktop0 ~]# blkid   /dev/systemvg
+
+[root@desktop0 ~]# blkid   /dev/vdb7 
+/dev/vdb7: UUID="1Tk2MX-Fgj7-CR5d-c9ec-E352-XD7S-Ajtfv0" TYPE="LVM2_member" 
+
+[root@desktop0 ~]# blkid  /dev/systemvg/vo  #查看文件系统(未 格式化)
+
+----------------  将逻辑卷 /dev/systemvg/vo 格式化为ext3文件系统并挂载到 /vo  ----------
+-----------    mkfs.ext3   -f  强制格式化  -------------
+
+[root@desktop0 ~]# mkfs.ext3  /dev/systemvg/vo   #注意是 ext3 文件系统
+mke2fs 1.42.9 (28-Dec-2013)
+文件系统标签=
+OS type: Linux
+..............           
+Creating journal (4096 blocks): 完成
+Writing superblocks and filesystem accounting information: 完成 
+
+[root@desktop0 ~]# blkid  /dev/systemvg/vo  #查看文件系统 格式化结果(未挂载的时候)ext2
+
+/dev/systemvg/vo: UUID="da85d310-6e31-499e-bf4f-ee337ea25502" SEC_TYPE="ext2" TYPE="ext3" 
+
+[root@desktop0 ~]# lvs   /dev/systemvg/vo 
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-a----- 200.00m   
+
+[root@desktop0 ~]# lsblk  /dev/vdb7
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  200M  0 lvm  
+
+[root@desktop0 ~]# lvs   /dev/systemvg/vo 
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-a----- 200.00m    
+                                     
+[root@desktop0 ~]# ls  /vo/
+
+  ----------     mount  -t 类型  -o 挂接方式   源路径   目标路径 -----------
+  --------------------     临时挂载     逻辑卷   /dev/systemvg/vo  -----------
+----------------  将逻辑卷 /dev/systemvg/vo 格式化为ext3文件系统并挂载到 /vo  ----------
+
+[root@desktop0 ~]# mount   -t  ext3  -o defaults  /dev/systemvg/vo  /vo/
+
+[root@desktop0 ~]# ls  /vo/
+lost+found
+
+---------------------------- 只有 df  -hT 能够查看真实的 分区大小 和 文件系统大小 --------
+
+[root@desktop0 ~]# df  -hT  /vo/  ##查看 正在挂载/vo/ 使用的分区的信息
+文件系统                       类型  容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  190M  1.6M  175M    1% /vo
+
+[root@desktop0 ~]# lsblk   /dev/vdb7
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  200M  0 lvm  /vo
+
+[root@desktop0 ~]# blkid   /dev/vdb7
+/dev/vdb7: UUID="1Tk2MX-Fgj7-CR5d-c9ec-E352-XD7S-Ajtfv0" TYPE="LVM2_member" 
+
+----------------  #查看文件系统格式化结果(已经挂载的时候)ext3 --------------
+
+[root@desktop0 ~]# blkid   /dev/systemvg/vo  
+/dev/systemvg/vo: UUID="da85d310-6e31-499e-bf4f-ee337ea25502" TYPE="ext3" 
+
+[root@desktop0 ~]# ls  /vo/
+lost+found
+[root@desktop0 ~]# mkdir  /vo/vodir
+[root@desktop0 ~]# echo  "200.00m-first" > /vo/vodir/1.txt
+[root@desktop0 ~]# cat  /vo/vodir/1.txt
+200.00m-first
+
+resize2fs命令被用来增大或者收缩未加载的“ext2/ext3/ext4”文件系统的大小。
+如果文件系统是处于mount状态下，
+那么它只能做到扩容，前提条件是内核支持在线resize。
+linux kernel 2.6支持在mount状态下扩容但仅限于ext3文件系统
+ kernel 2.6以后，resize2fs已实现在线resize功能。
+ 注意,只有ext3可以在线扩展
+[root@desktop0 ~]# uname  -r
+3.10.0-123.el7.x86_64  #注意3.10.0是 kernel 2.6以后的内核版本,仅仅支持mount在线扩容ext3
+
+---------------------  卸载  然后将逻辑卷vo和其文件系统大小调整到 300 MiB (313M)------------
+--- 注意：分区大小很少能够完全符合要求的大小，所以大小在 270 MiB 和 330 MiB 之间都是可以接受的--
+
+[root@desktop0 ~]# umount  /vo/
+[root@desktop0 ~]# ls /vo/
+
+[root@desktop0 ~]# lvdisplay   /dev/systemvg/vo |egrep  -i  "size|name"
+  LV Name                vo
+  VG Name                systemvg
+  LV Size                200.00 MiB
+
+/**** ~]# vgcreate  systemvg   /dev/vdb7  #创建卷组 **********/
+
+[root@desktop0 ~]# lsblk   /dev/vdb7 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  200M  0 lvm  
+
+[root@desktop0 ~]# lvs   /dev/systemvg/vo 
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-a----- 200.00m 
+
+[root@desktop0 ~]# vgs   /dev/systemvg
+  VG       #PV #LV #SN Attr   VSize   VFree  
+  systemvg   1   1   0 wz--n- 316.00m 116.00m
+
+/*************
+缩减分区大小
+# lvreduce -L -5G /dev/vg1/lv1  减少5G  #注意减号 " - "
+# lvreduce -L  5G /dev/vg1/lv1  直接设置成5G，注意这个5G必须小于原来的值
+# lvreduce -l -50 /dev/vg1/lv1  减少50个PE大小
+# lvreduce -l 1000 /dev/vg1/lv1 直接设置成1000个PE，注意这个1000必须小于<原来的值
+
+*************/
+
+lvextend (选项) (参数)
+选项
+-L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；
+-l：指定逻辑卷的大小（LE数）
+# lvextend -l +50 /dev/vg1/lv1 # 扩展50个PE大小 #注意加号"+"
+# lvextend -l 300 /dev/vg1/lv1 #直接设置成300个PE，注意这个300必须大于原来的值
+
+-------------------- 卷组空间足够,需要执行以下命令 # 扩展逻辑卷空间 -----------------
+
+[root@desktop0 ~]# lvextend  -L  313M  /dev/systemvg/vo 
+
+  Rounding size to boundary between physical extents: 316.00 MiB
+  Extending logical volume vo to 316.00 MiB
+  Logical volume vo successfully resized
+
+[root@desktop0 ~]# lvs   /dev/systemvg/vo   # 扩展逻辑卷空间
+
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-a----- 316.00m  
+                                        
+[root@desktop0 ~]# vgs   /dev/systemvg
+  VG       #PV #LV #SN Attr   VSize   VFree
+  systemvg   1   1   0 wz--n- 316.00m    0 
+
+[root@desktop0 ~]# lsblk   /dev/vdb7
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  316M  0 lvm  
+
+resize2fs命令被用来增大或者收缩未加载的“ext2/ext3/ext4”文件系统的大小。
+如果文件系统是处于mount状态下，
+那么它只能做到扩容，前提条件是内核支持在线resize。
+linux kernel 2.6支持在mount状态下扩容但仅限于ext3文件系统
+ kernel 2.6以后，resize2fs已实现在线resize功能。
+ 注意,只有ext3可以在线扩展
+[root@desktop0 ~]# uname  -r
+3.10.0-123.el7.x86_64  #注意3.10.0是 kernel 2.6以后的内核版本,仅仅支持mount在线扩容ext3
+
+-------------- #注意和 未 挂载 mount 之前的区别SEC_TYPE="ext2" ----------
+
+[root@desktop0 ~]# blkid  /dev/systemvg/vo
+/dev/systemvg/vo: UUID="da85d310-6e31-499e-bf4f-ee337ea25502" SEC_TYPE="ext2" TYPE="ext3" 
+
+[root@desktop0 ~]# mount  /dev/systemvg/vo   /vo/  #注意挂载后在线扩容仅仅支持ext3格式
+
+    ---------------- #还未给文件系统扩容,分区大小依旧是190MiB --------------
+
+[root@desktop0 ~]# df  -hT  /vo/      #还未给文件系统扩容,分区大小依旧是190MiB
+文件系统                       类型   容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  190M  1.6M  175M    1% /vo
+
+[root@desktop0 ~]# lvs  /dev/systemvg/vo 
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-ao---- 316.00m   
+
+------------ 将逻辑卷vo和其文件系统大小调整到 300 MiB  //更新逻辑卷大小-------------
+文件系统的扩展
+   resize2fs : ext2,ext4,ext3文件系统扩展命令
+   xfs_growfs : xfs文件系统扩展命令
+
+[root@desktop0 ~]# resize2fs   /dev/systemvg/vo  #刷新文件系统ext4(刷新扩展文件系统)
+
+resize2fs 1.42.9 (28-Dec-2013)
+Filesystem at /dev/systemvg/vo is mounted on /vo; on-line resizing required
+old_desc_blocks = 1, new_desc_blocks = 2
+The filesystem on /dev/systemvg/vo is now 323584 blocks long.
+
+
+-------------- #注意和 未 挂载 mount 之前的区别SEC_TYPE="ext2" ----------
+
+[root@desktop0 ~]# blkid  /dev/systemvg/vo  
+
+/dev/systemvg/vo: UUID="da85d310-6e31-499e-bf4f-ee337ea25502" TYPE="ext3" 
+
+    ---------------- #文件系统 已经 扩容 resize2fs ,分区大小自动变成了 302 MiB -------------
+
+[root@desktop0 ~]# df  -hT  /vo/   #分区大小自动变成了 302 MiB
+
+文件系统                       类型  容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  302M  2.1M  282M    1% /vo
+
+[root@desktop0 ~]# ls  /vo/  #验证了文件系统的完整性,没有破坏旧的文件系统
+lost+found  vodir
+[root@desktop0 ~]# cat /vo/vodir/1.txt  #验证了文件系统的完整性,没有破坏旧的文件系统
+200.00m-first
+
+[root@desktop0 ~]# 
+
+如果某一块磁盘或者分区故障了
+如何将数据快速转移到相同的卷组其他的空间去?
+
+1、通过pvmove命令转移空间数据
+2、通过vgreduce命令将即将坏的磁盘或者分区从卷组vgdata里面移除除去。
+3、通过pvremove命令将即将坏的磁盘或者分区从系统中删除掉。
+4、手工拆除硬盘或者通过一些工具修复分区
+
+vgremove(选项)(参数)
+选项
+-f：强制删除
+
+lvremove(选项)(参数)
+选项
+-f：强制删除
+
+[root@desktop0 ~]# lsblk  /dev/vdb7 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  316M  0 lvm  /vo
+
+删除整个逻辑卷
+1、先通过umount命令卸载掉逻辑卷lvdata1
+2、修改/etc/fstab里面逻辑卷的挂载信息，否则系统有可能启动不起来。
+3、通过lvremove 删除逻辑卷lvdata1
+4、通过vgremove 删除卷组vgdata
+5、通过pvremove 将物理卷转化成普通分区
+
+[root@desktop0 ~]# umount  /vo/  # 1 先通过umount命令卸载
+
+[root@desktop0 ~]# tail  -1 /etc/fstab  # 2 已经修改/etc/fstab
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1 / xfs   defaults  1  1
+
+[root@desktop0 ~]# lsblk  /dev/vdb7      # 确认已经 卸载逻辑卷
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7          253:23   0  320M  0 part 
+└─systemvg-vo 252:0    0  316M  0 lvm  
+
+lvremove(选项)(参数)
+选项
+-f：强制删除
+[root@desktop0 ~]# lvremove  -f   /dev/systemvg/vo  # 3 强制 删除逻辑卷
+  Logical volume "vo" successfully removed
+
+[root@desktop0 ~]# vgs   /dev/systemvg     #确认已经 删除逻辑卷
+  VG       #PV #LV #SN Attr   VSize   VFree  
+  systemvg   1   0   0 wz--n- 316.00m 316.00m
+
+vgremove(选项)(参数)
+选项
+-f：强制删除卷组
+[root@desktop0 ~]# vgremove   -f   /dev/systemvg  #4 强制 删除卷组
+  Volume group "systemvg" successfully removed
+
+[root@desktop0 ~]# vgs    #确认 卷组/dev/systemvg 已经删除
+  No volume groups found
+
+[root@desktop0 ~]# lsblk  /dev/vdb7 
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7 253:23   0  320M  0 part 
+
+【语    法】pvremove [选项] [参数]
+【功能介绍】pvremove指令用于删除一个存在的物理卷。
+【选项说明】
+选    项  功    能
+-d  调试模式
+-f  强制删除
+-y  对提问回答“yes”
+使用pvremove指令删除物理卷时，
+它将LVM分区上的物理卷信息删除，
+使其不再被视为一个物理卷
+
+    -------  注意对比 物理卷删除 之前的 文件系统格式 TYPE="LVM2_member"   -------------
+
+[root@desktop0 ~]# blkid   /dev/vdb7 
+/dev/vdb7: UUID="1Tk2MX-Fgj7-CR5d-c9ec-E352-XD7S-Ajtfv0" TYPE="LVM2_member" 
+
+  -------  5、通过pvremove 将物理卷转化成普通分区 -------------
+
+[root@desktop0 ~]# pvremove  -y  /dev/vdb7   #删除物理卷 
+  Labels on physical volume "/dev/vdb7" successfully wiped
+
+[root@desktop0 ~]# blkid   /dev/vdb7  #没有输出信息,变成了普通分区
+
+[root@desktop0 ~]# lsblk  /dev/vdb7
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb7 253:23   0  320M  0 part 
+
+========================================
+=============  使用卷组扩容的方式 扩展 逻辑卷 文件系统大小  ==============
+
+[root@desktop0 ~]# lsblk   /dev/vdb{5,6}
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb5 253:21   0  210M  0 part 
+vdb6 253:22   0  110M  0 part 
+
+[root@desktop0 ~]# blkid  /dev/vdb{5,6}
+
+[root@desktop0 ~]# pvcreate   /dev/vdb{5,6}
+  Physical volume "/dev/vdb5" successfully created
+  Physical volume "/dev/vdb6" successfully created
+
+[root@desktop0 ~]# blkid  /dev/vdb{5,6}
+/dev/vdb5: UUID="XfiPpE-cgKl-n6OW-0FDU-r5xh-KN1J-a9XtMr" TYPE="LVM2_member" 
+/dev/vdb6: UUID="7qhcGP-m2I0-DT8R-x1t6-KcOt-Kdqc-2HOxlR" TYPE="LVM2_member" 
+
+[root@desktop0 ~]# vgcreate   systemvg  /dev/vdb5     #创建卷组
+  Volume group "systemvg" successfully created
+
+[root@desktop0 ~]# vgs
+  VG       #PV #LV #SN Attr   VSize   VFree  
+  systemvg   1   0   0 wz--n- 208.00m 208.00m
+
+[root@desktop0 ~]# lvcreate   -L  200MiB  -n  vo  /dev/systemvg  #创建逻辑卷
+  Logical volume "vo" created
+
+[root@desktop0 ~]# lvscan 
+  ACTIVE            '/dev/systemvg/vo' [200.00 MiB] inherit
+
+[root@desktop0 ~]# lsblk   /dev/vdb{5,6}
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb5          253:21   0  210M  0 part 
+└─systemvg-vo 252:0    0  200M  0 lvm  
+vdb6          253:22   0  110M  0 part 
+
+[root@desktop0 ~]# mkdir   /vo/
+mkdir: 无法创建目录"/vo/": 文件已存在
+
+[root@desktop0 ~]# ls  /vo/
+[root@desktop0 ~]# blkid  /dev/systemvg/vo
+
+[root@desktop0 ~]# blkid  /dev/systemvg/
+
+[root@desktop0 ~]# mkfs.ext3  /dev/systemvg/vo  #格式化文件系统ext3 
+mke2fs 1.42.9 (28-Dec-2013)
+..........
+
+[root@desktop0 ~]# blkid  /dev/systemvg/vo
+/dev/systemvg/vo: UUID="b0d1df94-ff07-4204-82f9-275a09777057" SEC_TYPE="ext2" TYPE="ext3" 
+
+[root@desktop0 ~]# vgs
+  VG       #PV #LV #SN Attr   VSize   VFree
+  systemvg   1   1   0 wz--n- 208.00m 8.00m
+
+[root@desktop0 ~]# lvdisplay   /dev/systemvg/vo |egrep  -i "size|name"
+  LV Name                vo
+  VG Name                systemvg
+  LV Size                200.00 MiB
+[root@desktop0 ~]# lvs
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-a----- 200.00m  
+
+[root@desktop0 ~]# mount  -t ext3 -o  defaults  /dev/systemvg/vo  /vo/  # 临时挂载
+[root@desktop0 ~]# ls  /vo/
+lost+found
+[root@desktop0 ~]# echo first200MiB > /vo/1.txt
+[root@desktop0 ~]# cat  /vo/1.txt 
+first200MiB
+[root@desktop0 ~]# df  -hT  /vo/
+文件系统                        类型   容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  190M  1.6M  175M    1% /vo
+
+[root@desktop0 ~]# vgs
+  VG       #PV #LV #SN Attr   VSize   VFree
+  systemvg   1   1   0 wz--n- 208.00m 8.00m
+
+[root@desktop0 ~]# lvs
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-ao---- 200.00m 
+
+格式化为ext3文件系统并挂载到 /vo 。
+然后将逻辑卷vo和其文件系统大小调整到 300 MiB。要确保文件系统中的内容保持完整。
+请注意：分区大小很少能够完全符合要求的大小，
+所以大小在 270 MiB 和 330 MiB 之间都是可以接受的。 
+
+[root@desktop0 ~]# vgextend   systemvg   /dev/vdb6  #扩展卷组
+  Volume group "systemvg" successfully extended
+
+[root@desktop0 ~]# vgs
+  VG       #PV #LV #SN Attr   VSize   VFree  
+  systemvg   2   1   0 wz--n- 316.00m 116.00m
+
+[root@desktop0 ~]# lsblk  /dev/vdb{5,6}
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb5          253:21   0  210M  0 part 
+└─systemvg-vo 252:0    0  200M  0 lvm  /vo
+vdb6          253:22   0  110M  0 part 
+
+[root@desktop0 ~]# lvextend  -L 300M   /dev/systemvg/vo  # 扩展逻辑卷空间
+  Extending logical volume vo to 300.00 MiB
+  Logical volume vo successfully resized
+
+[root@desktop0 ~]# lsblk  /dev/vdb{5,6}
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+vdb5          253:21   0  210M  0 part 
+└─systemvg-vo 252:0    0  300M  0 lvm  /vo
+vdb6          253:22   0  110M  0 part 
+└─systemvg-vo 252:0    0  300M  0 lvm  /vo
+
+[root@desktop0 ~]# df  -hT  /vo/
+文件系统                类型  容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  190M  1.6M  175M    1% /vo
+
+[root@desktop0 ~]# blkid   /dev/systemvg/vo
+/dev/systemvg/vo: UUID="b0d1df94-ff07-4204-82f9-275a09777057" TYPE="ext3" 
+
+---------- 将逻辑卷vo和其文件系统大小调整到 300 MiB  //更新逻辑卷大小------
+
+[root@desktop0 ~]# resize2fs    /dev/systemvg/vo  #刷新文件系统ext4(刷新扩展文件系统)
+
+resize2fs 1.42.9 (28-Dec-2013)
+Filesystem at /dev/systemvg/vo is mounted on /vo; on-line resizing required
+old_desc_blocks = 1, new_desc_blocks = 2
+The filesystem on /dev/systemvg/vo is now 307200 blocks long.
+
+[root@desktop0 ~]# lvs
+  LV   VG       Attr       LSize   Pool Origin Data%  Move Log Cpy%Sync Convert
+  vo   systemvg -wi-ao---- 300.00m   
+
+ --- 注意：分区大小很少能够完全符合要求的大小，所以大小在 270 MiB 和 330 MiB 之间都是可以接受的。 
+            
+[root@desktop0 ~]# df  -hT  /vo/
+文件系统                       类型   容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  287M  2.1M  267M    1% /vo
+
+[root@desktop0 ~]# ls  /vo/   #验证了文件系统的完整性,没有破坏旧的文件系统
+1.txt  lost+found
+[root@desktop0 ~]# cat  /vo/1.txt 
+first200MiB
+===================================
+================================
+
+
+
+
+
 
 
 
