@@ -444,16 +444,65 @@ UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1  /    xfs   defaults   1   1
 
 
 
+[root@room9pc27 ~]# mkdir  /var/git/hiys/
+[root@room9pc27 ~]# cd  /var/git/hiys/
+[root@room9pc27 hiys]# git clone  https://github.com/hiys/Cloud_linux
+正克隆到 'Cloud_linux'...
+.......
+接收对象中: 100% (1190/1190), 121.66 MiB | 732.00 KiB/s, done.
+处理 delta 中: 100% (484/484), done.
+
+[root@room9pc27 linux]# cd  /var/git/linux/linux/
+
+[root@room9pc27 linux]#  pwd
+/var/git/linux/linux
+
+如果想拿远端git服务器上的最新版本(或某个特定版本)覆盖本地的修改,可以使用git pull命令
+[root@room9pc27 linux]# git  pull   #更新本地git仓库
+
+remote: Enumerating objects: 6, done.
+remote: Counting objects: 100% (6/6), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 43 (delta 1), reused 1 (delta 1), pack-reused 37
+Unpacking objects: 100% (43/43), done.
+.............
+
+[root@room9pc27 Cloud_linux]# pwd
+/var/git/hiys/Cloud_linux
+
+[root@room9pc27 Cloud_linux]# find  ./  |xargs   grep  -lri  "redis"
+./nsd1807/exper/mysql.txt
+./nsd1807/exper/haproxy.cfg
+./Architecture/elk02.txt
+./docker/dockerbj01.txt
+./docker/Openstack_end-4.txt
+./docker/Openstack_end-5.txt
+./CLOUD_architecture_Project/docker/dockerbj01.txt
 
 
+[root@room9pc27 Cloud_linux]# cd    /var/git/linux/linux/
+[root@room9pc27 linux]# find  ./  |xargs   grep  -lri  "redis"
+./config/config_global_default.php
+./5747732-dzone-rc43-scalabilityandhighavailability.pdf
+./lnmp_soft/php_scripts/Discuz_X3.4_SC_UTF8.zip
+./lnmp_soft/redis-3.0.6.tar.gz
+./Architecture/elk02.txt
+./Architecture/CLoud/dockerbj01.txt
+./CLoud/cloudbj5-1.txt
+./CLoud/cloudbj5.txt
+./CLoud/cloudbj4-2.txt
+./redis/redis.zip
+./cluster/Ceph%2CTFS%2CFastDFS%2CMogileFS%2CMooseFS%2CGlusterFS+对比+-+yswenli+-+博客园.pdf
+./cluster/clusterbj3.txt
+./NOSQL/nosql_day01.txt
+./NOSQL/nosqlbj2.txt
+./NOSQL/nosqlbj3.txt
 
+./DBa2/master_ip_failover2.txt
+./DBa2/master_ip_failover.txt
+./DBa2/dba2bj3.txt
 
-
-
-
-
-
-
+https://github.com/hiys/linux/blob/master/NOSQL/nosql_day01.txt
 
 
 
