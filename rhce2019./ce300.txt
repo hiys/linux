@@ -666,6 +666,7 @@ success
 block
   interfaces: 
   sources: 172.34.0.0/24
+
 [root@desktop0 ~]# firewall-cmd --reload
 success
 [root@desktop0 ~]# firewall-cmd --zone=block --list-all | grep sources
@@ -885,6 +886,8 @@ Setting up desktop machine...
 server0.example.com
 [root@server0 ~]# lab smtp-nullclient setup
 Setting up server machine... 
+
+==================================
 
 [root@server0 ~]# rpm -q postfix
 postfix-2.10.1-6.el7.x86_64
