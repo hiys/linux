@@ -3079,13 +3079,33 @@ uid=1003(chihiro) gid=1003(chihiro) 组=1003(chihiro)
 目录 /protected 应该包含名为 project 拥有人为 ldapuser0 的子目录
 用户 ldapuser0 能以读写方式访问 /protected/project
 
-[root@desktop0 ~]# lab  nfskrb5  setup
+/****synopsis  n. 大纲;摘要，梗概
+http://web.mit.edu/kerberos/krb5-1.12/doc/admin/admin_commands/krb5kdc.html
+krb5kdc
+梗概
+krb5kdc [-x db_args] [-d dbname] [-k keytype] [-M mkeyname] [-p portnum] [-m] [-r realm] [-n] [-w numworkers] [-P pid_file] [-T time_offset]
+
+/************ 在 Linux 客户端配置基于 Kerberos 身份验证的 NFS 服务器
+
+一个重要的角色：Kerberos Distribution Center-KDC(Kerberos分发中心)
+KDC在整个Kerberos Authentication 中
+作为Client和Server共同信任的第三方起着重要的作用，
+而Kerberos的认证过程就是通过这3方协作完成
+
+Kerberos的优点
+1．较高的Performance性能
+2．实现了双向验证（Mutual Authentication）
+3．对Delegation授权的支持
+https://blog.csdn.net/wulantian/article/details/42418231
+**********/
+
+[root@desktop0 ~]# lab  nfskrb5  setup  # 加入kerberos认证域
 Installing packages ...
 Updating authconfig for ldap & krb5 ...
 SUCCESS
 [root@desktop0 ~]# 
 
-[root@server0 ~]# lab  nfskrb5 setup
+[root@server0 ~]# lab  nfskrb5 setup   # 加入kerberos认证域
 Installing packages ...
 Updating authconfig for ldap & krb5 ...
 SUCCESS
@@ -3142,16 +3162,22 @@ drwxr-xr-x. 2 ldapuser0 root 6 2月  20 12:32 /protected/project/
 
 [root@server0 ~]# vim   /etc/sysconfig/nfs  #若未明确要求版本,此操作可不做
 [root@server0 ~]# grep  -n  "^RPCNFSDARGS="  /etc/sysconfig/nfs
-13:RPCNFSDARGS="-V 4"
+13:RPCNFSDARGS="-V 4"  #激活NFS v4版本
+
+----------------  nfs-secure-server 使这个服务端的证书生效 ---------------------
+------------------  开启 nfs-server服务 是 为了读取/etc/exports中的配置文件 ---------------
 
 [root@server0 ~]# systemctl  start  nfs-server  nfs-secure-server
 [root@server0 ~]# systemctl  enable  nfs-server  nfs-secure-server
+
 ln -s '/usr/lib/systemd/system/nfs-server.service' '/etc/systemd/system/nfs.target.wants/nfs-server.service'
 ln -s '/usr/lib/systemd/system/nfs-secure-server.service' '/etc/systemd/system/nfs.target.wants/nfs-secure-server.service'
 
 [root@server0 ~]# echo  public server > /public/server.txt
+
 [root@server0 ~]# echo protected-project-server > /protected/project/serverldap.txt
 
+--------------------------
 【NFS共享的常用参数】
 ro 只读访问
 rw 读写访问
@@ -3195,11 +3221,284 @@ Export list for server0.example.com:
 用户 ldapuser0 能够在/mnt/nfssecure/project 上创建文件
 这些文件系统在系统启动时自动挂载
 
+/********** 考试说明,请仔细阅读
+考试说明
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+
+/*************
+[root@desktop0 ~]# df  -hT   /mnt/dev/
+文件系统             类型  容量  已用  可用 已用% 挂载点
+//172.25.0.11/devops cifs   10G  3.2G  6.9G   32% /mnt/dev
+
+[root@desktop0 ~]# tail  -2  /etc/fstab 
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1 /      xfs     defaults   1 1
+//172.25.0.11/devops /mnt/dev cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev  0  0
+
+[root@desktop0 ~]# echo |smbclient  -L  //172.25.0.11 |head  -7
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+Enter root's password: 
+Anonymous login successful
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	common          Disk      
+	devops          Disk 
+
+************/
+
+ [root@desktop0 ~]# firewall-cmd  --get-default-zone 
+trusted
+
+[root@desktop0 ~]# showmount  -e  172.25.0.11
+Export list for 172.25.0.11:
+/protected 172.25.0.0/24
+/public    172.25.0.0/24
+
+/***********************
+[root@desktop0 ~]# wget  --help
+GNU Wget 1.14，非交互式的网络文件下载工具。
+用法： wget [选项]... [URL]...
+长选项所必须的参数在使用短选项时也是必须的。
+
+启动：
+  -V,  --version           显示 Wget 的版本信息并退出。
+  -h,  --help              打印此帮助。
+
+日志和输入文件：
+  -o,  --output-file=FILE    将日志信息写入 FILE。
+  -a,  --append-output=FILE  将信息添加至 FILE。
+  -d,  --debug               打印大量调试信息。
+  -q,  --quiet               安静模式 (无信息输出)。
+  -v,  --verbose             详尽的输出 (此为默认值)。
+  -i,  --input-file=FILE     下载本地或外部 FILE 中的 URLs。
+  -O,  --output-document=FILE    将文档写入 FILE。
+
+
+HTTP 选项：
+       --http-user=USER        设置 http 用户名为 USER。
+       --http-password=PASS    设置 http 密码为 PASS。
+       --no-cache              不在服务器上缓存数据。
+
+HTTPS (SSL/TLS) 选项：
+       --secure-protocol=PR     选择安全协议，可以是 auto、SSLv2、
+                                SSLv3 或是 TLSv1 中的一个。
+       --no-check-certificate   不要验证服务器的证书。
+       --certificate=FILE       客户端证书文件。
+
+FTP 选项：
+       --ftp-user=USER         设置 ftp 用户名为 USER。
+       --ftp-password=PASS     设置 ftp 密码为 PASS。
+
+递归下载：
+  -r,  --recursive          指定递归下载。
+
+
+[root@desktop0 ~]# wget  http://classroom.example.com/pub/keytabs/desktop0.keytab  -O     /etc/krb5.keytab    #注意正确慢速仔细
+
+[root@desktop0 ~]# ls   /etc/krb*
+/etc/krb5.conf  /etc/krb5.keytab
+
+
+-----------------------  启动这个 nfs-secure 安全服务 使客户端的证书生效 --------------------
+
+[root@desktop0 ~]# systemctl  start  nfs-secure  && systemctl  enable  nfs-secure
+
+ln -s '/usr/lib/systemd/system/nfs-secure.service' '/etc/systemd/system/nfs.target.wants/nfs-secure.service'
+
+[root@desktop0 ~]# vim   /etc/fstab  #永久挂载NFS文件系统
+
+[root@desktop0 ~]# tail  -3  /etc/fstab 
+//172.25.0.11/devops /mnt/dev cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev  0  0
+172.25.0.11:/public     /mnt/nfsmount   nfs  defaults,_netdev           0  0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,sec=krb5p,_netdev  0  0
+
+[root@desktop0 ~]# mount  -a
+[root@desktop0 ~]# df  -hT
+文件系统               类型      容量  已用  可用 已用% 挂载点
+/dev/vda1              xfs        10G  3.2G  6.9G   32% /
+devtmpfs               devtmpfs  906M     0  906M    0% /dev
+tmpfs                  tmpfs     921M   80K  921M    1% /dev/shm
+tmpfs                  tmpfs     921M   17M  904M    2% /run
+tmpfs                  tmpfs     921M     0  921M    0% /sys/fs/cgroup
+//172.25.0.11/devops   cifs       10G  3.2G  6.9G   32% /mnt/dev
+172.25.0.11:/public    nfs4       10G  3.2G  6.9G   32% /mnt/nfsmount
+172.25.0.11:/protected nfs4       10G  3.2G  6.9G   32% /mnt/nfssecure
+
+[root@desktop0 ~]# ls  /mnt/dev/
+chihiro.txt  server.txt  test.txt
+[root@desktop0 ~]# ls  /mnt/nfsmount/
+server.txt
+[root@desktop0 ~]# cat  /mnt/nfsmount/server.txt 
+public server
+[root@desktop0 ~]# ls   /mnt/nfssecure/
+project
+
+[root@desktop0 ~]# ls   /mnt/nfssecure/project/
+serverldap.txt
+
+[root@desktop0 ~]# cat  /mnt/nfssecure/project/serverldap.txt 
+protected-project-server
+
+/********** 考试说明,请仔细阅读
+考试说明
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+
+------------------------------ 没有使用 密码认证,会有提示权限不够的信息 ---------
+
+[root@desktop0 ~]# su  -  ldapuser0  #无密码切换 ldapuser0用户(后面会出现 权限限制)
+Creating home directory for ldapuser0.
+[ldapuser0@desktop0 ~]$ echo  $USER
+ldapuser0
+
+[ldapuser0@desktop0 ~]$ ls  -ld /mnt/nfssecure/project/
+ls: cannot access /mnt/nfssecure/project/: Permission denied
+
+[ldapuser0@desktop0 ~]$ mkdir   /mnt/nfssecure/project/ldapuser0
+mkdir: cannot create directory ‘/mnt/nfssecure/project/ldapuser0’: Permission denied
+
+[ldapuser0@desktop0 ~]$ exit
+logout
+
+[root@desktop0 ~]#  ls  -ld /mnt/nfssecure/project/
+drwxr-xr-x. 2 ldapuser0 root 27 2月  20 12:53 /mnt/nfssecure/project/
+
+------ 使用 密码认证, 用户 ldapuser0 能够在/mnt/nfssecure/project 上创建文件---------
+
+[root@desktop0 ~]# ssh  -l ldapuser0  172.25.0.10 
+..............
+Are you sure you want to continue connecting (yes/no)? yes
+...............
+ldapuser0@172.25.0.10's password: kerberos（输入密码 kerberos)
+.......
+[ldapuser0@desktop0 ~]$ echo $USER
+ldapuser0
+
+[ldapuser0@desktop0 ~]$ pwd
+/home/guests/ldapuser0
+
+[ldapuser0@desktop0 ~]$ ls  -ld /mnt/nfssecure/project/
+drwxr-xr-x. 2 ldapuser0 root 27 2月  20 12:53 /mnt/nfssecure/project/
+
+[ldapuser0@desktop0 ~]$  mkdir   /mnt/nfssecure/project/ldapuser0
+[ldapuser0@desktop0 ~]$ echo  ldapuser0--kerberos >  /mnt/nfssecure/project/ldapuser0/ldapu0.txt
+[ldapuser0@desktop0 ~]$ ll  /mnt/nfssecure/project/ldapuser0/ldapu0.txt
+-rw-rw-r--. 1 ldapuser0 ldapuser0 20 2月  20 20:39 /mnt/nfssecure/project/ldapuser0/ldapu0.txt
+[ldapuser0@desktop0 ~]$ exit
+登出
+Connection to 172.25.0.10 closed.
+
+[root@desktop0 ~]# ls  /mnt/nfssecure/project/
+ldapuser0  serverldap.txt
+
+[root@desktop0 ~]# ls  /mnt/nfssecure/project/ldapuser0/
+ldapu0.txt
+
+[root@desktop0 ~]# ll  /mnt/nfssecure/project/ldapuser0/ldapu0.txt 
+-rw-rw-r--. 1 ldapuser0 ldapuser0 20 2月  20 20:39 /mnt/nfssecure/project/ldapuser0/ldapu0.txt
+[root@desktop0 ~]# cat  /mnt/nfssecure/project/ldapuser0/ldapu0.txt
+ldapuser0--kerberos
+[root@desktop0 ~]# ls  /home/
+guests  student
+[root@desktop0 ~]# ls  /home/guests/
+ldapuser0
+[root@desktop0 ~]# ls  /home/guests/ldapuser0/
+[root@desktop0 ~]# 
+
+[root@server0 ~]# showmount   -e
+Export list for server0.example.com:
+/protected 172.25.0.0/24
+/public    172.25.0.0/24
+[root@server0 ~]# ls  /protected/
+project
+[root@server0 ~]# ls  -ld  /protected/project/
+drwxr-xr-x. 3 ldapuser0 root 43 2月  20 20:38 /protected/project/
+[root@server0 ~]# ls  /protected/project/
+ldapuser0  serverldap.txt
+[root@server0 ~]# ls  /protected/project/ldapuser0/
+ldapu0.txt
+[root@server0 ~]# ls  -ld  /protected/project/ldapuser0/
+drwxrwxr-x. 2 ldapuser0 ldapuser0 23 2月  20 20:39 /protected/project/ldapuser0/
+[root@server0 ~]# cat   /protected/project/ldapuser0/ldapu0.txt 
+ldapuser0--kerberos
+[root@server0 ~]# 
 
 
 
+[root@server0 ~]# type  klist
+klist 已被哈希 (/usr/bin/klist)
+
+[root@server0 ~]# rpm  -qf  /usr/bin/klist
+krb5-workstation-1.11.3-49.el7.x86_64
+
+------------------NFS-----------------------
+              检查密钥是否配对成功
+[root@server0 ~]# klist  -k  /etc/krb5.keytab 
+Keytab name: FILE:/etc/krb5.keytab
+KVNO Principal
+---- --------------------------------------------------------------------------
+   2 host/server0.example.com@EXAMPLE.COM
+..................
+   2 nfs/server0.example.com@EXAMPLE.COM
+[root@server0 ~]# 
+
+------------------NFS-----------------------
+[root@desktop0 ~]# klist -k /etc/krb5.keytab   #检查密钥是否配对成功
+Keytab name: FILE:/etc/krb5.keytab
+
+[root@desktop0 ~]# klist  -k  /etc/krb5.keytab 
+Keytab name: FILE:/etc/krb5.keytab
+KVNO Principal
+---- --------------------------------------------------------------------------
+   2 host/desktop0.example.com@EXAMPLE.COM
+....................
+   2 nfs/desktop0.example.com@EXAMPLE.COM
+[root@desktop0 ~]# 
+
+===============12.实现一个 web 服务器=========== ============
+----------------------------   12 实现一个Web服务器
+为 http://server0.example.com 配置 Web 服务器：
+从URL地址 http://classroom.example.com/pub/materials/station.html 下载一个主页文件，
+并将该文件重命名为 index.html
+
+将文件 index.html 拷贝到您的 web 服务器的 DocumentRoot 目录下
+不要对文件 index.html 的内容进行任何修改 
 
 
+[root@server0 ~]# yum  -y  install  httpd |tail  -3
+  httpd-tools.x86_64 0:2.4.6-17.el7       
+
+完毕！
+[root@server0 ~]# rpm  -q  httpd
+httpd-2.4.6-17.el7.x86_64
+[root@server0 ~]# ls  /etc/httpd/
+conf  conf.d  conf.modules.d  logs  modules  run
+
+[root@server0 ~]# ls  /etc/httpd/conf/
+httpd.conf  magic
+
+[root@server0 ~]# grep -n  Include   /etc/httpd/conf/httpd.conf
+56:Include conf.modules.d/*.conf
+135:    #   Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+303:    # (You will also need to add "Includes" to the "Options" directive.)
+            您还需要将“include”添加到“options”指令中
+353:IncludeOptional conf.d/*.conf
+
+[root@server0 ~]# ls  /etc/httpd/conf.d/
+autoindex.conf  README  userdir.conf  welcome.conf
+
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@desktop0 ~]#
 
 
 
