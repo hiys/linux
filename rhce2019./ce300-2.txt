@@ -2927,7 +2927,7 @@ server ---devops
 
 ----------------------------------------------------------------------------------------------------------------------
 
---------------------------------- 临时设置 selinux 
+--------------------------------- 临时设置 selinux 允许 samba用户 访问其家目录
 [root@desktop0 ~]# getsebool  -a |grep  samba_enable_home_dirs
 samba_enable_home_dirs --> off
 
@@ -3479,21 +3479,188 @@ KVNO Principal
 完毕！
 [root@server0 ~]# rpm  -q  httpd
 httpd-2.4.6-17.el7.x86_64
-[root@server0 ~]# ls  /etc/httpd/
+
+
+[root@desktop0 ~]# grep  -Pnv  "(^\s){0,}#|^$"   /etc/httpd/conf/httpd.conf 
+31:ServerRoot "/etc/httpd"
+42:Listen 80
+56:Include conf.modules.d/*.conf
+66:User apache
+67:Group apache
+86:ServerAdmin root@localhost
+102:<Directory />
+103:    AllowOverride none
+104:    Require all denied
+105:</Directory>
+119:DocumentRoot "/var/www/html"
+124:<Directory "/var/www">
+125:    AllowOverride None
+127:    Require all granted
+128:</Directory>
+131:<Directory "/var/www/html">
+144:    Options Indexes FollowSymLinks
+151:    AllowOverride None
+156:    Require all granted
+157:</Directory>
+163:<IfModule dir_module>
+164:    DirectoryIndex index.html
+165:</IfModule>
+171:<Files ".ht*">
+172:    Require all denied
+173:</Files>
+182:ErrorLog "logs/error_log"
+189:LogLevel warn
+191:<IfModule log_config_module>
+196:    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+197:    LogFormat "%h %l %u %t \"%r\" %>s %b" common
+199:    <IfModule logio_module>
+201:      LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %I %O" combinedio
+202:    </IfModule>
+217:    CustomLog "logs/access_log" combined
+218:</IfModule>
+220:<IfModule alias_module>
+247:    ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"
+249:</IfModule>
+255:<Directory "/var/www/cgi-bin">
+256:    AllowOverride None
+257:    Options None
+258:    Require all granted
+259:</Directory>
+261:<IfModule mime_module>
+266:    TypesConfig /etc/mime.types
+283:    AddType application/x-compress .Z
+284:    AddType application/x-gzip .gz .tgz
+305:    AddType text/html .shtml
+306:    AddOutputFilter INCLUDES .shtml
+307:</IfModule>
+316:AddDefaultCharset UTF-8
+318:<IfModule mime_magic_module>
+324:    MIMEMagicFile conf/magic
+325:</IfModule>
+348:EnableSendfile on
+353:IncludeOptional conf.d/*.conf
+[root@desktop0 ~]# 
+
+
+[root@desktop0 ~]# ls  /etc/httpd/conf/
+httpd.conf  magic
+[root@desktop0 ~]# ls  /etc/httpd/
 conf  conf.d  conf.modules.d  logs  modules  run
 
-[root@server0 ~]# ls  /etc/httpd/conf/
-httpd.conf  magic
+[root@desktop0 ~]# grep  -B2  "^Include"   /etc/httpd/conf/httpd.conf 
+# LoadModule foo_module modules/mod_foo.so
+#
+Include conf.modules.d/*.conf
+--
+#
+# Load config files in the "/etc/httpd/conf.d" directory, if any.
+# 在“/etc/httpd/conf.d”目录中加载配置文件（如果有）
+IncludeOptional conf.d/*.conf
 
-[root@server0 ~]# grep -n  Include   /etc/httpd/conf/httpd.conf
-56:Include conf.modules.d/*.conf
-135:    #   Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
-303:    # (You will also need to add "Includes" to the "Options" directive.)
-            您还需要将“include”添加到“options”指令中
-353:IncludeOptional conf.d/*.conf
+[root@desktop0 ~]# 
 
 [root@server0 ~]# ls  /etc/httpd/conf.d/
 autoindex.conf  README  userdir.conf  welcome.conf
+
+/*****************
+
+chcon [选项]... 环境 文件... 
+chcon [选项]... [-u 用户] [-r 角色] [-l 范围] [-t 类型] 文件... 
+chcon [选项]... --reference=参考文件 文件...
+
+ chcon 命令  是修改对象（文件）的安全上下文，
+比如：用户、角色、类型、安全级别。
+也就是将每个文件的安全环境变更至指定环境。
+  使用--reference选项时，
+  把指定文件的安全环境设置为与参考文件相同
+chcon  -R, --recursive：递归处理所有的文件及子目录。 
+       -t, --type=类型：设置指定类型的目标安全环境。
+
+   -v, --verbose：为处理的所有文件显示诊断信息。 
+   -u, --user=用户：设置指定用户的目标安全环境。
+   -r, --role=角色：设置指定角色的目标安全环境。
+   -l, --range=范围：设置指定范围的目标安全环境。
+
+如果你想把这个ftp共享给匿名用户的话，需要开启以下：
+chcon  -t public_content_t  -R /var/ftp
+
+如果你想让你设置的FTP目录可以上传文件的话，SELINUX需要设置：
+chcon -t public_content_rw_t /var/ftp/incoming
+
+
+[root@desktop0 ~]# ls  -Zd  /var/www/html/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+
+[root@desktop0 ~]# ls  -Zd   /chcondirtest/testdir/
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /chcondirtest/testdir/
+
+ chcon 命令  是修改对象（文件）的安全上下文
+chcon  -R, --recursive：递归处理所有的文件及子目录。 
+       -t, --type=类型：设置指定类型的目标安全环境。
+
+[root@desktop0 ~]# chcon  -t  httpd_sys_content_t  -R  /chcondirtest/testdir/
+
+[root@desktop0 ~]# ls  -Zd   /chcondirtest/testdir/
+
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /chcondirtest/testdir/
+
+[root@desktop0 ~]# ls  -Zd   /chcondirtest/
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /chcondirtest/
+
+ semanage命令  是用来查询与修改SELinux默认目录的安全上下文
+# semanage {login|user|port|interface|fcontext|translation} -l 
+
+# semanage  fcontext  -l：查询。 
+fcontext：主要用在安全上下文方面。 
+-a：增加，你可以增加一些目录的默认安全上下文类型设置。 
+-m：修改。 
+-d：删除。
+
+[root@desktop0 ~]# semanage  fcontext   -l  |head  -3   
+SELinux  fcontext   类型                         上下文
+/                   directory             system_u:object_r:root_t:s0
+IOError: [Errno 32] Broken pipe 破管
+
+[root@desktop0 ~]# semanage fcontext -l |grep "/var/www/" |grep  httpd_sys_content_t
+
+/var/www/icons(/.*)?        all files    system_u:object_r:httpd_sys_content_t:s0 
+/var/www/svn/conf(/.*)?     all files    system_u:object_r:httpd_sys_content_t:s0 
+
+
+允许用户HHTP访问其家目录，该设定限仅于用户的家目录主页：
+[root@desktop0 ~]# getsebool   -a  |grep httpd_enable_homedirs
+httpd_enable_homedirs --> off
+[root@desktop0 ~]# setsebool  httpd_enable_homedirs  on
+[root@desktop0 ~]# getsebool   -a  |grep httpd_enable_homedirs
+httpd_enable_homedirs --> on
+[root@desktop0 ~]# setsebool  httpd_enable_homedirs  off
+[root@desktop0 ~]# getsebool   -a  |grep httpd_enable_homedir
+httpd_enable_homedirs --> off
+
+[root@desktop0 ~]# sestatus  #查看selinx的工作状态
+SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+Loaded policy name:             targeted
+Current mode:                   enforcing
+Mode from config file:          enforcing
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Max kernel policy version:      28
+
+[root@desktop0 ~]# type   sestatus 
+sestatus 已被哈希 (/usr/sbin/sestatus)
+**************/
+
+
+
+
+
+
+
+
+
+
 
 
 [root@desktop0 ~]# firewall-cmd  --get-default-zone 
@@ -3509,5 +3676,8 @@ trusted
 
 
 
+ 天河客运站  上车
+b11路   22站
+员村四横路口站 下车  
 
 
