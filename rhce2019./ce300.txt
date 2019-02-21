@@ -1560,7 +1560,7 @@ dir.conf        ssl.conf  virt.conf
  Allow from all
 </Directory>
 <Directory /var/www/html/private/>
-  Require ip 127.0.0.1  ::1  172.25.0.11
+  Require ip 127.0.0.1  ::1  172.25.0.11  #仅允许本机 IP 172.25.0.11 访问
 </Directory>
 [root@server0 ~]# cd /var/www/html/private/
 [root@server0 private]# httpd -t
@@ -1623,6 +1623,7 @@ Listen 8909
 <VirtualHost *:8909>
   ServerName    webapp0.example.com
   DocumentRoot  /var/www/webapp0/
+--------------- 告诉apache什么样的请求转交webinfo.wsgi 处理-----
   WsgiScriptAlias  /  /var/www/webapp0/webinfo.wsgi
 </VirtualHost>
 [root@server0 ~]# cd /var/www/webapp0/
@@ -2321,7 +2322,7 @@ Alias /dir/  "/var/www/html/admin"      #路径的别名 这样就可以在域�
    Allow from all                                     #允许所有的访问
    Options Indexes FollowSymLink     #允许目录索引 符号链接
    AllowOverride None                          #不能被目录下的.htaccess覆盖
-   # AllowOverride all                            允许被目录下的.htaccess规则覆盖 默认是允许的
+   # AllowOverride all              允许被目录下的.htaccess规则覆盖 默认是允许的
 </Directory>
 
  

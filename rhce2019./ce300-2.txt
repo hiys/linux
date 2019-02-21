@@ -3473,6 +3473,17 @@ KVNO Principal
 不要对文件 index.html 的内容进行任何修改 
 
 
+/************
+[root@server0 ~]# yum install -y httpd-manual #帮助手册
+已安装:
+  httpd-manual.noarch 0:2.4.6-17.el7                                                       
+
+完毕！
+[root@server0 ~]# man   httpd
+       httpd [ -k install|config|uninstall ] [ -n name ] [ -w ]
+       -t     Run  syntax  tests  for  configuration files only.
+***********/
+
 [root@server0 ~]# yum  -y  install  httpd |tail  -3
   httpd-tools.x86_64 0:2.4.6-17.el7       
 
@@ -3481,33 +3492,83 @@ KVNO Principal
 httpd-2.4.6-17.el7.x86_64
 
 
+/****************
+
+Main server configuration---主服务配置，
+相当于是Apache中的默认Web站点，
+如果我们的服务器中只有一个站点，
+那么就只需在这里配置就可以了。
+
+ Virtual Hosts---虚拟主机，
+   虚拟主机不能与Main Server主服务器共存，
+当启用了虚拟主机之后，Main Server就不能使用了
+
+[root@desktop0 ~]# grep  -n  "ServerName "  /etc/httpd/conf/httpd.conf 
+89:# ServerName gives the name and port that the server uses to identify itself.
+ servername提供服务器用来标识自身的名称和端口
+
+------ 如果服务器的名字解析有问题（通常为反向解析不正确），
+    或者没有正式的DNS名字，也可以在这里指定IP地址
+   在没有定义虚拟主机的情况下，服务器总是以自己的正式名字回应浏览器。
+  ServerName就定义了Web服务器自己承认的正式名字
+
+95:#ServerName www.example.com:80
+
 [root@desktop0 ~]# grep  -Pnv  "(^\s){0,}#|^$"   /etc/httpd/conf/httpd.conf 
+
+------  ServerRoot "/etc/httpd" 用于指定Apache的运行目录，# httpd 安装目录
+          服务启动之后自动将目录改变为当前目录，
+          在后面使用到的所有相对路径都是相对这个目录下 ------------
+   ServerRoot用于指定守护进程httpd的运行目录，
+  httpd在启动之后将自动将进程的当前目录改变为这个目录，
+  因此如果设置文件中指定的文件或目录是相对路径，
+   那么真实路径就位于这个ServerRoot定义的路径之下
+
 31:ServerRoot "/etc/httpd"
+
 42:Listen 80
 56:Include conf.modules.d/*.conf
 66:User apache
 67:Group apache
+
+----------  这一项用于配置WWW服务器的管理员的email地址，
+   这将在HTTP服务出现错误的条件下返回给浏览器，
+   以便让Web使用者和管理员联系，报告错误
+
 86:ServerAdmin root@localhost
-102:<Directory />
+
+102:<Directory />  #定义目录的访问限制  #  定义目录属性
 103:    AllowOverride none
 104:    Require all denied
 105:</Directory>
-119:DocumentRoot "/var/www/html"
+
+119:DocumentRoot "/var/www/html" #默认站点主目录,根目录,网页文件存放的目录
+
 124:<Directory "/var/www">
 125:    AllowOverride None
 127:    Require all granted
 128:</Directory>
+
+------------- 对根目录的一个权限的设置 -------------------
+
 131:<Directory "/var/www/html">
-144:    Options Indexes FollowSymLinks
-151:    AllowOverride None
+
+------------- FollowSymLinks是否允许访问符号链接文件。
+              Indexes 表示当网页不存在的时候允许索引显示目录中的文件
+
+144:    Options Indexes FollowSymLinks  
+
+151:    AllowOverride None  # 不允许这个目录下的访问控制文件来改变这里的配置
 156:    Require all granted
 157:</Directory>
 163:<IfModule dir_module>
-164:    DirectoryIndex index.html
+164:    DirectoryIndex index.html  #默认首页文件
 165:</IfModule>
+
 171:<Files ".ht*">
 172:    Require all denied
 173:</Files>
+
 182:ErrorLog "logs/error_log"
 189:LogLevel warn
 191:<IfModule log_config_module>
@@ -3538,29 +3599,8 @@ httpd-2.4.6-17.el7.x86_64
 324:    MIMEMagicFile conf/magic
 325:</IfModule>
 348:EnableSendfile on
-353:IncludeOptional conf.d/*.conf
+353:IncludeOptional conf.d/*.conf  #加载的配置文件
 [root@desktop0 ~]# 
-
-
-[root@desktop0 ~]# ls  /etc/httpd/conf/
-httpd.conf  magic
-[root@desktop0 ~]# ls  /etc/httpd/
-conf  conf.d  conf.modules.d  logs  modules  run
-
-[root@desktop0 ~]# grep  -B2  "^Include"   /etc/httpd/conf/httpd.conf 
-# LoadModule foo_module modules/mod_foo.so
-#
-Include conf.modules.d/*.conf
---
-#
-# Load config files in the "/etc/httpd/conf.d" directory, if any.
-# 在“/etc/httpd/conf.d”目录中加载配置文件（如果有）
-IncludeOptional conf.d/*.conf
-
-[root@desktop0 ~]# 
-
-[root@server0 ~]# ls  /etc/httpd/conf.d/
-autoindex.conf  README  userdir.conf  welcome.conf
 
 /*****************
 
@@ -3627,7 +3667,7 @@ IOError: [Errno 32] Broken pipe 破管
 /var/www/svn/conf(/.*)?     all files    system_u:object_r:httpd_sys_content_t:s0 
 
 
-允许用户HHTP访问其家目录，该设定限仅于用户的家目录主页：
+--------------------------- 是否允许http用户访问其家目录，默认是不允许
 [root@desktop0 ~]# getsebool   -a  |grep httpd_enable_homedirs
 httpd_enable_homedirs --> off
 [root@desktop0 ~]# setsebool  httpd_enable_homedirs  on
@@ -3648,24 +3688,716 @@ Policy MLS status:              enabled
 Policy deny_unknown status:     allowed
 Max kernel policy version:      28
 
+**************/
+
+
 [root@desktop0 ~]# type   sestatus 
 sestatus 已被哈希 (/usr/sbin/sestatus)
 **************/
 
-
-
-
-
-
-
-
-
-
-
-
-[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+[root@desktop0 ~]# getenforce 
+Enforcing
+[root@desktop0 ~]# firewall-cmd   --get-default-zone 
 trusted
-[root@desktop0 ~]#
+
+[root@server0 ~]# yum  -y  install  httpd |tail  -3
+  httpd-tools.x86_64 0:2.4.6-17.el7       
+
+完毕！
+[root@server0 ~]# rpm  -q  httpd
+httpd-2.4.6-17.el7.x86_64
+
+[root@server0 ~]# ls  /etc/httpd/
+conf  conf.d  conf.modules.d  logs  modules  run
+
+[root@server0 ~]# ls  /etc/httpd/conf/
+httpd.conf  magic
+
+[root@server0 ~]# ls  /etc/httpd/conf.d/
+autoindex.conf  README  userdir.conf  welcome.conf
+
+[root@server0 ~]# grep  -1  -n   "DirectoryIndex index.html"  /etc/httpd/conf/httpd.conf
+
+163-<IfModule dir_module>
+164:    DirectoryIndex index.html   #默认首页文件
+165-</IfModule>
+
+[root@server0 ~]# grep  -En  "#ServerName |^DocumentRoot "  /etc/httpd/conf/httpd.conf 
+95:#ServerName www.example.com:80
+119:DocumentRoot "/var/www/html"
+
+[root@server0 ~]# grep  -B2  "^Include"  /etc/httpd/conf/httpd.conf
+
+# LoadModule foo_module modules/mod_foo.so
+#
+Include conf.modules.d/*.conf
+--
+#
+# Load config files in the "/etc/httpd/conf.d" directory, if any.
+   在“/etc/httpd/conf.d”目录中加载配置文件（如果有）
+IncludeOptional conf.d/*.conf
+
+[root@server0 ~]# ls  /etc/httpd/conf.d/
+autoindex.conf  README  userdir.conf  welcome.conf
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/VirtualHost.conf
+[root@server0 ~]# cat  /etc/httpd/conf.d/VirtualHost.conf
+<VirtualHost  *:80>
+  ServerName    server0.example.com   # 定义了Web服务器自己承认的正式域名
+  DocumentRoot  /var/www/html/    ##默认站点主目录,根目录,网页文件存放的目录
+</VirtualHost>
+
+/**********https://blog.51cto.com/itwish/2160492
+ServerName用于唯一标识提供web服务的主机名，只有在基于名称的虚拟主机中该指令才是必须的 
+ServerAlias用于定义ServerName的别名
+ServerAdmin 是用于定义管理邮箱地址。
+    语法：<VirtualHost addr[:port] [addr[:port]] ...> ... </VirtualHost>
+
+<VirtualHost *:80>
+    ServerAdmin webmaster@itwish.cn     # 定义Server管理员邮箱地址
+    ServerName www.itwish.cn      # 定义主机名称
+    ServerAlias  www     # 定义主机别名 
+</VirtualHost>
+***********/
+
+----------- wget     -O,  --output-document=FILE    将文档写入 FILE。
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/station.html  -O  /var/www/html/index.html
+
+--2019-02-21 18:14:46--  http://classroom.example.com/pub/materials/station.html
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：14 [text/html]
+正在保存至: “/var/www/html/index.html”
+
+100%[=================================================>] 14          --.-K/s 用时 0s      
+
+2019-02-21 18:14:47 (358 KB/s) - 已保存 “/var/www/html/index.html” [14/14])
+
+[root@server0 ~]# ll  /var/www/html/index.html
+-rw-r--r--. 1 root root 14 11月 27 18:38 /var/www/html/index.html
+[root@server0 ~]# ls  -Z  /var/www/html/index.html
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/index.html
+[root@server0 ~]# ls  -Zd  /var/www/html/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+
+[root@server0 ~]# yum   -y install  elinks  |tail  -2
+
+完毕！
+[root@server0 ~]# elinks  -dump  server0.example.com
+   Default Site.
+[root@server0 ~]# curl  server0.example.com
+Default Site.
+
+/*********
+httpd [-hlLStvVX][-c<httpd指令>][-C<httpd指令>][-d<服务器根目录>][-D<设定文件参数>][-f<设定文件>]
+参数说明：
+-c<httpd指令> 在读取配置文件前，先执行选项中的指令。
+-C<httpd指令> 在读取配置文件后，再执行选项中的指令。
+-d<服务器根目录> 指定服务器的根目录。
+-D<设定文件参数> 指定要传入配置文件的参数。
+-f<设定文件> 指定配置文件。
+-h 显示帮助。
+-l 显示服务器编译时所包含的模块。
+-L 显示httpd指令的说明。
+-S 显示配置文件中的设定。
+-t 测试配置文件的语法是否正确。
+-v 显示版本信息。
+-V 显示版本信息以及建立环境。
+
+[root@server0 ~]# httpd  -t  #-t 测试 httpd配置文件的语法是否正确
+Syntax OK
+[root@server0 ~]# httpd  -v
+Server version: Apache/2.4.6 (Red Hat)
+Server built:   Mar 20 2014 07:15:44
+
+# 命令形式：$ curl -i url，访问网页并显示response信息，
+-i参数是显示response信息，
+-I参数是只显示response信息
+
+# 访问 server0.example.com 主页，并将访问内容保存到index.html中
+
+[root@server0 ~]# curl  -i  server0.example.com
+HTTP/1.1 200 OK
+Date: Thu, 21 Feb 2019 10:42:44 GMT
+Server: Apache/2.4.6 (Red Hat)
+Last-Modified: Tue, 27 Nov 2018 10:38:42 GMT
+ETag: "e-57ba30d9f9080"
+Accept-Ranges: bytes
+Content-Length: 14
+Content-Type: text/html; charset=UTF-8
+
+Default Site.     #注意网页的实际内容
+
+[root@server0 ~]# curl  -I  server0.example.com
+HTTP/1.1 200 OK
+Date: Thu, 21 Feb 2019 10:42:51 GMT
+Server: Apache/2.4.6 (Red Hat)
+Last-Modified: Tue, 27 Nov 2018 10:38:42 GMT
+ETag: "e-57ba30d9f9080"
+Accept-Ranges: bytes
+Content-Length: 14
+Content-Type: text/html; charset=UTF-8
+
+[root@server0 ~]# 
+
+============================
+------------------- ------------ 13  配置安全Web服务
+
+为站点 http://server0.example.com 配置TLS加密：
+一个已签名证书从 http://classroom.example.com/pub/tls/certs/server0.crt 获取
+此证书的密钥从 http://classroom.example.com/pub/tls/private/server0.key 获取
+此证书的签名授权信息从 http://classroom.example.com/pub/example-ca.crt 获取
+
+[root@server0 ~]# yum   -y  install   mod_ssl 
+.............
+已安装:
+  mod_ssl.x86_64 1:2.4.6-17.el7                                                            
+
+完毕！
+[root@server0 ~]# rpm   -q   mod_ssl
+mod_ssl-2.4.6-17.el7.x86_64
+
+[root@server0 ~]# ls  /etc/pki/
+CA  ca-trust  consumer  entitlement  java  nssdb  product  rpm-gpg  rsyslog  tls
+
+/*** [root@server0 ~]# ls  /etc/pki/CA/
+certs  crl  newcerts  private
+***/
+
+[root@server0 ~]# ls  /etc/pki/tls/
+cert.pem  certs  misc  openssl.cnf  private
+
+[root@server0 ~]# cd   /etc/pki/tls/certs/
+
+[root@server0 certs]# ls  
+ca-bundle.crt        localhost.crt    Makefile
+ca-bundle.trust.crt  make-dummy-cert  renew-dummy-cert
+
+  ----------------------------------------------网站 已签名证书--【营业执照】certs/server0.crt======-----
+
+[root@server0 certs]# wget  http://classroom.example.com/pub/tls/certs/server0.crt
+
+--2019-02-21 18:53:40--  http://classroom.example.com/pub/tls/certs/server0.crt
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：3505 (3.4K)
+正在保存至: “server0.crt”
+
+100%[=================================================>] 3,505       --.-K/s 用时 0s      
+
+2019-02-21 18:53:40 (406 MB/s) - 已保存 “server0.crt” [3505/3505])
+
+[root@server0 certs]# ll  server0.crt  #网站 已签名证书--【营业执照】
+-rw-r--r--. 1 root root 3505 7月  11 2014 server0.crt
+
+-------------------   #网站 已签名证书--【营业执照】 --------------------
+
+[root@server0 certs]# ll  /etc/pki/tls/certs/server0.crt 
+-rw-r--r--. 1 root root 3505 7月  11 2014 /etc/pki/tls/certs/server0.crt
+
+[root@server0 certs]# ls
+ca-bundle.crt        localhost.crt    Makefile          server0.crt
+ca-bundle.trust.crt  make-dummy-cert  renew-dummy-cert
+
+----------------------------------- -此证书的签名授权【部署根证书CA证书--公安局信息】example-ca.crt------
+
+[root@server0 certs]# wget  http://classroom.example.com/pub/example-ca.crt
+
+--2019-02-21 18:57:19--  http://classroom.example.com/pub/example-ca.crt
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：1220 (1.2K)
+正在保存至: “example-ca.crt”
+
+100%[=================================================>] 1,220       --.-K/s 用时 0s      
+
+2019-02-21 18:57:19 (183 MB/s) - 已保存 “example-ca.crt” [1220/1220])
+
+[root@server0 certs]# ll   example-ca.crt   #-此证书的签名授权【部署根证书CA证书--公安局信息】
+-rw-r--r--. 1 root root 1220 7月  11 2014 example-ca.crt
+
+------------------------- -此证书的签名授权【部署根证书CA证书--公安局信息】example-ca.crt------
+
+[root@server0 certs]# ll  /etc/pki/tls/certs/example-ca.crt 
+-rw-r--r--. 1 root root 1220 7月  11 2014 /etc/pki/tls/certs/example-ca.crt
+
+[root@server0 certs]# ls  
+ca-bundle.crt        example-ca.crt  make-dummy-cert  renew-dummy-cert
+ca-bundle.trust.crt  localhost.crt   Makefile         server0.crt
+
+[root@server0 certs]# pwd
+/etc/pki/tls/certs
+
+[root@server0 certs]# ls  /etc/pki/tls/
+cert.pem  certs  misc  openssl.cnf  private
+
+[root@server0 certs]# ls   /etc/pki/tls/private/
+localhost.key
+[root@server0 certs]# cd  /etc/pki/tls/private/
+
+[root@server0 private]# ls 
+localhost.key
+------------------------------------------------部署解密的私钥---此证书的密钥-/private/server0.key-------
+[root@server0 private]# wget   http://classroom.example.com/pub/tls/private/server0.key
+
+--2019-02-21 19:27:58--  http://classroom.example.com/pub/tls/private/server0.key
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：916
+正在保存至: “server0.key”
+
+100%[=================================================>] 916         --.-K/s 用时 0s      
+
+2019-02-21 19:27:58 (204 MB/s) - 已保存 “server0.key” [916/916])
+
+[root@server0 private]# ls
+localhost.key  server0.key
+
+[root@server0 private]# ll  /etc/pki/tls/private/server0.key  #解密的私钥---此证书的密钥文件
+-rw-r--r--. 1 root root 916 7月  11 2014 /etc/pki/tls/private/server0.key
+
+[root@server0 private]# pwd
+/etc/pki/tls/private
+
+[root@server0 private]# cd   /etc/pki/tls/certs/
+
+[root@server0 certs]# ls
+ca-bundle.crt        example-ca.crt  make-dummy-cert  renew-dummy-cert
+ca-bundle.trust.crt  localhost.crt   Makefile         server0.crt
+
+[root@server0 certs]# cd
+
+[root@server0 ~]# ls   /etc/httpd/conf.d/
+autoindex.conf  README  ssl.conf  userdir.conf  VirtualHost.conf  welcome.conf
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/ssl.conf 
+
+             ----网站 已签名证书--【营业执照】certs/server0.crt===
+100 SSLCertificateFile /etc/pki/tls/certs/server0.crt
+
+          =====此证书的签名授权【部署根证书CA证书--公安局信息】===
+123 SSLCACertificateFile /etc/pki/tls/certs/example-ca.crt
+
+                  -------------------    部署解密的私钥---此证书的密钥-------------------
+107 SSLCertificateKeyFile /etc/pki/tls/private/server0.key
+
+[root@server0 ~]# sed  -n  "100p;107p;123p"   /etc/httpd/conf.d/ssl.conf
+
+SSLCertificateFile /etc/pki/tls/certs/server0.crt  #-网站 已签名证书--【营业执照】
+SSLCertificateKeyFile /etc/pki/tls/private/server0.key #解密的私钥---此证书的密钥
+SSLCACertificateFile  /etc/pki/tls/certs/example-ca.crt #此证书的签名授权【根证书CA证书]
+
+
+[root@server0 ~]# grep   -Env  "^#|^$"   /etc/httpd/conf.d/ssl.conf
+5:Listen 443 https
+18:SSLPassPhraseDialog exec:/usr/libexec/httpd-ssl-pass-dialog
+23:SSLSessionCache         shmcb:/run/httpd/sslcache(512000)
+24:SSLSessionCacheTimeout  300
+36:SSLRandomSeed startup file:/dev/urandom  256
+37:SSLRandomSeed connect builtin
+49:SSLCryptoDevice builtin
+
+56:<VirtualHost _default_:443>
+
+64:ErrorLog logs/ssl_error_log
+65:TransferLog logs/ssl_access_log
+66:LogLevel warn
+70:SSLEngine on
+75:SSLProtocol all -SSLv2
+80:SSLCipherSuite HIGH:MEDIUM:!aNULL:!MD5
+
+100:SSLCertificateFile /etc/pki/tls/certs/server0.crt
+107:SSLCertificateKeyFile /etc/pki/tls/private/server0.key
+123:SSLCACertificateFile  /etc/pki/tls/certs/example-ca.crt
+
+175:<Files ~ "\.(cgi|shtml|phtml|php3?)$">
+176:    SSLOptions +StdEnvVars
+177:</Files>
+178:<Directory "/var/www/cgi-bin">
+179:    SSLOptions +StdEnvVars
+180:</Directory>
+206:BrowserMatch "MSIE [2-5]" \
+207:         nokeepalive ssl-unclean-shutdown \
+208:         downgrade-1.0 force-response-1.0
+213:CustomLog logs/ssl_request_log \
+214:          "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+216:</VirtualHost>   
+                               
+[root@server0 ~]# netstat  -npult  |grep httpd
+tcp6       0      0 :::80                   :::*                    LISTEN      3002/httpd          
+[root@server0 ~]# systemctl  restart  httpd  && systemctl  enable  httpd
+
+[root@server0 ~]# netstat  -npult  |grep httpd
+tcp6       0      0 :::443                  :::*                    LISTEN      4252/httpd          
+tcp6       0      0 :::80                   :::*                    LISTEN      4252/httpd          
+
+[root@server0 ~]# elinks   -dump   http://server0.example.com
+   Default Site.
+[root@server0 ~]# curl  http://server0.example.com
+Default Site.
+[root@server0 ~]# type firefox 
+firefox 是 /usr/bin/firefox
+
+[root@room9pc27 ~]#  firefox  http://server0.example.com
+Default Site.
+[root@room9pc27 ~]#  firefox  https://server0.example.com
+---------------------------------- 高级      添加例外
+ --------------------------- 确认安全
+Default Site.
+
+
+[root@desktop0 ~]# curl   http://server0.example.com
+Default Site.
+[root@desktop0 ~]# curl -i  http://server0.example.com
+HTTP/1.1 200 OK
+Date: Thu, 21 Feb 2019 12:06:18 GMT
+Server: Apache/2.4.6 (Red Hat) OpenSSL/1.0.1e-fips
+Last-Modified: Tue, 27 Nov 2018 10:38:42 GMT
+ETag: "e-57ba30d9f9080"
+Accept-Ranges: bytes
+Content-Length: 14
+Content-Type: text/html; charset=UTF-8
+
+Default Site.
+[root@desktop0 ~]# nslookup  server0.example.com
+Server:		172.25.254.254
+Address:	172.25.254.254#53
+
+Name:	server0.example.com
+Address: 172.25.0.11
+
+[root@desktop0 ~]# 
+
+====================14.配置虚拟主机====================
+-------------------------- 14 配置虚拟主机
+
+在 server0 上扩展您的 web 服务器，
+为站点 http://www0.example.com 创建一个虚拟主机，
+然后执行下述步骤：
+设置 DocumentRoot 为/var/www/virtual
+从 http://classroom.example.com/pub/materials/www.html 下载文件并
+重命名为index.html
+不要对文件 index.html 的内容进行任何修改
+
+将文件 index.html 放到虚拟主机的 DocumentRoot 目录下
+确保 fleyd 用户能够在/var/www/virtual 目录下创建文件
+注意：原始站点 http://server0.example.com 必须仍然能够访问，
+名称服务器 example.com 提供对主机名 www0.example.com 的域名解析。
+
+/********** 考试说明,请仔细阅读
+考试说明
+classroom.example.com 提供了集中认证的服务域 .example.com，两个系统 server0 和 desktop0 已经预先配置成此域的客户端，此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+ * fleyd （密码：redhat)
+ * sergio （密码：redhat)
+ * krishna （密码：redhat)
+*****/
+
+[root@server0 ~]# mkdir  /var/www/virtual
+
+[root@server0 ~]# ls  -Zd  /var/www/virtual/
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/virtual/
+
+[root@server0 ~]# useradd  fleyd
+
+[root@server0 ~]# setfacl   -m  u:fleyd:7  /var/www/virtual/
+[root@server0 ~]# getfacl   /var/www/virtual/
+getfacl: Removing leading '/' from absolute path names
+# file: var/www/virtual/
+# owner: root
+# group: root
+user::rwx
+user:fleyd:rwx
+group::r-x
+mask::rwx
+other::r-x
+
+---------- 从 http://classroom.example.com/pub/materials/www.html 下载文件并重命名为index.html 
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/www.html   -O   /var/www/virtual/index.html
+
+--2019-02-21 20:19:21--  http://classroom.example.com/pub/materials/www.html
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：14 [text/html]
+正在保存至: “/var/www/virtual/index.html”
+
+100%[===================================>] 14          --.-K/s 用时 0s      
+
+2019-02-21 20:19:21 (1000 KB/s) - 已保存 “/var/www/virtual/index.html” [14/14])
+
+[root@server0 ~]# cat   /var/www/virtual/index.html
+Virtual Site.
+
+[root@server0 ~]# ls  /etc/httpd/conf.d/
+autoindex.conf  README    userdir.conf      welcome.conf
+manual.conf     ssl.conf  VirtualHost.conf
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/VirtualHost.conf 
+[root@server0 ~]# cat   /etc/httpd/conf.d/VirtualHost.conf
+<VirtualHost  *:80>
+  ServerName    server0.example.com
+  DocumentRoot  /var/www/html/
+</VirtualHost>
+<VirtualHost  *:80>
+  ServerName    www0.example.com
+  DocumentRoot  /var/www/virtual/
+</VirtualHost>
+
+
+[root@server0 ~]# httpd  -t
+Syntax OK
+[root@server0 ~]# curl   http://www0.example.com  #注意重启httpd前后的变化
+Default Site.
+
+[root@server0 ~]# curl   http://server0.example.com
+Default Site.
+
+[root@server0 ~]# systemctl  restart  httpd
+
+[root@server0 ~]# curl   http://server0.example.com
+Default Site.
+
+[root@server0 ~]# curl   http://www0.example.com  #注意重启httpd前后的变化
+Virtual Site.
+
+[root@server0 ~]# nslookup  classroom.example.com
+Server:		172.25.254.254
+Address:	172.25.254.254#53
+
+Name:	classroom.example.com
+Address: 172.25.254.254
+
+[root@server0 ~]# type  nslookup 
+nslookup 已被哈希 (/usr/bin/nslookup)
+[root@server0 ~]# rpm  -qf   /usr/bin/nslookup 
+bind-utils-9.9.4-14.el7.x86_64
+[root@server0 ~]# 
+
+======================== 15.配置 web 内容的访问===================
+----------------------- 15  配置Web内容访问
+
+在您的 server0 web服务器的 DocumentRoot 目录下
+  创建一个名为 private 的目录，要求如下：
+从 http://classroom.example.com/pub/materials/private.html 下载
+一个文件副本到这个目录，
+并且命名为 index.html
+不要对这个文件的内容做任何修改
+从 server0 上，
+任何人都可以浏览 private 的内容，
+但是从其他系统不能访问这个目录的内容
+
+
+[root@server0 ~]# ls  /var/www/html/
+index.html
+[root@server0 ~]# ls  /var/www/
+cgi-bin  html  virtual
+[root@server0 ~]# ls  /var/www/virtual/
+index.html
+
+[root@server0 ~]# ls   /etc/httpd/conf.d/
+autoindex.conf  README    userdir.conf      welcome.conf
+manual.conf     ssl.conf  VirtualHost.conf
+
+[root@server0 ~]# cat  /etc/httpd/conf.d/VirtualHost.conf 
+<VirtualHost  *:80>
+  ServerName    server0.example.com
+  DocumentRoot  /var/www/html/
+</VirtualHost>
+<VirtualHost  *:80>
+  ServerName    www0.example.com
+  DocumentRoot  /var/www/virtual/
+</VirtualHost>
+
+[root@server0 ~]# mkdir    /var/www/html/private
+
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/private.html   -O  /var/www/html/private/index.html
+
+--2019-02-21 20:40:58--  http://classroom.example.com/pub/materials/private.html
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：14 [text/html]
+正在保存至: “/var/www/html/private/index.html”
+
+100%[===================================>] 14          --.-K/s 用时 0s      
+
+2019-02-21 20:40:58 (341 KB/s) - 已保存 “/var/www/html/private/index.html” [14/14])
+
+[root@server0 ~]# ll  /var/www/html/private/index.html
+-rw-r--r--. 1 root root 14 11月 27 18:38 /var/www/html/private/index.html
+
+[root@server0 ~]# cat   /var/www/html/private/index.html
+Private Site.
+
+[root@server0 ~]# cat   /etc/httpd/conf.d/VirtualHost.conf
+<VirtualHost  *:80>
+  ServerName    server0.example.com
+  DocumentRoot  /var/www/html/
+</VirtualHost>
+<VirtualHost  *:80>
+  ServerName    www0.example.com
+  DocumentRoot  /var/www/virtual/
+</VirtualHost>
+
+[root@server0 ~]# ls   /etc/httpd/conf.d/
+autoindex.conf  README    userdir.conf      welcome.conf
+manual.conf     ssl.conf  VirtualHost.conf
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/Directory.conf
+
+[root@server0 ~]# cat   /etc/httpd/conf.d/Directory.conf
+
+<Directory  /var/www/html/private/>
+  Require  ip  127.0.0.1  ::1  172.25.0.11
+</Directory>
+
+[root@server0 ~]# cd  /var/www/html/private/
+[root@server0 private]# httpd   -t
+Syntax OK
+[root@server0 private]# cd  /var/www/html/
+[root@server0 html]# httpd  -t
+Syntax OK
+[root@server0 html]# cd   /var/www/virtual/
+[root@server0 virtual]# httpd  -t
+Syntax OK
+[root@server0 virtual]# 
+
+[root@desktop0 ~]# yum  -y  install  elinks  
+.....
+[root@desktop0 ~]# elinks  -dump   http://server0.example.com/private
+   Private Site.
+
+[root@server0 virtual]# cd
+[root@server0 ~]# systemctl   restart  httpd  #注意重启 httpd 后 ,只能本机可以访问 private
+
+[root@server0 ~]# elinks   -dump  http://server0.example.com/private
+   Private Site.
+
+------------------------ #注意重启 httpd 后 ,从其他系统不能访问这个private目录的内容  ---------
+
+[root@desktop0 ~]# elinks  -dump   http://server0.example.com/private
+                                   Forbidden
+
+   You don't have permission to access /private on this server.
+[root@desktop0 ~]# 
+
+=================================
+----------------------------- 16.实现动态 WEB 内容
+实现动态Web内容
+
+在 server0 上配置提供动态Web内容，要求如下：
+动态内容由名为 webapp0.example.com 的虚拟主机提供
+虚拟主机侦听在端口 8909
+从 http://classroom.example.com/pub/materials/webinfo.wsgi 下载一个脚本，
+然后放在适当的位置，
+无论如何不要修改此文件的内容
+客户端访问 http://webapp0.example.com:8909 可接收到动态生成的 Web 页
+此 http://webapp0.example.com:8909/必须能
+被 example.com 域内的所有系统访问
+
+/(((***********
+mod_wsgi的目标是 一个简单的Apache模块，
+支持任何Python WSGI的接口的Python应用程序的托管。
+该模块适用于高性能生产的WEB站点，
+同时也适用于自己维护站点的WEB 服务托管
+
+mod_wsgi软件包
+  可以编译和使用任何的Apache 1.3 ，
+ 2.0或2.2 UNIX系统（包括Linux ），以及Windows操作系统
+
+[root@server0 ~]# httpd  -v
+Server version: Apache/2.4.6 (Red Hat)
+Server built:   Mar 20 2014 07:15:44
+
+************/
+
+
+[root@server0 ~]# mkdir   /var/www/webapp0
+
+[root@server0 ~]# ls  /var/www/
+
+cgi-bin  html  virtual  webapp0
+
+[root@server0 ~]# yum  -y  install  mod_wsgi
+
+[root@server0 ~]# rpm   -q   mod_wsgi
+mod_wsgi-3.4-11.el7.x86_64
+
+[root@server0 ~]# rpm  -ql  mod_wsgi
+/etc/httpd/conf.modules.d/10-wsgi.conf
+/usr/lib64/httpd/modules/mod_wsgi.so
+/usr/share/doc/mod_wsgi-3.4
+/usr/share/doc/mod_wsgi-3.4/LICENCE
+/usr/share/doc/mod_wsgi-3.4/README
+
+[root@server0 ~]# wget   http://classroom.example.com/pub/materials/webinfo.wsgi  -O   /var/www/webapp0/webinfo.wsgi
+
+--2019-02-21 21:16:05--  http://classroom.example.com/pub/materials/webinfo.wsgi
+正在解析主机 classroom.example.com (classroom.example.com)... 172.25.254.254
+正在连接 classroom.example.com (classroom.example.com)|172.25.254.254|:80... 已连接。
+已发出 HTTP 请求，正在等待回应... 200 OK
+长度：397
+正在保存至: “/var/www/webapp0/webinfo.wsgi”
+
+100%[===================================>] 397         --.-K/s 用时 0s      
+
+2019-02-21 21:16:05 (30.2 MB/s) - 已保存 “/var/www/webapp0/webinfo.wsgi” [397/397])
+
+[root@server0 ~]# file   /var/www/webapp0/webinfo.wsgi 
+/var/www/webapp0/webinfo.wsgi: Python script, ASCII text executable
+
+[root@server0 ~]# cat   /var/www/webapp0/webinfo.wsgi
+
+#!/usr/bin/env python
+import time
+
+def application (environ, start_response):
+  response_body = 'UNIX EPOCH time is now: %s\n' % time.time()
+  status = '200 OK'
+  response_headers = [('Content-Type', 'text/plain'),
+                      ('Content-Length', '1'),
+                      ('Content-Length', str(len(response_body)))]
+  start_response(status, response_headers)
+  return [response_body]
+
+[root@server0 ~]# ll  /var/www/webapp0/webinfo.wsgi
+-rw-r--r--. 1 root root 397 11月 27 18:38 /var/www/webapp0/webinfo.wsgi
+
+[root@server0 ~]# ls  /etc/httpd/conf.d/
+autoindex.conf  manual.conf  ssl.conf      VirtualHost.conf
+Directory.conf  README       userdir.conf  welcome.conf
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/VirtualHost.conf 
+
+[root@server0 ~]# cat   /etc/httpd/conf.d/VirtualHost.conf
+<VirtualHost  *:80>
+  ServerName    server0.example.com
+  DocumentRoot  /var/www/html/
+</VirtualHost>
+<VirtualHost  *:80>
+  ServerName    www0.example.com
+  DocumentRoot  /var/www/virtual/
+</VirtualHost>
+Listen  8909
+<VirtualHost  *:8909>
+  ServerName     webapp0.example.com
+  DocumentRoot   /var/www/webapp0/
+  WSGIScriptAlias /  /var/www/webapp0/webinfo.wsgi
+</VirtualHost>
+
+[root@server0 ~]# httpd   -t
+Syntax OK
+[root@server0 ~]# semanage   port  -l  |grep  http_port
+http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
+pegasus_http_port_t            tcp      5988
 
 
 
@@ -3676,8 +4408,29 @@ trusted
 
 
 
- 天河客运站  上车
-b11路   22站
-员村四横路口站 下车  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
