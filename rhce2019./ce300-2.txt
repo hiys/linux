@@ -3647,6 +3647,94 @@ drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /chcondirtest
 [root@desktop0 ~]# ls  -Zd   /chcondirtest/
 drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /chcondirtest/
 
+
+[root@localhost ~]# ls -dZ /web  ##查看目录的SELinux属性
+
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /web
+
+[root@localhost ~]# ls -lZ /web/   ##查看目录下文件的SELinux属性
+
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file1
+
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 file2
+
+[root@localhost ~]# chcon -R -t httpd_sys_content_t /web/    ##临时修改目录的SELinux属性为httpd_sys_content_t
+
+[root@server0 ~]# type  semanage
+semanage 是 /usr/sbin/semanage
+[root@server0 ~]# rpm   -qf   /usr/sbin/semanage
+policycoreutils-python-2.2.5-11.el7.x86_64
+
+
+[root@localhost tmp]# yum install policycoreutils-python  ##安装semanage管理工具提供软件
+
+[root@localhost tmp]# semanage fcontext -a -t samba_share_t /tmp/test.file  ##将测试文件的selinux属性设置为“samba_share_t”
+
+[root@localhost tmp]# ls -Z /tmp/test.file   ##测试文件的selinux属性未发生变化
+
+-rw-r--r--. root root unconfined_u:object_r:user_tmp_t:s0 /tmp/test.file
+
+恢复文件SELinux上下文信息
+可以使用restorecon(restore context)命令来恢复某文件或文件夹的SELinux配置信息
+
+[root@localhost tmp]# restorecon -v /tmp/test.file    ##使semanage设置的selinux属性永久的生效
+
+restorecon reset /tmp/test.file context unconfined_u:object_r:user_tmp_t:s0->unconfined_u:object_r:samba_share_t:s0
+
+[root@localhost tmp]# ls -Z /tmp/test.file   ##测试文件的selinux属性已改
+
+-rw-r--r--. root root unconfined_u:object_r:samba_share_t:s0 /tmp/test.file
+
+通过restorecon或者chcon命令修复文件上下文信息
+
+命令restorecon可用来恢复文件默认的上下文： 
+restorecon -R -v /var/www/html/index.html 
+//-R 表示递归，如果是目录，则该目录下的所有子目录、文件都会得到修复
+
+命令chcon可以改变文件的上下文信息，
+通常使用一个参照文件来进行修改：
+chcon --reference=/var/www/html/index.html /var/www/html/test.html
+
+[root@server0 ~]# ls  -Z  /var/www/html/index.html 
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/index.html
+[root@server0 ~]# ls  -Zd  /var/www/html/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+
+
+unconfined_u:object_r:httpd_sys_content_t:s0
+system_u    :object_r:httpd_sys_content_t:s0
+system_u    :object_r:admin_home_t       :s0
+      用户     :   角色    : SELinux配置信息属性 : 与MLS、MCS相关的东西
+这条语句通过：划分成四段
+第一段system_u代表的是用户，
+第二段object_r表示的是角色，
+第三段是SELinux中最重要的信息，admin_home表示的是类型，
+最后一段 s0 是跟MLS、MCS相关的东西。 
+① system_u 指SElinux用户：
+root表示root账户身份，
+user_u表示普通用户无特权用户，
+system_u表示系统进程，通过用户可以确认身份类型，一般搭配角色使用。
+身份和不同的角色搭配时有权限不同。
+虽然可以使用su命令切换用户，
+但对于SElinux用户并没有发生改变，
+账户之间切换时此用户身份不变，
+在targeted策略环境下用户标识没有实质性作用。
+
+② object_r object_r一般为文件目录的角色、
+  system_r一般为进程的角色，
+在targeted策略环境中用户的角色一般为system_r。
+用户角色类似用户组的概念，
+不同的角色具有不同的身份权限，
+一个用户可以具备多个角色，
+但是同一时间只能使用一个角色。
+在targeted策略环境下角色没有实质作用，
+在targeted策略环境中所有的进程文件的角色都是system_r角色。
+
+③admin_home 文件和进程都有一个类型，SElinux依据类型的相关组合限制存取权限。 
+
+
+
+
  semanage命令  是用来查询与修改SELinux默认目录的安全上下文
 # semanage {login|user|port|interface|fcontext|translation} -l 
 
@@ -3666,8 +3754,21 @@ IOError: [Errno 32] Broken pipe 破管
 /var/www/icons(/.*)?        all files    system_u:object_r:httpd_sys_content_t:s0 
 /var/www/svn/conf(/.*)?     all files    system_u:object_r:httpd_sys_content_t:s0 
 
+  假设希望 Apache 使用 /srv/www 作为网站文件目录，
+那么就需要给这个目录下的文件增加 httpdsyscontent_t 标签，
+分两步实现。
+    首先为 /srv/www 这个目录下的文件添加默认标签类型：
+ semanage fcontext -a -t httpd_sys_content_t '/srv/www(/.*)?'
+    然后用新的标签类型标注已有文件：
+ restorecon -Rv /srv/www 之后 Apache 就可以使用该目录下的文件构建网站了。
+
 
 --------------------------- 是否允许http用户访问其家目录，默认是不允许
+  若是希望用户可以通过在 ~/public_html/ 放置文件的方式创建自己的个人网站的话，
+那么需要在 Apache 策略中允许该操作执行
+ setsebool  httpd_enable_homedirs  on
+
+
 [root@desktop0 ~]# getsebool   -a  |grep httpd_enable_homedirs
 httpd_enable_homedirs --> off
 [root@desktop0 ~]# setsebool  httpd_enable_homedirs  on
@@ -4395,23 +4496,1402 @@ Listen  8909
 
 [root@server0 ~]# httpd   -t
 Syntax OK
-[root@server0 ~]# semanage   port  -l  |grep  http_port
+
+
+ semanage命令  是用来查询与修改SELinux默认目录的安全上下文
+# semanage {login|user|port|interface|fcontext|translation} -l 
+
+# semanage  fcontext  -l：查询。 
+fcontext：主要用在安全上下文方面。 
+-a：增加，你可以增加一些目录的默认安全上下文类型设置。 
+-m：修改。 
+-d：删除。
+
+-n：不打印说明头
+-D：全部删除
+-f：文件
+-s：用户
+-t：类型
+-r：角色 
+
+管理网络端口类型定义
+semanage port [-S store] -{a|d|m|l|n|D} [-tr] [-p proto] port | port_range
+
+]# semanage port -a -t http_port_t -p tcp 8909  //开启非标准端口
+apache采用非标准端口，需执行如下命令：
+ # emanage port -a -t http_port_t -p tcp port_number
+
+  //新建一条规则，指定/web目录及其下的所有文件的扩展属性为httpd_sys_content_t 
+  # semanage fcontext -a -t httpd_sys_content_t "/web(/.*)?"    
+
+/** ~]# semanage fcontext -l |grep "/var/www/" |grep  httpd_sys_content_t
+
+/var/www/icons(/.*)?        all files    system_u:object_r:httpd_sys_content_t:s0 
+/var/www/svn/conf(/.*)?     all files    system_u:object_r:httpd_sys_content_t:s0 
+
+  假设希望 Apache 使用 /srv/www 作为网站文件目录，
+那么就需要给这个目录下的文件增加 httpdsyscontent_t 标签，
+分两步实现。
+    首先为 /srv/www 这个目录下的文件添加默认标签类型：
+ semanage fcontext -a -t httpd_sys_content_t '/srv/www(/.*)?'
+    然后用新的标签类型标注已有文件：
+ restorecon -Rv /srv/www 之后 Apache 就可以使用该目录下的文件构建网站了。
+
+unconfined_u:object_r:httpd_sys_content_t:s0
+system_u    :object_r:httpd_sys_content_t:s0
+system_u    :object_r:admin_home_t       :s0
+  用户  :   角色    : SELinux配置信息属性(安全上下文值类型) : 与MLS、MCS相关的东西
+
+[root@server0 ~]# type  semanage
+semanage 是 /usr/sbin/semanage
+[root@server0 ~]# rpm   -qf   /usr/sbin/semanage
+policycoreutils-python-2.2.5-11.el7.x86_64
+
+[root@server0 ~]# semanage   port  -l  |grep  http_port  #查看当前允许的httpd端口
 http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
 pegasus_http_port_t            tcp      5988
 
+ semanage命令  是用来查询与修改SELinux默认目录的安全上下文
+# semanage {login|user|port|interface|fcontext|translation} -l 
+
+# semanage  fcontext  -l：查询。 
+fcontext：主要用在安全上下文方面。 
+-a：增加，你可以增加一些目录的默认安全上下文类型设置。 
+-m：修改。 
+-d：删除。
+-n：不打印说明头
+-D：全部删除
+-f：文件
+-s：用户
+-t：类型
+-r：角色 
+
+----- # semanage port -a -t http_port_t -p tcp 8909  //开启非标准端口
+[root@server0 ~]# semanage  port  -a  -t  http_port_t  -p  tcp  8909
+
+[root@server0 ~]# semanage  port  -l  |grep http_port
+http_port_t                    tcp      8909, 80, 81, 443, 488, 8008, 8009, 8443, 9000
+pegasus_http_port_t            tcp      5988
+
+[root@server0 ~]# systemctl  is-enabled  httpd
+enabled
+[root@server0 ~]# systemctl  restart  httpd
+[root@server0 ~]# systemctl  is-active  httpd
+active
+[root@server0 ~]# netstat  -npult |grep  http
+tcp6       0      0 :::443         :::*        LISTEN      3470/httpd 
+tcp6       0      0 :::8909        :::*        LISTEN      3470/httpd 
+tcp6       0      0 :::80          :::*        LISTEN      3470/httpd
+
+[root@server0 ~]# elinks   -dump  webapp0.example.com
+   Default Site.
+[root@server0 ~]# elinks   -dump  webapp0.example.com:8909
+   UNIX EPOCH time is now: 1550812381.47
+
+
+=========================
+------------------------- 17  创建一个脚本
+
+在 server0 上创建一个名为/root/foo.sh 的脚本，让其提供下列特性：
+当运行/root/foo.sh redhat，输出为 fedora
+当运行/root/foo.sh fedora，输出为 redhat
+当没有任何参数或者参数不是 redhat 或者 fedora 时，
+其错误输出产生以下的信息：/root/foo.sh redhat|fedora
+
+
+[root@server0 ~]# vim  /root/foo.sh
+[root@server0 ~]# cat  /root/foo.sh
+#!/bin/bash
+if [ $# -eq 0 ];then
+  echo  '/root/foo.sh redhat|fedora' >&2
+  exit  1
+else
+  if [ $1 == redhat ];then
+    echo  fedora
+    exit 0
+  elif [ $1 == fedora ];then
+    echo  redhat
+    exit  0
+  else
+    echo '/root/foo.sh redhat|fedora' >&2
+    exit 2
+  fi
+fi
+[root@server0 ~]# chmod  +x  /root/foo.sh
+[root@server0 ~]# ll  /root/foo.sh
+-rwxr-xr-x. 1 root root 270 2月  22 13:28 /root/foo.sh
+
+[root@server0 ~]# /root/foo.sh  redhat
+fedora
+[root@server0 ~]# /root/foo.sh  fedora
+redhat
+[root@server0 ~]# echo  $?
+0
+
+[root@server0 ~]# /root/foo.sh
+/root/foo.sh redhat|fedora
+[root@server0 ~]# echo  $?
+1
+
+[root@server0 ~]# /root/foo.sh  xx xx
+/root/foo.sh redhat|fedora
+[root@server0 ~]# echo  $?
+2
+
+==========================
+----------------------------------- 18 创建一个添加用户的脚本
+
+在 server0 上创建一个脚本，名为/root/batchusers，
+此脚本能实现为系统 server0 创建本地用户，
+并且这些用户的用户名来自一个包含用户名的文件，
+同时满足下列要求：
+此脚本要求提供一个参数，此参数就是包含用户名列表的文件
+
+如果没有提供参数，
+此脚本应该给出下面的提示信息 Usage: /root/batchusers <userfile> 
+然后退出并返回相应的值
+
+如果提供一个不存在的文件名，
+此脚本应该给出下面的提示信息 Input file not found 
+然后退出并返回相应的值
+
+创建的用户登陆Shell为/bin/false，
+此脚本不需要为用户设置密码
+您可以从下面的 URL 获取用户名列表作为测试用：
+http://classroom.example.com/pub/materials/userlist
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/userlist
+.............
+正在保存至: “userlist”
+
+100%[========================================>] 27          --.-K/s 用时 0s      
+
+2019-02-22 13:33:30 (1.08 MB/s) - 已保存 “userlist” [27/27])
+
+[root@server0 ~]# ll   userlist 
+-rw-r--r--. 1 root root 27 11月 27 18:38 userlist
+
+[root@server0 ~]# 
+batch  n. 一批;一炉;（食物、药物等的）一批生产的量;成批作业
+
+[root@server0 ~]# vim  /root/batchusers
+[root@server0 ~]# cat   /root/batchusers
+#!/bin/bash
+if [ $#  -eq 0 ];then
+  echo "Usage: /root/batchusers <userfile>" >&2  #注意 把 >&2 去掉
+  exit 1
+else
+  if [ ! -f $1 ];then
+    echo "Input file not found" >&2  #注意 把 >&2 去掉
+    exit 2
+  else
+    for  name in  $(cat  $1);do
+      useradd  -s  /bin/false   $name
+    done
+    exit  0
+  fi
+fi
+[root@server0 ~]# chmod  a+x  /root/batchusers
+[root@server0 ~]# ll  /root/batchusers
+-rwxr-xr-x. 1 root root 271 2月  22 13:46 /root/batchusers
+[root@server0 ~]# cat  /root/userlist 
+duanwu
+zhongqiu
+zhsan
+lisi
+[root@server0 ~]# id  lisi
+id: lisi: no such user
+[root@server0 ~]# id  duanwu
+id: duanwu: no such user
+
+[root@server0 ~]# /root/batchusers   notfoundfile
+Input file not found
+[root@server0 ~]# echo  $?
+2
+[root@server0 ~]# /root/batchusers 
+Usage: /root/batchusers <userfile>
+[root@server0 ~]# echo  $?
+1
+[root@server0 ~]# /root/batchusers   /root/userlist 
+[root@server0 ~]# echo  $?
+0
+[root@server0 ~]# id  duanwu
+uid=1005(duanwu) gid=1005(duanwu) 组=1005(duanwu)
+[root@server0 ~]# id  lisi
+uid=1008(lisi) gid=1008(lisi) 组=1008(lisi)
+[root@server0 ~]# grep  -n lisi   /etc/passwd
+48:lisi:x:1008:1008::/home/lisi:/bin/false
+
+[root@server0 ~]# 
+
+/*******************
+[root@server0 ~]# echo   $SHELL  #确认自己使用的是哪种shell
+/bin/bash
+
+shell类型有多种：
+sh： 
+burne shell (sh) 
+burne again shell (bash) 
+csh： 
+c shell (csh) 
+tc shell (tcsh) 
+korn shell (ksh) 
+如果用户登录之后 
+UNIX显示提示 符为$，那么所使用的是B Shell。
+若显示为％提示符，则为 C Shell
+
+[root@server0 ~]# echo   $USER
+root
+[root@server0 ~]# cat  /etc/shells 
+/bin/sh
+/bin/bash
+/sbin/nologin
+/usr/bin/sh
+/usr/bin/bash
+/usr/sbin/nologin
+/bin/tcsh
+/bin/csh
+[root@server0 ~]# rpm  -qf /bin/false
+coreutils-8.22-11.el7.x86_64
+[root@server0 ~]# echo $0  #确认自己使用的是哪种shell
+-bash
+[root@server0 ~]# env  |grep -i shell
+SHELL=/bin/bash
+[root@server0 ~]# 
+[root@server0 ~]# ll  /etc/profile
+-rw-r--r--. 1 root root 1750 6月   7 2013 /etc/profile
+[root@server0 ~]# tail  -4  /etc/profile
+done
+
+unset i
+unset -f pathmunge
+
+[root@server0 ~]# grep  -Env  "^#|^$"  /etc/profile  |head  -12
+11:pathmunge () {
+12:    case ":${PATH}:" in
+13:        *:"$1":*)
+14:            ;;
+15:        *)
+16:            if [ "$2" = "after" ] ; then
+17:                PATH=$PATH:$1
+18:            else
+19:                PATH=$1:$PATH
+20:            fi
+21:    esac
+22:}
+[root@server0 ~]# 
+[root@room9pc27 ~]# tail  -2  /etc/bashrc
+/usr/sbin/ifconfig rhce:0 172.25.0.250
+echo 1 | passwd --stdin root &> /dev/null
+
+[root@room9pc27 ~]# tail  -2  /etc/profile
+unset -f pathmunge
+/bin/uftpd -D /public
+
+# echo 'export PATH=/usr/local/nginx/sbin/:$PATH' >>/etc/profile;
+
+[root@room9pc27 ~]# grep  -ni path  /etc/profile
+11:pathmunge () {
+12:    case ":${PATH}:" in
+17:                PATH=$PATH:$1
+19:                PATH=$1:$PATH
+36:# Path manipulation
+38:    pathmunge /usr/sbin
+39:    pathmunge /usr/local/sbin
+41:    pathmunge /usr/local/sbin after
+42:    pathmunge /usr/sbin after
+53:export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL
+76:unset -f pathmunge
+[root@room9pc27 ~]# 
+echo 'export PATH=/usr/local/nginx/sbin/:$PATH' >>/etc/profile;
+
+
+[root@server0 ~]# ll  .bash_profile 
+-rw-r--r--. 1 root root 176 12月 29 2013 .bash_profile
+
+[root@server0 ~]# grep  -Env  "^#|^$"  .bash_profile
+4:if [ -f ~/.bashrc ]; then
+5:	. ~/.bashrc
+6:fi
+10:PATH=$PATH:$HOME/bin
+12:export PATH
+[root@server0 ~]# 
+
+ ~/.bash_profile:仅会对当前用户有效;
+每个用户都可使用该文件输入专用于自己使用的shell信息,当用户登录时,该文件仅仅执行一次
+
+编辑yumh用户目录(/home/yumh)下的.bash_profile
+ $ vim /home/yumh/.bash_profile
+ 添加如下内容:
+ export CLASSPATH=./JAVA_HOME/lib;$JAVA_HOME/jre/lib
+ 修改后需要执行重新登录才能生效，也可以执行命令source /etc/profile来生效
+
+[root@server0 ~]# head  -2  /etc/bashrc
+# /etc/bashrc
+alias  qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+~/.bashrc:仅会对当前用户有效;
+该文件包含专用于你的bash shell的bash信息,当登录时以及每次打开新的shell时,该该文件被读取
+ 另外，~/.bashrc等中设定的变量(局部)只能继承/etc/profile中的变量,他们是"父子"关系
+
+==========================
+
+===============================
+----------------------------------- 19. 配置 iSCSI 服务端
+配置 server0 提供一个 iSCSI 服务，
+磁盘名为 iqn.2016-02.com.example:server0，并符合下列要求：
+服务端口为 3260
+使用 iscsi_store 作其后端卷，其大小为 3GiB
+此服务只能被 desktop0.example.com 访问
+
+
+[root@server0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+[root@server0 ~]# blkid   /dev/vdb
+[root@server0 ~]# fdisk   /dev/vdb
+欢迎使用 fdisk (util-linux 2.23.2)。
+
+更改将停留在内存中，直到您决定将更改写入磁盘。
+使用写入命令前请三思。
+
+Device does not contain a recognized partition table
+使用磁盘标识符 0xeae54385 创建新的 DOS 磁盘标签。
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended
+Select (default p): e
+分区号 (1-4，默认 1)：4
+起始 扇区 (2048-20971519，默认为 2048)：
+将使用默认值 2048
+Last 扇区, +扇区 or +size{K,M,G} (2048-20971519，默认为 20971519)：+3G
+分区 4 已设置为 Extended 类型，大小设为 3 GiB
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 1 extended, 3 free)
+   l   logical (numbered from 5)
+Select (default p): l
+添加逻辑分区 5
+起始 扇区 (4096-6293503，默认为 4096)：
+将使用默认值 4096
+Last 扇区, +扇区 or +size{K,M,G} (4096-6293503，默认为 6293503)：
+将使用默认值 6293503
+分区 5 已设置为 Linux 类型，大小设为 3 GiB
+
+命令(输入 m 获取帮助)：p
+
+磁盘 /dev/vdb：10.7 GB, 10737418240 字节，20971520 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+磁盘标签类型：dos
+磁盘标识符：0xeae54385
+
+   设备 Boot      Start         End      Blocks   Id  System
+/dev/vdb4            2048     6293503     3145728    5  Extended
+/dev/vdb5            4096     6293503     3144704   83  Linux
+
+命令(输入 m 获取帮助)：w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+正在同步磁盘。
+[root@server0 ~]# partprobe  /dev/vdb  # 刷新分区表
+[root@server0 ~]# lsblk  
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+├─vdb4 253:20   0   1K  0 part 
+└─vdb5 253:21   0   3G  0 part 
+
+[root@server0 ~]# blkid   /dev/vdb
+/dev/vdb: PTTYPE="dos" 
+[root@server0 ~]# yum  -y install  targetcli
+................
+已安装:
+  targetcli.noarch 0:2.1.fb34-1.el7                                   
+
+作为依赖被安装:
+  pyparsing.noarch 0:1.5.6-9.el7                                      
+  python-configshell.noarch 1:1.1.fb11-3.el7                          
+  python-kmod.x86_64 0:0.9-4.el7                                      
+  python-rtslib.noarch 0:2.1.fb46-1.el7                               
+  python-urwid.x86_64 0:1.1.1-3.el7                                   
+
+完毕！
+[root@server0 ~]# rpm   -q  targetcli
+targetcli-2.1.fb34-1.el7.noarch
+
+
+[root@server0 ~]# targetcli 
+Warning: Could not load preferences file /root/.targetcli/prefs.bin.
+targetcli shell version 2.1.fb34
+Copyright 2011-2013 by Datera, Inc and others.
+For help on commands, type 'help'.
+
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 0]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 0]
+  o- loopback ........................................... [Targets: 0]
+
+------------ 一个木箱子 可以 存储  多个 纸箱子 ----------------------
+------------ # [ 1 ]先 创建后端存储 (纸箱子)  使用 iscsi_store 作其后端卷，其大小为 3GiB -----------
+
+/> backstores/block  create  name=iscsi_store  dev=/dev/vdb5
+Created block storage object iscsi_store using /dev/vdb5.
+
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 1]
+  | | o- iscsi_store ..... [/dev/vdb5 (3.0GiB) write-thru deactivated]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 0]
+  o- loopback ........................................... [Targets: 0]
+
+------------------ # [ 2 ] 后 创建iqn对象 (木箱子)磁盘名为 iqn.2016-02.com.example:server0 ----------
+
+/> iscsi/  create  iqn.2016-02.com.example:server0
+Created target iqn.2016-02.com.example:server0.
+Created TPG 1.
+
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 1]
+  | | o- iscsi_store ..... [/dev/vdb5 (3.0GiB) write-thru deactivated]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 1]
+  | o- iqn.2016-02.com.example:server0 ..................... [TPGs: 1]
+  |   o- tpg1 ................................. [no-gen-acls, no-auth]
+  |     o- acls ............................................ [ACLs: 0]
+  |     o- luns ............................................ [LUNs: 0]
+  |     o- portals ...................................... [Portals: 0]
+  o- loopback ........................................... [Targets: 0]
+/> 
+
+      ------------ 一个木箱子 可以 存储  多个 纸箱子 ----------------------
+  ------- [ 3 ]  将 纸箱子(纸箱子iscsi_store 后端卷)   装进   木箱子iqn对象 (木箱子)  -------------
+--- #将iqn对象iqn.2016-02.com.example:server0 与后端存储 /backstores/block/iscsi_store 绑定 ----
+
+/> iscsi/iqn.2016-02.com.example:server0/tpg1/luns   create   /backstores/block/iscsi_store 
+
+Created LUN 0.
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 1]
+  | | o- iscsi_store ....... [/dev/vdb5 (3.0GiB) write-thru activated]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 1]
+  | o- iqn.2016-02.com.example:server0 ..................... [TPGs: 1]
+  |   o- tpg1 ................................. [no-gen-acls, no-auth]
+  |     o- acls ............................................ [ACLs: 0]
+  |     o- luns ............................................ [LUNs: 1]
+  |     | o- lun0 .................... [block/iscsi_store (/dev/vdb5)]
+  |     o- portals ...................................... [Portals: 0]
+  o- loopback ........................................... [Targets: 0]
+/> 
 
 
 
 
+---------  # [ 4 ] 设置客户端的iqn 授权客户机访问  ----------------------------------------
+         ------------ 此服务只能被 desktop0.example.com 访问 -------------
+/> iscsi/iqn.2016-02.com.example:server0/tpg1/acls  create  iqn.2016-02.com.example:desktop0
+
+Created Node ACL for iqn.2016-02.com.example:desktop0
+Created mapped LUN 0.
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 1]
+  | | o- iscsi_store ....... [/dev/vdb5 (3.0GiB) write-thru activated]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 1]
+  | o- iqn.2016-02.com.example:server0 ..................... [TPGs: 1]
+  |   o- tpg1 ................................. [no-gen-acls, no-auth]
+  |     o- acls ............................................ [ACLs: 1]
+  |     | o- iqn.2016-02.com.example:desktop0 ....... [Mapped LUNs: 1]
+  |     |   o- mapped_lun0 ............. [lun0 block/iscsi_store (rw)]
+  |     o- luns ............................................ [LUNs: 1]
+  |     | o- lun0 .................... [block/iscsi_store (/dev/vdb5)]
+  |     o- portals ...................................... [Portals: 0]
+  o- loopback ........................................... [Targets: 0]
+/> 
+
+iSCSI节点名称有两种格式，即 iqn-type 格式和 eui-type 格式。
+iqn-type的格式为:
+iqn.yyyy-mm.backward_naming_authority:unique_device_name
+
+iSCSI target设备名称 
+iSCSI target名称必须是全球唯一的，其格式为： 
+iqn.< yyyy-mm >.< tld.domain.some.host > [:< identifier >] 
+iqn.< 年份-月份 >.< 域名反写 > [: < 设备识别;可以是任意字符串 >] 
+iSCSI target名称必须是以iqn开头的 
+
+在Linux上的格式为:
+iqn.1987-05.com.cisco:RandomNumber
+iqn.2016-02.com.example:desktop0
+通常我们可以把RandomNumber更改为具有意义的名称如主机名称等
+
+
+--------------------------------  [ 5 ]  #开启本地监听的IP地址与端口 -----------------------
+
+/> iscsi/iqn.2016-02.com.example:server0/tpg1/portals  create  172.25.0.11  3260
+
+Using default IP port 3260
+Created network portal 172.25.0.11:3260.
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 1]
+  | | o- iscsi_store ....... [/dev/vdb5 (3.0GiB) write-thru activated]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 1]
+  | o- iqn.2016-02.com.example:server0 ..................... [TPGs: 1]
+  |   o- tpg1 ................................. [no-gen-acls, no-auth]
+  |     o- acls ............................................ [ACLs: 1]
+  |     | o- iqn.2016-02.com.example:desktop0 ....... [Mapped LUNs: 1]
+  |     |   o- mapped_lun0 ............. [lun0 block/iscsi_store (rw)]
+  |     o- luns ............................................ [LUNs: 1]
+  |     | o- lun0 .................... [block/iscsi_store (/dev/vdb5)]
+  |     o- portals ...................................... [Portals: 1]
+  |       o- 172.25.0.11:3260 ................................... [OK]
+  o- loopback ........................................... [Targets: 0]
+
+/> saveconfig   #保存配置结果(缺省)
+Last 10 configs saved in /etc/target/backup.
+Configuration saved to /etc/target/saveconfig.json
+
+/> exit
+Global pref auto_save_on_exit=true
+Last 10 configs saved in /etc/target/backup.
+Configuration saved to /etc/target/saveconfig.json
+
+[root@server0 ~]# targetcli   ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- block .................................... [Storage Objects: 1]
+  | | o- iscsi_store ....... [/dev/vdb5 (3.0GiB) write-thru activated]
+  | o- fileio ................................... [Storage Objects: 0]
+  | o- pscsi .................................... [Storage Objects: 0]
+  | o- ramdisk .................................. [Storage Objects: 0]
+  o- iscsi .............................................. [Targets: 1]
+  | o- iqn.2016-02.com.example:server0 ..................... [TPGs: 1]
+  |   o- tpg1 ................................. [no-gen-acls, no-auth]
+  |     o- acls ............................................ [ACLs: 1]
+  |     | o- iqn.2016-02.com.example:desktop0 ....... [Mapped LUNs: 1]
+  |     |   o- mapped_lun0 ............. [lun0 block/iscsi_store (rw)]
+  |     o- luns ............................................ [LUNs: 1]
+  |     | o- lun0 .................... [block/iscsi_store (/dev/vdb5)]
+  |     o- portals ...................................... [Portals: 1]
+  |       o- 172.25.0.11:3260 ................................... [OK]
+  o- loopback ........................................... [Targets: 0]
+
+[root@server0 ~]# systemctl  restart  target  && systemctl  enable  target
+
+ln -s '/usr/lib/systemd/system/target.service' '/etc/systemd/system/multi-user.target.wants/target.service'
+
+[root@server0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+├─vdb4 253:20   0   1K  0 part 
+└─vdb5 253:21   0   3G  0 part 
+
+
+==================================
+-------------------- 20 . 配置iSCSI客户端
+配置 desktop0 使其能连接 server0 上提供的 iqn.2016-02.com.example:server0 ，
+并符合以下要求：
+iSCSI设备在系统启动的期间自动加载
+块设备iSCSI上包含一个大小为 2100MiB 的分区，并格式化为ext4文件系统
+此分区挂载在 /mnt/data 上，同时在系统启动的期间自动挂载 
+
+
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+
+[root@desktop0 ~]# yum  list |grep  ^iscsi-ini
+iscsi-initiator-utils.x86_64             6.2.0.873-21.el7              @rhel_dvd
+iscsi-initiator-utils-iscsiuio.x86_64    6.2.0.873-21.el7              @rhel_dvd
+iscsi-initiator-utils.i686               6.2.0.873-21.el7              rhel_dvd 
+
+[root@desktop0 ~]# rpm  -qa  |grep   ^iscsi-ini
+iscsi-initiator-utils-iscsiuio-6.2.0.873-21.el7.x86_64
+iscsi-initiator-utils-6.2.0.873-21.el7.x86_64
+
+[root@desktop0 ~]# yum   -y  install  iscsi-initiator-utils  iscsi-initiator-utils.i686 
+...........
+  xz-libs.i686 0:5.1.2-8alpha.el7                                     
+  zlib.i686 0:1.2.7-13.el7                                            
+
+完毕！
+[root@desktop0 ~]# rpm  -qa  |grep   ^iscsi-iniiscsi-initiator-utils-iscsiuio-6.2.0.873-21.el7.x86_64
+iscsi-initiator-utils-6.2.0.873-21.el7.i686
+iscsi-initiator-utils-6.2.0.873-21.el7.x86_64
+
+[root@desktop0 ~]# ls  /etc/iscsi/
+initiatorname.iscsi  iscsid.conf
+
+[root@desktop0 ~]# vim   /etc/iscsi/initiatorname.iscsi 
+
+[root@desktop0 ~]# cat   /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2016-02.com.example:desktop0
+[root@desktop0 ~]# systemctl  is-active  iscsid
+inactive
+[root@desktop0 ~]# systemctl  start  iscsid  # 启动 iscsid 服务以读取 iqn 名称(刷新 iqn标识)
+
+Warning: Unit file of iscsid.service changed on disk, 'systemctl daemon-reload' recommended.
+警告：磁盘上iscsid.service的单元文件已更改，建议“systemctl守护进程重新加载”
+
+--- # 对于新创建的unit文件或，修改了的unit文件，要通知systemd重载此配置文件
+
+[root@desktop0 ~]# systemctl  daemon-reload  #守护进程重新加载
+
+[root@desktop0 ~]# systemctl  restart  iscsid # 启动 iscsid 服务以读取 iqn 名称
+
+[root@desktop0 ~]# systemctl  enable  iscsid
+
+ln -s '/usr/lib/systemd/system/iscsid.service' '/etc/systemd/system/multi-user.target.wants/iscsid.service'
+
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+[root@desktop0 ~]# 
+[root@desktop0 ~]# find  /  -type  f   -name "*iscsid*"  
+/run/iscsid.pid
+/etc/iscsi/iscsid.conf
+/usr/sbin/iscsid
+/usr/lib/systemd/system/iscsid.socket
+/usr/lib/systemd/system/iscsid.service
+/usr/share/man/man8/iscsid.8.gz
+
+[root@desktop0 ~]# type iscsiadm
+iscsiadm 是 /usr/sbin/iscsiadm
+[root@desktop0 ~]# man  iscsiadm
+
+       iscsiadm -m discovery [ -hV ] [ -d debug_level ] [ -P  print‐
+       level  ]  [  -I  iface  -t  type -p ip:port [ -l ] ] | [ [ -p
+       ip:port ] [ -l | -D ] ]
+
+       iscsiadm -m node [ -hV ] [ -d debug_level ] [ -P printlevel ]
+       [  -L all   #连接磁盘 ,         manual,automatic ] [ -U all,manual,automatic ] [ -S
+       ] [ [ -T targetname -p ip:port -I iface ] [ -l | -u  |  -R  |
+       -s]  ]  [  [  -o  operation  ]  [ -n name ] [ -v value ] [ -p
+       ip:port ] ]
+
+       -m, --mode op
+              specify the mode. op must be one of discoverydb, node,
+              fw, host iface or session.
+
+
+EXAMPLES
+       Discover targets at a given IP address:
+------------------------- 发现磁盘
+            iscsiadm --mode discoverydb --type sendtargets --portal 192.168.1.10 --discover
+
+       Login, must use a node record id found by the discovery:
+---------------- 连接磁盘
+            iscsiadm --mode node --targetname iqn.2001-05.com.doe:test --portal 192.168.1.1:3260 --login
+
+       Logout:
+
+            iscsiadm --mode node --targetname iqn.2001-05.com.doe:test --portal 192.168.1.1:3260 --logout
+
+       List node records:
+
+            iscsiadm --mode node
+
+       Display all data for a given node record:
+
+            iscsiadm --mode node --targetname iqn.2001-05.com.doe:test --portal 192.168.1.1:3260
+
+FILES
+       /etc/iscsi/iscsid.conf
+              The  configuration file read by iscsid and iscsiadm on
+              startup.
+
+       /etc/iscsi/initiatorname.iscsi
+              The file containing the iSCSI InitiatorName  and  Ini‐
+              tiatorAlias read by iscsid and iscsiadm on startup.
+
+       /var/lib/iscsi/nodes/
+              This directory contains the nodes with their targets.
+
+       /var/lib/iscsi/send_targets
+              This directory contains the portals.
+
+
+---------------------------  发现磁盘 -----------------------------
+
+[root@desktop0 ~]# iscsiadm --mode discoverydb --type sendtargets --portal 172.25.0.11  --discover
+
+172.25.0.11:3260,1 iqn.2016-02.com.example:server0
+
+[root@desktop0 ~]# man  iscsiadm
+
+------------------------- 连接磁盘 --------------------------
+[root@desktop0 ~]# iscsiadm --mode node --targetname  iqn.2016-02.com.example:server0  --portal 172.25.0.11:3260 --login
+
+Logging in to [iface: default, target: iqn.2016-02.com.example:server0, portal: 172.25.0.11,3260] (multiple)
+Login to [iface: default, target: iqn.2016-02.com.example:server0, portal: 172.25.0.11,3260] successful.
+
+
+[root@desktop0 ~]#  lsblk
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   3G  0 disk 
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+
+       =======  iSCSI 设备在系统启动的期间自动加载--------------------------------------
+
+[root@desktop0 ~]# ls  /var/lib/iscsi/
+ifaces  isns  nodes  send_targets  slp  static
+[root@desktop0 ~]# ls  /var/lib/iscsi/nodes/
+iqn.2016-02.com.example:server0
+[root@desktop0 ~]# ls  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/
+172.25.0.11,3260,1
+[root@desktop0 ~]# ls  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/
+default
+[root@desktop0 ~]# vim  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default 
+
+---------------------  #iSCSI设备在系统启动的期间自动加载startup = automatic ----------
+
+[root@desktop0 ~]# grep  -n  automatic  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default
+
+4:node.startup = automatic
+50:node.conn[0].startup = automatic
+
+[root@desktop0 ~]# systemctl   restart  iscsi  #重启iscsi  服务
+[root@desktop0 ~]# systemctl   enable  iscsi  #开机自启动 iscsi 服务
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   3G  0 disk 
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+[root@desktop0 ~]# 
+
+iSCSI（Internet Small Computer System Interface，发音为/ˈаɪskʌzi/），
+Internet小型计算机系统接口，又称为IP-SAN，
+是一种基于因特网及SCSI-3协议下的存储技术，
+由IETF提出，并于2003年2月11日成为正式的标准。
+中文名小型计算机系统接口 外文名 iSCSI 相关协议TCP/IP的协议 简    称 Internet SCSI
+
+iSCSI技术有以下三个革命性的变化：
+把原来只用于本机的SCSI协义透过TCP/IP网络发送，使连接距离可作无限的地域延伸；
+连接的服务器数量无限（原来的SCSI-3的上限是15）；
+由于是服务器架构，因此也可以实现在线扩容以至动态部署
+
+SCSI利用了TCP/IP的port 860 和 3260 作为沟通的渠道。
+透过两部计算机之间利用iSCSI的协议来交换SCSI命令，
+让计算机可以透过高速的局域网集线来把SAN模拟成为本地的储存装置。
+iSCSI使用 TCP/IP 协议（一般使用TCP端口860和3260）
+
+[root@server0 ~]# netstat  -npult |egrep  "860|3260"
+tcp        0      0 172.25.0.11:3260        0.0.0.0:*               LISTEN      -                   
+[root@desktop0 ~]#  netstat  -npult |egrep  "860|3260"
+[root@desktop0 ~]# 
+
+[root@desktop0 ~]# lsblk  /dev/sda 
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda    8:0    0   3G  0 disk 
+
+[root@desktop0 ~]# blkid  /dev/sda
+
+[root@desktop0 ~]# parted   /dev/sda
+GNU Parted 3.1
+使用 /dev/sda
+Welcome to GNU Parted! Type 'help' to view a list of commands.
+
+(parted) mktable   gpt
+(parted) unit  MB 
+                                                    
+(parted) mkpart  primary  0  2100    
+                                       
+警告: The resulting partition is not properly aligned for best performance.
+
+忽略/Ignore/放弃/Cancel? i  
+                                              
+(parted) print       
+                                                     
+Model: LIO-ORG iscsi_store (scsi)
+Disk /dev/sda: 3220MB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags: 
+
+Number  Start   End     Size    File system  Name     标志
+ 1      0.02MB  2100MB  2100MB               primary
+
+(parted) quit                                                             
+信息: You may need to update /etc/fstab.
+
+[root@desktop0 ~]# partprobe                                              
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   3G  0 disk 
+└─sda1   8:1    0   2G  0 part 
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+
+[root@desktop0 ~]# blkid  /dev/sda
+/dev/sda: PTTYPE="gpt" 
+
+[root@desktop0 ~]# mkfs.ext4   /dev/sda1  #注意sda1,不是sda,仔细细心
+
+mke2fs 1.42.9 (28-Dec-2013)
+文件系统标签=
+OS type: Linux
+块大小=4096 (log=2)
+分块大小=4096 (log=2)
+Stride=0 blocks, Stripe width=1024 blocks
+128256 inodes, 512691 blocks
+25634 blocks (5.00%) reserved for the super user
+第一个数据块=0
+Maximum filesystem blocks=526385152
+16 block groups
+32768 blocks per group, 32768 fragments per group
+8016 inodes per group
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912
+
+Allocating group tables: 完成                            
+正在写入inode表: 完成                            
+Creating journal (8192 blocks): 完成
+Writing superblocks and filesystem accounting information: 完成 
+
+[root@desktop0 ~]# blkid  /dev/sda1
+/dev/sda1: UUID="81a766ad-40ba-425c-a9f0-883271ddc501" TYPE="ext4" PARTLABEL="primary" PARTUUID="0965d861-22a9-4a24-902d-262ab327a886" 
+
+[root@desktop0 ~]# mkdir  /mnt/data
+
+[root@desktop0 ~]# vim   /etc/fstab 
+
+[root@desktop0 ~]# tail  -5  /etc/fstab
+
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1 /      xfs     defaults   1 1
+//172.25.0.11/devops /mnt/dev cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev  0  0
+172.25.0.11:/public     /mnt/nfsmount   nfs  defaults,_netdev           0  0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,sec=krb5p,_netdev  0  0
+UUID=81a766ad-40ba-425c-a9f0-883271ddc501  /mnt/data  ext4  _netdev  0  0
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# df  -hT   /mnt/*
+文件系统               类型  容量  已用  可用 已用% 挂载点
+/dev/sda1              ext4  1.9G  5.9M  1.8G    1% /mnt/data
+//172.25.0.11/devops   cifs   10G  3.2G  6.9G   32% /mnt/dev
+172.25.0.11:/public    nfs    10G  3.2G  6.9G   32% /mnt/nfsmount
+172.25.0.11:/protected nfs4   10G  3.2G  6.9G   32% /mnt/nfssecure
+
+[root@desktop0 ~]# reboot
+Connection to desktop closed by remote host.
+Connection to desktop closed.
+[root@room9pc27 ~]# 
+
+===========================
+--------------------   21 配置一个数据库
+
+在 server0 上创建一个 MariaDB 数据库，名为 Contacts，
+并符合以下条件：
+数据库应该包含来自数据库复制的内容，复制文件的 URL 为：
+http://classroom.example.com/pub/materials/users.sql
+
+数据库只能被 localhost 访问
+除了root用户，此数据库只能被用户 Raikon 查询，此用户密码为 atenorth
+root用户的密码为 atenorth，同时不允许空密码登陆 
+
+[root@server0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+├─vdb4 253:20   0   1K  0 part 
+└─vdb5 253:21   0   3G  0 part 
+
+[root@server0 ~]# yum  -y  install  mariadb-server mariadb
+...............
+  perl-Net-Daemon.noarch 0:0.48-5.el7                                           
+  perl-PlRPC.noarch 0:0.2020-14.el7                                             
+
+完毕！
+[root@server0 ~]# rpm  -q  mariadb  mariadb-server
+mariadb-5.5.35-3.el7.x86_64
+mariadb-server-5.5.35-3.el7.x86_64
+
+[root@server0 ~]# vim  /etc/my.cnf
+
+[root@server0 ~]# grep  -Env  "^#|^$"   /etc/my.cnf
+1:[mysqld]
+2:skip-networking  # 添加此行,跳过网络监听
+3:datadir=/var/lib/mysql
+4:socket=/var/lib/mysql/mysql.sock
+6:symbolic-links=0
+12:[mysqld_safe]
+13:log-error=/var/log/mariadb/mariadb.log
+14:pid-file=/var/run/mariadb/mariadb.pid
+19:!includedir /etc/my.cnf.d
+
+[root@server0 ~]# systemctl  restart  mariadb
+[root@server0 ~]# systemctl   enable  mariadb
+ln -s '/usr/lib/systemd/system/mariadb.service' '/etc/systemd/system/multi-user.target.wants/mariadb.service'
+
+-----------mysqladmin -u  用户名root  password  '初始密码'  
+[root@server0 ~]# mysqladmin -u root password 'atenorth'  //设置原始密码
+
+
+-------------mysqladmin  -u用户名   -p旧密码   password  '新密码'  //设置新密码
+
+[root@server0 ~]# mysqladmin   -uroot  -patenorth  password  'atenorth'
+
+
+[root@server0 ~]# mysql   -uroot  -patenorth
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+...........
+
+MariaDB [(none)]> show  databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+4 rows in set (0.00 sec)
+
+MariaDB [(none)]> use  mysql;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+
+MariaDB [mysql]> select  database();
++------------+
+| database() |
++------------+
+| mysql      |
++------------+
+1 row in set (0.00 sec)
+
+
+MariaDB [mysql]> show  tables;
++---------------------------+
+| Tables_in_mysql           |
++---------------------------+
+| columns_priv              |
+| db                        |
+| event                     |
+| func                      |
+.............
+| user                      |
++---------------------------+
+24 rows in set (0.00 sec)
+
+MariaDB [mysql]> desc  mysql.user;
++------------------------+-----------
+............
+
+MariaDB [mysql]>  select  host,user,password  from  mysql.user  where user='root';
++---------------------+------+-------------------------------------------+
+| host                | user | password                                  |
++---------------------+------+-------------------------------------------+
+| localhost           | root | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
+| server0.example.com | root |                                           |
+| 127.0.0.1           | root |                                           |
+| ::1                 | root |                                           |
++---------------------+------+-------------------------------------------+
+4 rows in set (0.00 sec)
+
+------------------------列出user表中的Host、User、Password字段，限定密码为空的root用户：
+
+MariaDB [mysql]> select  host,user,password from  mysql.user  where user='root'  and  password='';
+
++---------------------+------+----------+
+| host                | user | password |
++---------------------+------+----------+
+| server0.example.com | root |          |
+| 127.0.0.1           | root |          |
+| ::1                 | root |          |
++---------------------+------+----------+
+3 rows in set (0.00 sec)
+
+-------------------------------删除空密码root用户记录
+MariaDB [mysql]> delete  from  mysql.user where user='root'  and  password='';
+Query OK, 3 rows affected (0.00 sec)
+
+MariaDB [mysql]> select  host,user,password from  mysql.user  where user='root'  and  password='';
+Empty set (0.00 sec)
+
+MariaDB [mysql]>  select  host,user,password  from  mysql.user  where user='root';
++-----------+------+-------------------------------------------+
+| host      | user | password                                  |
++-----------+------+-------------------------------------------+
+| localhost | root | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
++-----------+------+-------------------------------------------+
+1 row in set (0.00 sec)
 
 
 
+MariaDB [mysql]> flush privileges;
+Query OK, 0 rows affected (0.00 sec)
+
+------------------------------------ //设置 root 新密码
+MariaDB [mysql]> update  user  set password=password('atenorth') where user='root'  and  host='localhost';
+
+Query OK, 0 rows affected (0.00 sec)
+Rows matched: 1  Changed: 0  Warnings: 0
+
+MariaDB [mysql]> flush  privileges;
+Query OK, 0 rows affected (0.00 sec)
+
+MariaDB [mysql]> select  user,host,password from  mysql.user;
++------+---------------------+-------------------------------------------+
+| user | host                | password                                  |
++------+---------------------+-------------------------------------------+
+| root | localhost           | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
+|      | localhost           |                                           |
+|      | server0.example.com |                                           |
++------+---------------------+-------------------------------------------+
+3 rows in set (0.00 sec)
+
+MariaDB [mysql]>  select  host,user,password  from  mysql.user  where user='root';
++-----------+------+-------------------------------------------+
+| host      | user | password                                  |
++-----------+------+-------------------------------------------+
+| localhost | root | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
++-----------+------+-------------------------------------------+
+1 row in set (0.00 sec)
+
+MariaDB [mysql]> 
 
 
+MariaDB [mysql]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+4 rows in set (0.00 sec)
+
+MariaDB [mysql]> create   database  Contacts;  #创建空数据库 Contacts
+Query OK, 1 row affected (0.00 sec)
+
+MariaDB [mysql]> show  databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| Contacts           |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+5 rows in set (0.00 sec)
+
+MariaDB [mysql]> select  user from  mysql.user;
++------+
+| user |
++------+
+|      |
+| root |
+|      |
++------+
+3 rows in set (0.00 sec)
+
+--------------------------------- 创建 用户 Raikon
+MariaDB [mysql]> create  user  Raikon@localhost  identified  by 'patenorth';
+Query OK, 0 rows affected (0.00 sec)
+
+MariaDB [mysql]> select  user from  mysql.user;
++--------+
+| user   |
++--------+
+|        |
+| Raikon |
+| root   |
+|        |
++--------+
+4 rows in set (0.00 sec)
 
 
+--------------------------------------- 给用户设置密码
+MariaDB [mysql]> set  password  for  Raikon@'localhost' =password('patenorth');
+
+Query OK, 0 rows affected (0.00 sec)
 
 
+--------- ----------------- 创建 用户 Raikon2
+
+MariaDB [mysql]> create  user  'Raikon2'@'172.25.0.0/255.255.255.0' identified by  'patenorth';
+Query OK, 0 rows affected (0.00 sec)
+
+MariaDB [mysql]> select  host,user,password from  mysql.user;
++--------------------------+---------+-------------------------------------------+
+| host                     | user    | password                                  |
++--------------------------+---------+-------------------------------------------+
+| localhost                | root    | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
+| 172.25.0.0/255.255.255.0 | Raikon2 | *0C341FB5DA3FE5010E47FC2A62D38AEAE772483D |
+| localhost                | Raikon  | *0C341FB5DA3FE5010E47FC2A62D38AEAE772483D |
+| localhost                |         |                                           |
+| server0.example.com      |         |                                           |
++--------------------------+---------+-------------------------------------------+
+5 rows in set (0.00 sec)
+
+
+MariaDB [mysql]> drop  user  Raikon@localhost;  #删除用户
+Query OK, 0 rows affected (0.00 sec)
+
+MariaDB [mysql]> select  host,user,password from  mysql.user;
++--------------------------+---------+-------------------------------------------+
+| host                     | user    | password                                  |
++--------------------------+---------+-------------------------------------------+
+| localhost                | root    | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
+| 172.25.0.0/255.255.255.0 | Raikon2 | *0C341FB5DA3FE5010E47FC2A62D38AEAE772483D |
+| localhost                |         |                                           |
+| server0.example.com      |         |                                           |
++--------------------------+---------+-------------------------------------------+
+4 rows in set (0.00 sec)
+
+
+MariaDB [mysql]> show  databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| Contacts           |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+5 rows in set (0.00 sec)
+
+ ---给用户Raikon 授权查看,使用密码atenorth登陆数据库Contacts,可以查看所有的表
+MariaDB [mysql]> grant  select  on  Contacts.* to Raikon@localhost  identified by'atenorth';
+Query OK, 0 rows affected (0.00 sec)
+
+
+MariaDB [mysql]> show  grants  for  Raikon@localhost;
++---------------------------------------------------------------------------------------------------------------+
+| Grants for Raikon@localhost                                                                                   |
++---------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'Raikon'@'localhost' IDENTIFIED BY PASSWORD '*2CB38271572C66F5E558D7A1DFCA8263F861C1F6' |
+| GRANT SELECT ON `Contacts`.* TO 'Raikon'@'localhost'                                                          |
++---------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [mysql]> exit
+Bye
+[root@server0 ~]# systemctl  is-active  mariadb
+active
+[root@server0 ~]# systemctl  stop  mariadb.service 
+[root@server0 ~]# vim   /etc/my.cnf
+[root@server0 ~]# head  -3  /etc/my.cnf
+[mysqld]
+#skip-networking     #恢复网络,把此行注释
+datadir=/var/lib/mysql
+[root@server0 ~]# systemctl  restart  mariadb.service 
+
+[root@server0 ~]# mysql  -u Raikon  -patenorth  -e  "show databases;"
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| Contacts           |
+| test               |
++--------------------+
+[root@server0 ~]# mysql  -u root  -patenorth  -e  "show databases;"
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| Contacts           |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+[root@server0 ~]# 
+=================导入数据库Contacts
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/users.sql
+...............
+正在保存至: “users.sql”
+
+100%[========================================================>] 2,634       --.-K/s 用时 0s      
+
+2019-02-22 20:17:42 (195 MB/s) - 已保存 “users.sql” [2634/2634])
+
+[root@server0 ~]# ll  users.sql 
+-rw-r--r--. 1 root root 2634 11月 27 18:38 users.sql
+[root@server0 ~]# file  users.sql
+users.sql: ASCII text
+[root@server0 ~]# head  -2   users.sql
+-- MySQL dump 10.14  Distrib 5.5.35-MariaDB, for Linux (x86_64)
+--
+[root@server0 ~]# sed  -n  '25,29p'  users.sql
+CREATE TABLE `base` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(20) DEFAULT NULL,
+  `password` varchar(24) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+[root@server0 ~]# tail  -2  users.sql
+
+-- Dump completed on 2016-02-27 21:54:02
+[root@server0 ~]# 
+
+
+=================导入数据库Contacts
+
+[root@server0 ~]# mysql  -uroot  -patenorth Contacts  < users.sql
+[root@server0 ~]# mysql  -u root  -patenorth  -e  "show databases;"
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| Contacts           |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+[root@server0 ~]# mysql  -u root  -patenorth  -e  "use  Contacts;show tables;"
++--------------------+
+| Tables_in_Contacts |
++--------------------+
+| base               |
+| location           |
++--------------------+
+[root@server0 ~]# 
+
+=====================================
+---------------------------------  22 .数据库查询
+
+在系统 server0 上使用数据库 Contacts，并使用相应的 SQL 查询以回答下列问题：
+密码是 solicitous 的人的名字？
+有多少人的姓名是 Barbara 同时居住在 Sunnyvale？
+
+[root@server0 ~]# mysql  -uroot  -patenorth
+
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+...........
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> use  Contacts;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MariaDB [Contacts]> show  tables;
++--------------------+
+| Tables_in_Contacts |
++--------------------+
+| base               |
+| location           |
++--------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [Contacts]> desc base;
++----------+-------------+------+-----+---------+-------+
+| Field    | Type        | Null | Key | Default | Extra |
++----------+-------------+------+-----+---------+-------+
+| id       | int(11)     | YES  |     | NULL    |       |
+| name     | varchar(20) | YES  |     | NULL    |       |
+| password | varchar(24) | YES  |     | NULL    |       |
++----------+-------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
+
+MariaDB [Contacts]> desc   location;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int(11)     | YES  |     | NULL    |       |
+| city  | varchar(20) | YES  |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+
+-------------------------------  密码是 solicitous 的人的名字  James
+
+MariaDB [Contacts]> select  name  from  Contacts.base  where  base.password='solicitous';
++-------+
+| name  |
++-------+
+| James |
++-------+
+1 row in set (0.00 sec)
+
+MariaDB [Contacts]> select  base.name,location.city,base.id  from Contacts.base,location  where base.name='Barbara' and  location.city='Sunnyvale'  and  base.id=location.id;
++---------+-----------+------+
+| name    | city      | id   |
++---------+-----------+------+
+| Barbara | Sunnyvale |    5 |
++---------+-----------+------+
+1 row in set (0.01 sec)
+
+MariaDB [Contacts]> select  count(*)  from  Contacts.base,location  where base.name='Barbara'  and  location.city='Sunnyvale'  and base.id=location.id;
++----------+
+| count(*) |
++----------+
+|        1 |
++----------+
+1 row in set (0.00 sec)
+
+MariaDB [Contacts]> quit;
+Bye
+[root@server0 ~]# 
+
+=========================
+[root@room9pc27 ~]# tar  -xzPf   /root/rht-labcheck.tar.gz 
+[root@room9pc27 ~]# echo $?
+0
+[root@room9pc27 ~]# tar  -ztPf   /root/rht-labcheck.tar.gz
+/usr/local/sbin/.server0.sh
+/usr/local/sbin/.desktop0.sh
+/usr/local/sbin/rht-labcheck
+
+[root@room9pc27 ~]# chmod  +x   /usr/local/sbin/rht-labcheck 
+
+[root@room9pc27 ~]# ll  /usr/local/sbin/rht-labcheck
+-rwxr-xr-x 1 root root 1343 1月  13 2017 /usr/local/sbin/rht-labcheck
+
+[root@room9pc27 ~]# /usr/local/sbin/rht-labcheck
+######## Check-Report for server0 #######
+01. checking selinux status .... pass
+..........
 
 
 

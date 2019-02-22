@@ -1658,7 +1658,8 @@ pegasus_https_port_t           tcp      5989
 在 server0 上创建一个名为/root/foo.sh 的脚本，让其提供下列特性：
 当运行/root/foo.sh redhat，输出为 fedora
 当运行/root/foo.sh fedora，输出为 redhat
-当没有任何参数或者参数不是 redhat 或者 fedora 时，其错误输出产生以下的信息：/root/foo.sh redhat|fedora 
+当没有任何参数或者参数不是 redhat 或者 fedora 时，
+其错误输出产生以下的信息：/root/foo.sh redhat|fedora 
 
 [root@server0 ~]# vim /root/foo.sh
 
@@ -1789,7 +1790,9 @@ vdb    253:16   0  10G  0 disk
 [root@server0 ~]# rpm -q targetcli
 targetcli-2.1.fb34-1.el7.noarch
 [root@server0 ~]# targetcli 
+
 /> backstores/block create name=iscsi_store dev=/dev/vdb5
+
 /> iscsi/ create iqn.2016-02.com.example:server0
 
 /> iscsi/iqn.2016-02.com.example:server0/tpg1/luns create  /backstores/block/iscsi_store 
@@ -2016,15 +2019,16 @@ MariaDB [(none)]> show databases;
 | performance_schema |
 | test               |
 MariaDB [(none)]> use mysql;
-MariaDB [mysql]> show tables;
-| Tables_in_mysql           |
-+---------------------------+
-| columns_priv              |
-| db                        |
-| time_zone_transition_type |
-| user                      |
-+---------------------------+
-24 rows in set (0.00 sec)
+
+MariaDB [mysql]> select  database();
++------------+
+| database() |
++------------+
+| mysql      |
++------------+
+1 row in set (0.00 sec)
+
+
 MariaDB [mysql]> desc mysql.user;
 #使用DESC指令查看表结构，以便了解相关字段名：
 
@@ -2048,14 +2052,15 @@ MariaDB [mysql]> select host,user,password from mysql.user where user='root' and
 +---------------------+------+----------+
 ------------------------------------删除空密码root用户记录
 MariaDB [mysql]> delete from mysql.user where user='root' and password='';
-MariaDB [mysql]> select host,user,password from mysql.user where user='root';+-----------+------+-------------------------------------------+
+MariaDB [mysql]> select host,user,password from mysql.user where user='root';
++-----------+------+-------------------------------------------+
 | host      | user | password                                  |
 +-----------+------+-------------------------------------------+
 | localhost | root | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
 +-----------+------+-------------------------------------------+
 1 row in set (0.00 sec)
 
-MariaDB [mysql]> create database Contacts;
+MariaDB [mysql]> create database Contacts;  #创建空数据库 Contacts
 MariaDB [mysql]> show databases;
 +--------------------+
 | Database           |
