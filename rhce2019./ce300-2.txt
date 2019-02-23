@@ -3310,6 +3310,13 @@ FTP 选项：
 
 ln -s '/usr/lib/systemd/system/nfs-secure.service' '/etc/systemd/system/nfs.target.wants/nfs-secure.service'
 
+[root@desktop0 ~]# mkdir   /mnt/nfs{mount,secure}
+
+[root@desktop0 ~]# ls    /mnt/nfs{mount,secure}
+/mnt/nfsmount:
+
+/mnt/nfssecure:
+
 [root@desktop0 ~]# vim   /etc/fstab  #永久挂载NFS文件系统
 
 [root@desktop0 ~]# tail  -3  /etc/fstab 

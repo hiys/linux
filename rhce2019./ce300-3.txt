@@ -1,0 +1,2107 @@
+
+
+/**************************** 非必须  操作 *****************
+
+[root@room9pc27 ~]# ls   /var/lib/libvirt/images/content/
+content  courses  lost+found  rhel7.0
+[root@room9pc27 ~]# ls  /content/
+content  courses  lost+found  rhel7.0
+[root@room9pc27 ~]# rht-vmctl  reset  classroom
+classroom [OK]
+域 classroom 已开始
+
+[root@room9pc27 ~]# rht-vmctl  reset  server
+server [OK]
+域 server 已开始
+
+[root@room9pc27 ~]# rht-vmctl  reset   desktop
+desktop [OK]
+域 desktop 已开始
+
+[root@room9pc27 ~]# virsh  domstate  server
+running
+
+[root@room9pc27 ~]# virsh  domstate  classroom
+running
+
+[root@room9pc27 ~]# virsh  domstate  desktop
+running
+
+*************/
+
+RHCE7-EX300模拟测试
+考试说明,请仔细阅读
+
+配置SELINUX
+配置SSH访问
+自定义用户环境
+配置防火墙端口转发
+配置链路聚合
+配置IPv6地址
+配置本地邮件服务
+通过Samba发布共享目录
+配置多用户Samba挂载
+配置NFS共享服务
+挂载NFS共享
+实现一个Web服务
+配置安全Web服务
+配置虚拟主机
+配置Web内容访问
+实现动态Web内容
+创建一个脚本
+创建一个添加用户的脚本
+配置iSCSI服务端
+配置iSCSI客户端
+配置一个数据库
+数据库查询
+
+--------------------------------------------------
+考试说明,请仔细阅读
+
+---------------------
+考试说明
+
+您在考试过程中将使用的两个系统的信息如下：
+ * server0.example.com(ServerX) 是一个主要的服务器
+ * desktop0.example.com(DesktopX)主要用作客户端
+两个系统的root密码为redhat
+系统的IP地址由DHCP提供，您可以视其正常，或者您可以按以下信息重新设置为静态IP：
+ * server0.example.com ：172.25.0.11
+ * desktop0.example.com ：172.25.0.10
+ * 子网掩码为：255.255.255.0
+ * 默认网关为：172.25.0.254
+
+您的系统是DNS域 .example.com 的成员，
+所有在DNS域 .example.com 中的系统
+都在子网172.25.0.0/24中，
+同样在这个子网中的系统都在DNS域 .example.com 中。
+除非特别指明，
+所有要求配置的网络都必须能被 .example.com 域中的系统访问。
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+ * fleyd （密码：redhat)
+ * sergio （密码：redhat)
+ * krishna （密码：redhat)
+
+防火墙默认是打开的，在您认为是适当的时候可以关闭。
+其他的关于防火墙的设置可能在单独的要求中。
+
+在评分之前您的系统会被重新启动，
+所以请您确保您所做的所有修改和服务配置在重新启动之后仍然能够生效，而无需人工干预。
+所有考试用的虚拟机实例必须能重启之后进入正确的用户级别，而无需人工协助。
+如果考试用的虚拟机不能启动或不能正常启动，将被评零分。
+
+您在考试中使用的Red Hat Enterprise Linux操作系统版本对应的分发包可以通过YUM在下面的链接中找到：
+http://content.example.com/rhel7.0/x86_64/dvd
+
+一部分要求包含了主机安全、确定您的对主机安全限制没有阻挡要求允许的主机或网络。
+虽然您正确配置了网络服务但本来允许访问的主机或网络被阻挡。
+这样也不会得分。
+您将会注意到一些要求明确不允许服务被域 my133t.org 访问，
+这个域的系统在 172.34.0.0/255.255.255.0 子网中，
+并且这些子网中的系统都属于域 my133t.org 。
+
+注意一些考试题目可能依赖于其他考试题目。
+比如说，在考试题目中可能要求您针对一个用户执行一系列的限制，
+但是这个用户的创建可能是在其他题目中要求的。
+为了方便您的标识，每个考试题目都有一些选取按钮以协助您去标识哪个题目您已经完成了，哪些还没有。
+当然，如果您觉得用不着，您也可以不去理会这些按钮。
+
+------------------------------------- 模拟 考试环境 ,如果知道 ip 直接ssh 进去 ------------------
+
+[root@room9pc27 ~]# virsh  console   server
+连接到域 server
+换码符为 ^]
+
+
+Red Hat Enterprise Linux Server 7.0 (Maipo)
+Kernel 3.10.0-123.el7.x86_64 on an x86_64
+
+localhost login: root
+Password:  redhat    # 输入 考试环境的密码
+Last login: Sat Feb 16 19:42:08 from 172.25.0.250
+[root@localhost ~]# ifconfig  |head  -2
+...............
+---------------------   #注意主机名环境已设置,如果重复设置主机名,一定要看清楚 主机名--------------
+
+[root@localhost ~]# hostnamectl  set-hostname   server0.example.com 
+[root@localhost ~]# hostname
+server0.example.com
+[root@localhost ~]# cat   /etc/hostname 
+server0.example.com
+[root@localhost ~]#    敲 Ctrl + ]  退出
+
+[root@room9pc27 ~]# virsh   console  desktop
+连接到域 desktop
+换码符为 ^]
+.....................
+desktop0 login: root
+Password: redhat
+Last login: Fri Jan 12 18:54:00 from 172.25.0.250
+[root@desktop0 ~]# ifconfig  |grep  "inet "
+        inet 172.25.0.10  netmask 255.255.255.0  broadcast 172.25.0.255
+        inet 127.0.0.1  netmask 255.0.0.0
+
+[root@desktop0 ~]#    敲 Ctrl + ]  退出
+
+-------------------------------------
+[root@room9pc27 ~]# ssh  server
+Last login: Fri Jan 12 18:54:14 2018 from 172.25.0.250
+[root@server0 ~]# ifconfig  |head  -3
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.11  netmask 255.255.255.0  broadcast 172.25.0.255
+        inet6 fe80::5054:ff:fe00:b  prefixlen 64  scopeid 0x20<link>
+
+[root@server0 ~]# ls  /etc/sysconfig/network-scripts/ifcfg-
+ifcfg-eth0  ifcfg-lo    
+[root@server0 ~]# ls  /etc/sysconfig/network-scripts/ifcfg-eth0 
+/etc/sysconfig/network-scripts/ifcfg-eth0
+[root@server0 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+DEVICE=eth0
+BOOTPROTO=dhcp
+ONBOOT=yes
+TYPE=Ethernet
+USERCTL=yes
+PEERDNS=yes
+IPV6INIT=no
+PERSISTENT_DHCLIENT=1
+[root@server0 ~]# echo  "redhat" |passwd  --stdin   root
+更改用户 root 的密码 。
+passwd：所有的身份验证令牌已经成功更新。
+[root@server0 ~]# hostname
+server0.example.com
+[root@server0 ~]# cat  /etc/hostname
+cat: /etc/hostname: 没有那个文件或目录
+
+-------------------------  重新 重复 设置主机名 是为了生成配置文件 /etc/hostname  --------
+
+[root@server0 ~]# hostnamectl   set-hostname  server0.example.com
+
+[root@server0 ~]# cat  /etc/hostname
+server0.example.com
+[root@server0 ~]# hostname
+server0.example.com
+
+[root@server0 ~]# nmcli   connection  show
+名称         UUID                                  类型            设备 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0 
+
+/*********** 端口：53
+服务：Domain Name Server（DNS）
+****/
+
+[root@server0 ~]# nslookup  classroom.example.com
+Server:		172.25.254.254
+Address:	172.25.254.254#53
+
+Name:	classroom.example.com
+Address: 172.25.254.254
+
+
+[root@server0 ~]# nmcli  connection  modify  "System eth0"  ipv4.method  manual  ipv4.addresses   '172.25.0.11/24  172.25.0.254'  ipv4.dns  172.25.254.254  connection.autoconnect  yes
+
+
+[root@server0 ~]# nmcli  connection up   "System eth0" 
+
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/1)
+
+[root@server0 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0 
+DEVICE=eth0
+BOOTPROTO=none
+ONBOOT=yes
+TYPE=Ethernet
+USERCTL=yes
+IPV6INIT=no
+PERSISTENT_DHCLIENT=1
+IPADDR0=172.25.0.11
+PREFIX0=24
+GATEWAY0=172.25.0.254
+DNS1=172.25.254.254
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+NAME="System eth0"
+UUID=5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03
+
+[root@server0 ~]# ip   route   show
+default via 172.25.0.254 dev eth0  proto static  metric 1024 
+172.25.0.0/24 dev eth0  proto kernel  scope link  src 172.25.0.11 
+
+[root@server0 ~]# cat   /etc/resolv.conf 
+# Generated by NetworkManager
+search example.com
+nameserver 172.25.254.254
+
+[root@server0 ~]# ifconfig  |awk  '/inet /{print  $2}'
+172.25.0.11
+127.0.0.1
+[root@server0 ~]# 
+
+--------------------------------- desktop0.example.com -----------------
+
+[root@room9pc27 ~]# ssh  desktop
+Last login: Fri Jan 12 18:54:00 2018 from 172.25.0.250
+[root@desktop0 ~]# ifconfig  |head  -2
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.10  netmask 255.255.255.0  broadcast 172.25.0.255
+
+[root@desktop0 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-eth0 
+DEVICE=eth0
+BOOTPROTO=dhcp
+ONBOOT=yes
+TYPE=Ethernet
+USERCTL=yes
+PEERDNS=yes
+IPV6INIT=no
+PERSISTENT_DHCLIENT=1
+
+[root@desktop0 ~]# cat  /etc/hostname
+cat: /etc/hostname: 没有那个文件或目录
+
+[root@desktop0 ~]# hostname
+desktop0.example.com
+[root@desktop0 ~]# hostnamectl   set-hostname  desktop0.example.com
+
+[root@desktop0 ~]# cat  /etc/hostname
+desktop0.example.com
+
+[root@desktop0 ~]# hostname
+desktop0.example.com
+[root@desktop0 ~]# nmcli  connection   show
+名称         UUID                                  类型            设备 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0 
+
+[root@desktop0 ~]# nslookup  classroom.example.com
+Server:		172.25.254.254
+Address:	172.25.254.254#53
+
+Name:	classroom.example.com
+Address: 172.25.254.254
+
+
+[root@desktop0 ~]# nmcli  connection  modify  "System eth0"  ipv4.method  manual ipv4.addresses  '172.25.0.10/24 172.25.0.254'  ipv4.dns 172.25.254.254 connection.autoconnect  yes
+
+[root@desktop0 ~]# cat   /etc/resolv.conf 
+# Generated by NetworkManager
+domain example.com
+search example.com
+nameserver 172.25.254.254
+
+[root@desktop0 ~]# nmcli  connection  up  "System eth0" 
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/1)
+
+[root@desktop0 ~]# cat   /etc/resolv.conf 
+# Generated by NetworkManager
+search example.com
+nameserver 172.25.254.254
+
+[root@desktop0 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-eth0 
+DEVICE=eth0
+BOOTPROTO=none
+ONBOOT=yes
+TYPE=Ethernet
+USERCTL=yes
+IPV6INIT=no
+PERSISTENT_DHCLIENT=1
+IPADDR0=172.25.0.10
+PREFIX0=24
+GATEWAY0=172.25.0.254
+DNS1=172.25.254.254
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+NAME="System eth0"
+UUID=5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03
+
+[root@desktop0 ~]# route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         172.25.0.254    0.0.0.0         UG    1024   0        0 eth0
+172.25.0.0      0.0.0.0         255.255.255.0   U     0      0        0 eth0
+
+[root@desktop0 ~]# ifconfig  |awk  '/inet /{print $2}'
+172.25.0.10
+127.0.0.1
+
+-------------------------------------
+
+RHCE7-EX300模拟测试
+考试说明,请仔细阅读
+
+配置SELINUX
+配置SSH访问
+.......
+
+--------------------------------------------------
+考试说明,请仔细阅读
+
+---------------------
+考试说明
+
+您在考试过程中将使用的两个系统的信息如下：
+ * server0.example.com(ServerX) 是一个主要的服务器
+ * desktop0.example.com(DesktopX)主要用作客户端
+两个系统的root密码为redhat
+系统的IP地址由DHCP提供，您可以视其正常，或者您可以按以下信息重新设置为静态IP：
+ * server0.example.com ：172.25.0.11
+ * desktop0.example.com ：172.25.0.10
+ * 子网掩码为：255.255.255.0
+ * 默认网关为：172.25.0.254
+
+您的系统是DNS域 .example.com 的成员，
+所有在DNS域 .example.com 中的系统
+都在子网172.25.0.0/24中，
+同样在这个子网中的系统都在DNS域 .example.com 中。
+除非特别指明，
+所有要求配置的网络都必须能被 .example.com 域中的系统访问。
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+ * fleyd （密码：redhat)
+ * sergio （密码：redhat)
+ * krishna （密码：redhat)
+
+防火墙默认是打开的，在您认为是适当的时候可以关闭。
+其他的关于防火墙的设置可能在单独的要求中。
+
+在评分之前您的系统会被重新启动，
+所以请您确保您所做的所有修改和服务配置在重新启动之后仍然能够生效，而无需人工干预。
+所有考试用的虚拟机实例必须能重启之后进入正确的用户级别，而无需人工协助。
+如果考试用的虚拟机不能启动或不能正常启动，将被评零分。
+
+您在考试中使用的Red Hat Enterprise Linux操作系统版本对应的分发包可以通过YUM在下面的链接中找到：
+http://content.example.com/rhel7.0/x86_64/dvd
+
+一部分要求包含了主机安全、确定您的对主机安全限制没有阻挡要求允许的主机或网络。
+虽然您正确配置了网络服务但本来允许访问的主机或网络被阻挡。
+这样也不会得分。
+您将会注意到一些要求明确不允许服务被域 my133t.org 访问，
+这个域的系统在 172.34.0.0/255.255.255.0 子网中，
+并且这些子网中的系统都属于域 my133t.org 。
+
+======================================
+
+------------------------------------  1 . 配置SELinux
+确保您的两个虚拟机的SELinux处于强制启用模式
+
+[root@server0 ~]# getenforce 
+Enforcing
+[root@server0 ~]# setenforce  1
+[root@server0 ~]# getenforce 
+Enforcing
+[root@server0 ~]# vim  /etc/selinux/config 
+[root@server0 ~]# grep   -Env  "^#|^$"   /etc/selinux/config 
+7:SELINUX=enforcing
+12:SELINUXTYPE=targeted
+[root@server0 ~]# 
+
+[root@desktop0 ~]# setenforce  1
+[root@desktop0 ~]# getenforce   
+Enforcing
+[root@desktop0 ~]# vim  /etc/selinux/config 
+[root@desktop0 ~]# grep  -Pnv  "^(\s){0,}#|^$"  /etc/selinux/config 
+7:SELINUX=enforcing
+12:SELINUXTYPE=targeted
+[root@desktop0 ~]# 
+
+
+==================2. 配置 SSH 访问=====================
+2. 配置 SSH 访问
+按以下要求配置 SSH 访问：
+用户能够从
+域 example.com 内的客户端 SSH 远程访问您的两个虚拟机系统
+在域 my133t.org 内的客户端不能访问您的两个虚拟机系统
+
+/*********** 考试说明
+您将会注意到一些要求明确不允许服务被域 my133t.org 访问，
+这个域的系统在 172.34.0.0/255.255.255.0 子网中，
+并且这些子网中的系统都属于域 my133t.org 。
+*****/
+
+[root@server0 ~]# grep   -Env  "^#|^$"   /etc/selinux/config 
+7:SELINUX=enforcing
+12:SELINUXTYPE=targeted
+
+[root@server0 ~]# grep  -Pnv  "^\s{0,}#|^$"   /etc/ssh/sshd_config 
+
+28:HostKey /etc/ssh/ssh_host_rsa_key
+30:HostKey /etc/ssh/ssh_host_ecdsa_key
+42:SyslogFacility AUTHPRIV
+58:AuthorizedKeysFile .ssh/authorized_keys
+78:PasswordAuthentication yes
+82:ChallengeResponseAuthentication no
+93:GSSAPIAuthentication yes
+95:GSSAPICleanupCredentials yes
+111:UsePAM yes
+117:X11Forwarding yes
+124:UsePrivilegeSeparation sandbox		# Default for new installations.
+141:AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+142:AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+143:AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+144:AcceptEnv XMODIFIERS
+147:Subsystem sftp	/usr/libexec/openssh/sftp-server
+
+/*********** 考试说明
+您将会注意到一些要求明确不允许服务被域 my133t.org 访问，
+这个域的系统在 172.34.0.0/255.255.255.0 子网中，
+并且这些子网中的系统都属于域 my133t.org 。
+*****/
+
+[root@server0 ~]# man  firewall-cmd  #非常重要的帮助手册
+
+[root@server0 ~]# vim   /etc/ssh/sshd_config 
+
+[root@server0 ~]# tail   -2   /etc/ssh/sshd_config 
+#	ForceCommand cvs server
+DenyUsers   *@*.my133t.org   *@172.34.0.*
+
+[root@server0 ~]# grep  -Pnv  "^\s{0,}#|^$"   /etc/ssh/sshd_config  |tail  -2
+147:Subsystem sftp	/usr/libexec/openssh/sftp-server
+158:DenyUsers   *@*.my133t.org   *@172.34.0.*
+
+
+[root@server0 ~]# systemctl   restart   sshd  && systemctl  enable  sshd
+
+
+[root@server0 ~]# netstat  -npult |grep   sshd  |column  -t
+tcp   0  0  0.0.0.0:22  0.0.0.0:*  LISTEN  30332/sshd
+tcp6  0  0  :::22       :::*       LISTEN  30332/sshd
+
+
+[root@server0 ~]# systemctl  is-active  firewalld  && systemctl  is-enabled  firewalld.service 
+active
+enabled
+[root@server0 ~]# firewall-cmd  --state
+running
+
+[root@server0 ~]# firewall-cmd  --get-zones
+ROL block dmz drop external home internal public trusted work
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+public
+
+[root@server0 ~]# firewall-cmd   --permanent   --zone=block  --list-all
+block
+  interfaces: 
+  sources: 
+  services: 
+  ports: 
+  masquerade: no
+  forward-ports: 
+  icmp-blocks: 
+  rich rules: 
+
+/**** ----------------------------- 删除source地址 172.34.0.0/24 跟zone=block 的绑定 --------------
+~]# firewall-cmd  --permanent  --zone=block  --remove-source=172.34.0.0/24
+success
+****/
+
+[root@server0 ~]# firewall-cmd  --permanent   --add-source=172.34.0.0/24 --zone=block 
+success
+
+
+[root@server0 ~]# firewall-cmd   --permanent  --zone=block  --list-sources 
+172.34.0.0/24
+
+[root@server0 ~]# firewall-cmd   --get-zone-of-source=172.34.0.0/24
+no zone
+
+[root@server0 ~]# firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
+success
+
+[root@server0 ~]# firewall-cmd   --get-zone-of-source=172.34.0.0/24
+block
+
+[root@server0 ~]# systemctl  restart  firewalld.service ##重启firewalld 服务
+
+[root@server0 ~]# firewall-cmd  --permanent   --zone=block  --list-all 
+block
+  interfaces: 
+  sources: 172.34.0.0/24
+  services: 
+  ports: 
+  masquerade: no
+  forward-ports: 
+  icmp-blocks: 
+  rich rules: 
+	
+[root@server0 ~]# 
+
+[root@desktop0 ~]# cat  -n  /etc/ssh/sshd_config |tail  -2
+   156	#	AllowTcpForwarding no
+   157	#	ForceCommand cvs server 
+
+[root@desktop0 ~]# vim   /etc/ssh/sshd_config 
+
+[root@desktop0 ~]# grep  -Pnv  "^(\s){0,}#|^$"  /etc/ssh/sshd_config |tail  -3
+144:AcceptEnv XMODIFIERS
+147:Subsystem sftp	/usr/libexec/openssh/sftp-server
+
+158:DenyUsers  *@*.my133t.org  *@172.34.0.*
+
+
+[root@desktop0 ~]# systemctl restart  sshd  && systemctl  enable  sshd
+[root@desktop0 ~]# netstat  -npult |grep  sshd
+tcp        0      0 0.0.0.0:22    0.0.0.0:*     LISTEN      30855/sshd  
+tcp6       0      0 :::22          :::*         LISTEN      30855/sshd  
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+[root@desktop0 ~]# firewall-cmd  --state
+running
+[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24  --zone=block
+
+success
+
+[root@desktop0 ~]# firewall-cmd  --permanent  --zone=block  --list-sources 
+172.34.0.0/24
+
+[root@desktop0 ~]# firewall-cmd  --get-zone-of-source=172.34.0.0/24
+no zone
+
+[root@desktop0 ~]# firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
+success
+
+[root@desktop0 ~]# firewall-cmd  --get-zone-of-source=172.34.0.0/24
+block
+
+-----------------------  查看指定级别 block 的所有信息 ------------------
+
+[root@desktop0 ~]# firewall-cmd  --permanent  --zone=block   --list-all 
+
+block
+  interfaces: 
+  sources: 172.34.0.0/24
+  services: 
+  ports: 
+  masquerade: no
+  forward-ports: 
+  icmp-blocks: 
+  rich rules: 
+	
+[root@desktop0 ~]# 
+
+
+=============3.自定义用户环境===========================
+------------------------ 3. 自定义用户环境
+在系统 server0 和 desktop0 上创建自定义命令为 qstat：
+此自定义命令将执行以下命令：/bin/ps -Ao pid,tt,user,fname,rsz
+此命令对系统中所有用户有效
+
+[root@server0 ~]# vim  /etc/bashrc 
+
+[root@server0 ~]# head  -2  /etc/bashrc 
+# /etc/bashrc
+alias  qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@server0 ~]# . /etc/bashrc
+
+[root@server0 ~]# type  alias 
+alias 是 shell 内嵌
+
+[root@server0 ~]# type  qstat
+qstat 是 `/bin/ps -Ao pid,tt,user,fname,rsz' 的别名
+
+[root@server0 ~]# alias  qstat
+alias qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@server0 ~]# qstat  |head  -2
+  PID TT       USER     COMMAND    RSZ
+    1 ?        root     systemd   6744
+[root@server0 ~]# 
+
+
+[root@desktop0 ~]# vim  /etc/bashrc 
+[root@desktop0 ~]# head  -2  /etc/bashrc
+# /etc/bashrc
+alias   qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@desktop0 ~]# source  /etc/bashrc
+
+[root@desktop0 ~]# alias   qstat
+alias qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@desktop0 ~]# qstat  |head  -3
+  PID TT       USER     COMMAND    RSZ
+    1 ?        root     systemd   6736
+    2 ?        root     kthreadd     0
+
+=============================
+---------------------------------  4 配置防火墙端口转发
+
+在系统 server0 上配置端口转发，要求如下：
+在 172.25.0.0/24 网络中的系统，访问 server0 的本地端口 5423 将被转发到80
+此设置必须永久有效
+
+[root@server0 ~]# man  firewall-cmd  #非常重要的帮助手册
+
+[root@server0 ~]# firewall-cmd   --get-default-zone 
+public
+
+[root@server0 ~]# firewall-cmd   --set-default-zone=trusted 
+success
+
+[root@server0 ~]# firewall-cmd   --get-default-zone 
+trusted
+
+/********* 相关操作命令如下
+firewall-cmd [--permanent] [--zone=zone] --list-forward-ports
+
+firewall-cmd [--permanent] [--zone=zone] --add-forward-port=port=portid[-portid]:proto=protocol[:toport=portid[-portid]][:toaddr=address[/mask]][--timeout=seconds]
+
+firewall-cmd [--permanent] [--zone=zone] --remove-forward-port=port=portid[-portid]:proto=protocol[:toport=portid[-portid]][:toaddr=address[/mask]]
+
+-------------------------------------------- 删除 转发端口 绑定 -----------------------
+ ~]# firewall-cmd  --permanent --zone=trusted  --remove-forward-port=port=5423:proto=tcp:toport=80
+success
+*****/
+
+
+[root@server0 ~]# firewall-cmd  --permanent  --zone=trusted --add-forward-port=port=5423:proto=tcp:toport=80
+
+success
+
+[root@server0 ~]# firewall-cmd  --permanent  --zone=trusted  --list-forward-ports 
+
+port=5423:proto=tcp:toport=80:toaddr=
+
+[root@server0 ~]# firewall-cmd  --complete-reload 
+success
+
+[root@server0 ~]# firewall-cmd  --permanent  --zone=trusted   --list-all 
+trusted (default)
+  interfaces: 
+  sources: 
+  services: 
+  ports: 
+  masquerade: no
+  forward-ports: port=5423:proto=tcp:toport=80:toaddr=
+  icmp-blocks: 
+  rich rules: 
+	
+[root@server0 ~]# grep  -Pnv  "^(\s){0,}#|^$"  /etc/firewalld/firewalld.conf
+6:DefaultZone=trusted
+12:MinimalMark=100
+18:CleanupOnExit=yes
+25:Lockdown=no
+33:IPv6_rpfilter=yes
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+[root@desktop0 ~]# firewall-cmd   --set-default-zone=trusted 
+success
+[root@desktop0 ~]# firewall-cmd  --complete-reload
+success
+[root@desktop0 ~]# firewall-cmd   --get-default-zone 
+trusted
+
+[root@desktop0 ~]# firewall-cmd  --permanent  --zone=trusted --add-forward-port=port=5423:proto=tcp:toport=80
+success
+[root@desktop0 ~]# firewall-cmd  --complete-reload
+success
+[root@desktop0 ~]#  firewall-cmd  --permanent --zone=trusted  --remove-forward-port=port=5423:proto=tcp:toport=80
+success
+[root@desktop0 ~]# firewall-cmd  --complete-reloadsuccess
+[root@desktop0 ~]# 
+
+-------------------------------------------- 删除 转发端口 绑定 -----------------------
+ ~]# firewall-cmd  --permanent --zone=trusted  --remove-forward-port=port=5423:proto=tcp:toport=80
+success
+*****/
+
+
+====================5. 配置链路聚合============
+------------------- 5 配置链路聚合
+
+在 server0.example.com 和
+  desktop0.example.com 之间按以下要求
+配置一个链路team0：
+
+此链路使用接口 eth1 和 eth2
+此链路在一个接口失效时仍然能工作
+此链路在 server0 使用下面的地址 172.16.3.20/255.255.255.0
+此链路在 desktop0 使用下面的地址 172.16.3.25/255.255.255.0
+此链路在系统重启之后依然保持正常状态
+
+[root@desktop0 ~]# man  nmcli
+       nmcli connection add type ethernet autoconnect no ifname eth0
+
+[root@desktop0 ~]# man  nmcli-examples
+
+[root@desktop0 ~]# man  teamd.conf
+EXAMPLES
+       {
+         "device": "team0",
+         "runner": {"name": "roundrobin"},
+         "ports": {"eth1": {}, "eth2": {}}
+       }
+
+       Very basic configuration.
+
+       {
+         "device": "team0",
+         "runner": {"name": "activebackup"},
+         "link_watch": {"name": "ethtool"},
+         "ports": {
+           "eth1": {
+             "prio": -10,
+             "sticky": true
+           },
+           "eth2": {
+             "prio": 100
+           }
+         }
+       }
+/************* --- 先 删除 配置错误的 team-slave  后 删除 master  team --------------
+ ~]# nmcli  connection   delete  team0-2
+ ~]# nmcli  connection   delete  team0-1
+ ~]# nmcli  connection   delete  team0
+*******/
+
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@server0 ~]# nmcli  device  status
+设备  类型      状态    CONNECTION  
+eth0  ethernet  连接的  System eth0 
+eth1  ethernet  已断开  --          
+eth2  ethernet  已断开  --          
+lo    loopback  未管理  --  
+        
+[root@server0 ~]# nmcli  connection add con-name team0 ifname  team0  type  team  autoconnect  yes  config  '{"runner":{"name":"activebackup"}}'
+
+Connection 'team0' (92cc36bb-184d-43a0-bd1f-aa4e26ee1fce) successfully added.
+[root@server0 ~]# 
+
+[root@server0 ~]# nmcli connection  add  con-name  team0-1  ifname eth1  type team-slave  master  team0 
+
+Connection 'team0-1' (09a51e1c-81e2-4fbd-a29c-46eea3a93f69) successfully added.
+[root@server0 ~]# 
+
+[root@server0 ~]# nmcli  connection add con-name  team0-2  ifname eth2 type team-slave  master  team0 
+
+Connection 'team0-2' (f400bd0e-2783-419f-b5d2-bf079df98c0a) successfully added.
+
+[root@server0 ~]# nmcli  device  status
+设备   类型      状态                  CONNECTION  
+eth0   ethernet  连接的                System eth0 
+eth1   ethernet  连接的                team0-1     
+eth2   ethernet  连接的                team0-2     
+team0  team      连接中(获得 IP 配置)  team0       
+lo     loopback  未管理                --     
+     
+[root@server0 ~]# nmcli  connection show
+名称         UUID                                  类型            设备  
+team0-1      09a51e1c-81e2-4fbd-a29c-46eea3a93f69  802-3-ethernet  eth1  
+team0        92cc36bb-184d-43a0-bd1f-aa4e26ee1fce  team            team0 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+team0-2      f400bd0e-2783-419f-b5d2-bf079df98c0a  802-3-ethernet  eth2  
+
+[root@server0 ~]# nmcli  connection modify  team0  ipv4.method  manual  ipv4.addresses   172.16.3.20/24  connection.autoconnect   yes
+[root@server0 ~]# 
+[root@server0 ~]# nmcli  connection modify  team0-1  connection.autoconnect  yes
+[root@server0 ~]# nmcli  connection modify  team0-2  connection.autoconnect yes
+
+[root@server0 ~]# nmcli  connection  up team0
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/5)
+
+[root@server0 ~]# nmcli  connection  up team0-1
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/8)
+
+[root@server0 ~]# nmcli  connection  up  team0-2
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/9)
+
+[root@server0 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-team0
+DEVICE=team0
+TEAM_CONFIG="{\"runner\":{\"name\":\"activebackup\"}}"
+DEVICETYPE=Team
+BOOTPROTO=none
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+NAME=team0
+UUID=92cc36bb-184d-43a0-bd1f-aa4e26ee1fce
+ONBOOT=yes
+IPADDR0=172.16.3.20
+PREFIX0=24
+IPV6_PEERDNS=yes
+IPV6_PEERROUTES=yes
+[root@server0 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-team0-1
+BOOTPROTO=dhcp
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_PEERDNS=yes
+IPV6_PEERROUTES=yes
+IPV6_FAILURE_FATAL=no
+NAME=team0-1
+UUID=09a51e1c-81e2-4fbd-a29c-46eea3a93f69
+DEVICE=eth1
+ONBOOT=yes
+TEAM_MASTER=team0
+DEVICETYPE=TeamPort
+PEERDNS=yes
+PEERROUTES=yes
+[root@server0 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-team0-2 
+BOOTPROTO=dhcp
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_PEERDNS=yes
+IPV6_PEERROUTES=yes
+IPV6_FAILURE_FATAL=no
+NAME=team0-2
+UUID=f400bd0e-2783-419f-b5d2-bf079df98c0a
+DEVICE=eth2
+ONBOOT=yes
+TEAM_MASTER=team0
+DEVICETYPE=TeamPort
+PEERDNS=yes
+PEERROUTES=yes
+[root@server0 ~]# teamdctl  team0  state
+setup:
+  runner: activebackup
+ports:
+  eth1
+    link watches:
+      link summary: up
+      instance[link_watch_0]:
+        name: ethtool
+        link: up
+  eth2
+    link watches:
+      link summary: up
+      instance[link_watch_0]:
+        name: ethtool
+        link: up
+runner:
+  active port: eth1
+
+/********************************
+[root@server0 ~]# systemctl  is-active  NetworkManager
+active
+[root@server0 ~]# systemctl  restart  NetworkManager
+[root@server0 ~]# systemctl  is-active  network
+active
+[root@server0 ~]# systemctl  restart   network
+
+[root@server0 ~]# nmcli  connection  show 
+名称         UUID                                  类型            设备  
+team0-2      f400bd0e-2783-419f-b5d2-bf079df98c0a  802-3-ethernet  eth2  
+team0        92cc36bb-184d-43a0-bd1f-aa4e26ee1fce  team            team0 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+eth2         b53fcc7b-8500-46fc-a4d2-6476769b2747  802-3-ethernet  --    
+eth1         106e9d3d-793b-4622-bac6-fe11d310b64b  802-3-ethernet  --    
+team0-1      09a51e1c-81e2-4fbd-a29c-46eea3a93f69  802-3-ethernet  eth1  
+**************/
+
+[root@server0 ~]#  reboot
+
+[root@server0 ~]# nmcli  connection  show 
+名称         UUID                                  类型            设备  
+team0-2      f400bd0e-2783-419f-b5d2-bf079df98c0a  802-3-ethernet  eth2  
+team0        92cc36bb-184d-43a0-bd1f-aa4e26ee1fce  team            team0 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+team0-1      09a51e1c-81e2-4fbd-a29c-46eea3a93f69  802-3-ethernet  eth1  
+
+
+[root@server0 ~]# ifconfig  team0  |head  -3
+team0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.16.3.20  netmask 255.255.255.0  broadcast 172.16.3.255
+        inet6 fe80::5054:ff:fe38:79d9  prefixlen 64  scopeid 0x20<link>
+
+----------------------------------------------  desktop0.example.com ---------
+-------------------------- 此链路在 desktop0 使用下面的地址 172.16.3.25/255.255.255.0 
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+[root@desktop0 ~]# firewall-cmd   --set-default-zone=trusted 
+success
+
+[root@desktop0 ~]# nmcli  device   status 
+设备  类型      状态    CONNECTION  
+eth0  ethernet  连接的  System eth0 
+eth1  ethernet  已断开  --          
+eth2  ethernet  已断开  --          
+lo    loopback  未管理  --          
+[root@desktop0 ~]# nmcli  connection add  con-name  team0  ifname  team0  type team  autoconnect  yes  config  '{"runner":{"name":"activebackup"}}'
+
+Connection 'team0' (9fcf5bdb-43ad-4fc9-b0eb-01c2c69f2a53) successfully added.
+[root@desktop0 ~]# 
+[root@desktop0 ~]# nmcli  connection  add  con-name  team0-1 ifname eth1  type  team-slave  master   team0 
+
+Connection 'team0-1' (886abed3-8b60-4c2a-b4cf-ff0aa35baa2d) successfully added.
+[root@desktop0 ~]# 
+[root@desktop0 ~]# nmcli  connection  add  con-name  team0-2  ifname  eth2  type team-slave  master   team0 
+
+Connection 'team0-2' (c5cb0f76-edce-466b-9ca9-bf0304541c82) successfully added.
+[root@desktop0 ~]# 
+[root@desktop0 ~]# nmcli  device  status
+设备   类型      状态                  CONNECTION  
+eth0   ethernet  连接的                System eth0 
+eth1   ethernet  连接的                team0-1     
+eth2   ethernet  连接的                team0-2     
+team0  team      连接中(获得 IP 配置)  team0       
+lo     loopback  未管理                --          
+[root@desktop0 ~]# nmcli  connection  modify  team0  ipv4.method  manual  ipv4.addresses   172.16.3.25/24  connection.autoconnect   yes
+[root@desktop0 ~]# 
+[root@desktop0 ~]# nmcli  connection  modify  team0-1  connection.autoconnect   yes
+[root@desktop0 ~]# nmcli  connection  modify  team0-2  connection.autoconnect   yes
+
+[root@desktop0 ~]# nmcli  connection  up  team0
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/5)
+
+[root@desktop0 ~]# nmcli  connection  up  team0-1
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/8)
+
+[root@desktop0 ~]# nmcli  connection  up  team0-2
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/9)
+
+[root@desktop0 ~]# ifconfig  team0  |head  -2
+team0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.16.3.25  netmask 255.255.255.0  broadcast 172.16.3.255
+
+/***********************************
+[root@desktop0 ~]# systemctl  is-active  NetworkManager
+active
+[root@desktop0 ~]# systemctl  is-active  network
+active
+[root@desktop0 ~]# systemctl  restart  network  && systemctl  restart  NetworkManager
+
+[root@desktop0 ~]# nmcli  connection  show
+名称         UUID                                  类型            设备  
+team0-2      c5cb0f76-edce-466b-9ca9-bf0304541c82  802-3-ethernet  eth2  
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+team0-1      886abed3-8b60-4c2a-b4cf-ff0aa35baa2d  802-3-ethernet  eth1  
+eth2         37350001-2c07-4610-9f2d-fda39fab9f4c  802-3-ethernet  --    
+eth1         5b55ec54-18a9-4b1a-aca4-442328767a11  802-3-ethernet  --    
+team0        9fcf5bdb-43ad-4fc9-b0eb-01c2c69f2a53  team            team0 
+[root@desktop0 ~]# 
+***************/
+
+[root@desktop0 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-team0
+DEVICE=team0
+TEAM_CONFIG="{\"runner\":{\"name\":\"activebackup\"}}"
+DEVICETYPE=Team
+BOOTPROTO=none
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+NAME=team0
+UUID=9fcf5bdb-43ad-4fc9-b0eb-01c2c69f2a53
+ONBOOT=yes
+IPADDR0=172.16.3.25
+PREFIX0=24
+IPV6_PEERDNS=yes
+IPV6_PEERROUTES=yes
+
+[root@desktop0 ~]# type  teamdctl
+teamdctl 是 /usr/bin/teamdctl
+
+[root@desktop0 ~]# teamdctl  team0  state
+setup:
+  runner: activebackup
+ports:
+  eth1
+    link watches:
+      link summary: up
+      instance[link_watch_0]:
+        name: ethtool
+        link: up
+  eth2
+    link watches:
+      link summary: up
+      instance[link_watch_0]:
+        name: ethtool
+        link: up
+runner:
+  active port: eth1
+
+[root@desktop0 ~]# reboot
+
+[root@desktop0 ~]# ping  -c2  -i0.2 -W0.8  172.16.3.20
+
+PING 172.16.3.20 (172.16.3.20) 56(84) bytes of data.
+64 bytes from 172.16.3.20: icmp_seq=1 ttl=64 time=0.699 ms
+64 bytes from 172.16.3.20: icmp_seq=2 ttl=64 time=0.551 ms
+.........
+[root@desktop0 ~]# ping  -c2  -i0.2 -W0.8  172.16.3.25
+PING 172.16.3.25 (172.16.3.25) 56(84) bytes of data.
+64 bytes from 172.16.3.25: icmp_seq=1 ttl=64 time=0.060 ms
+64 bytes from 172.16.3.25: icmp_seq=2 ttl=64 time=0.066 ms
+.........
+[root@desktop0 ~]# 
+
+========================
+====================
+---------------------- ipv6--------------
+
+    0   1   0   1   0  1   0   1   0   1   0  1   0   1   0   1
+   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+ (0000 0000)2 = (00)16 = 0
+ (0000 0001)2 = (01)16 = 1
+(0000 1111)2=(0F)16=15
+  2^8 = 256     2^7 =  128   2^4=16  2^3=8
+ 1 个 16 进制数 = 4  个 2 进制数
+ 4 个 16 进制数 = 16 个 2 进制数
+
+     FFFF:0000:FFFF:0000/64
+     FFFF:0000:FFFF:0000:FFFF:0000:FFFF:0000/128
+
+  0    0   0   0    0   0   0   0
+  1    1    1   1    1   1    1   1
+ 128  64  32  16   8   4    2   1
+
+===============================
+===============================
+--------------------------  6  配置IPv6地址
+
+在您的两个考试系统上配置接口 eth0 使用下列 IPv6 地址：
+server0 上的地址应该是 2003:ac18::305/64
+desktop0 上的地址应该是 2003:ac18::306/64
+两个系统必须能与网络 2003:ac18/64 内的系统通信
+地址必须在重启系统后依旧生效
+两个系统必须保持当前的 IPv4 地址并仍然能够通信
+
+//为两个系统设置固定主机名,避免误操作
+# hostnamectl  set-hostname   server0.example.com 
+# hostnamectl  set-hostname   desktop0.example.com
+
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@server0 ~]# nmcli  connection  show
+名称         UUID                                  类型            设备  
+team0-2      f400bd0e-2783-419f-b5d2-bf079df98c0a  802-3-ethernet  eth2  
+team0        92cc36bb-184d-43a0-bd1f-aa4e26ee1fce  team            team0 
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+team0-1      09a51e1c-81e2-4fbd-a29c-46eea3a93f69  802-3-ethernet  eth1  
+
+[root@server0 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0 
+DEVICE=eth0
+BOOTPROTO=none
+ONBOOT=yes
+TYPE=Ethernet
+USERCTL=yes
+IPV6INIT=no
+PERSISTENT_DHCLIENT=1
+IPADDR0=172.25.0.11
+PREFIX0=24
+GATEWAY0=172.25.0.254
+DNS1=172.25.254.254
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+NAME="System eth0"
+UUID=5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03
+
+[root@server0 ~]# nmcli  connection  modify  'System eth0'  ipv6.method  manual  ipv6.addresses   2003:ac18::305/64  connection.autoconnect  yes
+
+[root@server0 ~]# nmcli  connection  up  'System eth0' 
+
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/4)
+
+[root@server0 ~]# ifconfig  eth0  |head  -4
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.11  netmask 255.255.255.0  broadcast 172.25.0.255
+        inet6 2003:ac18::305  prefixlen 64  scopeid 0x0<global>
+        inet6 fe80::5054:ff:fe00:b  prefixlen 64  scopeid 0x20<link>
+
+[root@server0 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-eth0 
+DEVICE=eth0
+BOOTPROTO=none
+ONBOOT=yes
+TYPE=Ethernet
+USERCTL=yes
+IPV6INIT=yes
+PERSISTENT_DHCLIENT=1
+IPADDR0=172.25.0.11
+PREFIX0=24
+GATEWAY0=172.25.0.254
+DNS1=172.25.254.254
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+NAME="System eth0"
+UUID=5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03
+IPV6_AUTOCONF=no
+IPV6ADDR=2003:ac18::305/64
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+[root@server0 ~]# 
+
+-----------  [root@desktop0 ~]#  hostname
+----------   desktop0.example.com
+
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+[root@desktop0 ~]# ifconfig  eth0 |head  -4
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.10  netmask 255.255.255.0  broadcast 172.25.0.255
+        inet6 fe80::5054:ff:fe00:a  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:00:00:0a  txqueuelen 1000  (Ethernet)
+
+[root@desktop0 ~]# nmcli  connection  show
+名称         UUID                                  类型            设备  
+team0-2      c5cb0f76-edce-466b-9ca9-bf0304541c82  802-3-ethernet  eth2  
+System eth0  5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03  802-3-ethernet  eth0  
+team0-1      886abed3-8b60-4c2a-b4cf-ff0aa35baa2d  802-3-ethernet  eth1  
+team0        9fcf5bdb-43ad-4fc9-b0eb-01c2c69f2a53  team            team0 
+
+
+[root@desktop0 ~]# nmcli  connection modify  'System eth0'  ipv6.method  manual  ipv6.addresses  2003:ac18::306/64 connection.autoconnect   yes
+
+[root@desktop0 ~]# nmcli  connection up  'System eth0' 
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/4)
+
+[root@desktop0 ~]# ifconfig  eth0  |head  -4
+
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.10  netmask 255.255.255.0  broadcast 172.25.0.255
+        inet6 2003:ac18::306  prefixlen 64  scopeid 0x0<global>
+        inet6 fe80::5054:ff:fe00:a  prefixlen 64  scopeid 0x20<link>
+
+[root@desktop0 ~]# ping6  -c2 -i0.2 -W1  -I eth0  2003:ac18::305
+
+PING 2003:ac18::305(2003:ac18::305) from 2003:ac18::306 eth0: 56 data bytes
+64 bytes from 2003:ac18::305: icmp_seq=1 ttl=64 time=0.502 ms
+64 bytes from 2003:ac18::305: icmp_seq=2 ttl=64 time=0.576 ms
+...............
+[root@desktop0 ~]# ping6  -c2 -i0.2 -W1  -I eth0  2003:ac18::306
+PING 2003:ac18::306(2003:ac18::306) from 2003:ac18::306 eth0: 56 data bytes
+64 bytes from 2003:ac18::306: icmp_seq=1 ttl=64 time=0.084 ms
+64 bytes from 2003:ac18::306: icmp_seq=2 ttl=64 time=0.080 ms
+............
+
+[root@desktop0 ~]#  hostname
+desktop0.example.com
+[root@desktop0 ~]# 
+
+
+-=====================
+
+===============7. 配置本地邮件服务==============
+--------------------------------- 7. 配置本地邮件服务
+在系统 server0 和 desktop0 上配置邮件服务，满足以下要求：
+这些系统不接收外部发送来的邮件
+在这些系统上本地发送的任何邮件都会自动路由到
+ smtp0.example.com
+
+从这些系统上发送的邮件显示来自于
+ desktop0.example.com
+您可以通过在 server0.example.com 发送邮件到
+本地用户 student 来测试您的配置，
+并将系统 desktop0.example.com 配置为后端邮件服务器，
+确保可接收并投递来自 server0 的邮件
+
+[root@room9pc27 ~]# grep  -ni  "^port"  /etc/ssh/sshd_config 
+16:Port 7920
+[root@room9pc27 ~]# ifconfig rhce:0 |head  -2
+rhce:0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.250  netmask 255.255.0.0  broadcast 172.25.255.255
+
+[root@server0 ~]# scp -P7920 -o StrictHostKeyChecking=no  root@172.25.0.250:'/root/桌 面/ab2.tar.gz' ./
+
+Warning: Permanently added '[172.25.0.250]:7920' (ECDSA) to the list of known hosts.
+root@172.25.0.250's password: 1
+lab2.tar.gz                                 100%   48MB  47.9MB/s   00:01    
+
+[root@server0 ~]# scp  -o StrictHostKeyChecking=no  lab2.tar.gz   root@172.25.0.10:/root/
+
+Warning: Permanently added '172.25.0.10' (ECDSA) to the list of known hosts.
+root@172.25.0.10's password: redhat
+lab2.tar.gz                                 100%   48MB  47.9MB/s   00:00   
+ 
+[root@server0 ~]# ll  lab2.tar.gz 
+-rw-r--r--. 1 root root 50265706 2月  23 15:18 lab2.tar.gz
+
+[root@server0 ~]# tar  -xzPvf  lab2.tar.gz
+/content/courses/
+.............
+/content/courses/rhce/
+/content/courses/rhce/rhel7.0/
+...........
+[root@server0 ~]# ls  /content/courses/rhce/rhel7.0/
+grading-scripts  lab  materials
+
+[root@server0 ~]# file   /content/courses/rhce/rhel7.0/lab 
+/content/courses/rhce/rhel7.0/lab: Bourne-Again shell script, ASCII text executable
+
+[root@server0 ~]# type  lab
+lab 是 /usr/local/bin/lab
+
+[root@server0 ~]# lab  smtp-nullclient  setup  #搭建练习环境
+
+Setting up server machine... 
+Setting up mutt... 
+[root@server0 ~]# 
+
+
+[root@desktop0 ~]# ll lab2.tar.gz 
+-rw-r--r--. 1 root root 50265706 2月  23 15:21 lab2.tar.gz
+[root@desktop0 ~]# tar  -xzf  lab2.tar.gz
+tar: 从成员名中删除开头的“/”
+[root@desktop0 ~]# ls  /root/content/courses/rhce/rhel7.0/
+grading-scripts  lab  materials
+[root@desktop0 ~]# type lab
+lab 是 /usr/local/bin/lab
+[root@desktop0 ~]# lab  smtp-nullclient  setup  #搭建练习环境
+
+Setting up desktop machine... 
+Setting up dovecot... 
+Generating new dovecot certificate... 
+Setting up postfix... Generating new postfix certificates... 
+Setting up firewall... 
+Setting up user student... 
+Installing httpd to share cert... 
+[root@desktop0 ~]# 
+-------------------------------------------  开始正式考试 --------------------------
+------- 在这些系统上本地发送的任何邮件都会自动路由到 smtp0.example.com -----
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+trusted
+
+[root@server0 ~]# rpm  -q  postfix
+postfix-2.10.1-6.el7.x86_64
+
+[root@server0 ~]# vim  /etc/postfix/main.cf 
+
+[root@server0 ~]# grep  -B1 -En  "^(myorigin |inet_interfaces |mydestination |local_transport |mynetworks |relayhost )"  /etc/postfix/main.cf 
+
+99-#myorigin = $mydomain
+100:myorigin = desktop0.example.com
+--
+115-#inet_interfaces = $myhostname, localhost
+116:inet_interfaces = loopback-only
+--
+163-#
+164:mydestination = null
+--
+192-# - You redefine the "local_transport" setting in main.cf.
+193:local_transport = error:local delivery disabled
+--
+266-#mynetworks = hash:/etc/postfix/network_table
+267:mynetworks = 127.0.0.0/8  [::1]/128
+--
+317-#relayhost = [an.ip.add.ress]
+318:relayhost = [smtp0.example.com]
+
+
+[root@server0 ~]# grep  -En  "^(myorigin |inet_interfaces |mydestination |local_transport |mynetworks |relayhost )"  /etc/postfix/main.cf 
+
+  ##[1]# myorigin 从这些系统上发送的邮件显示来源于desktop0.example.com
+   ## myorigin = 默认补全邮箱域名后缀
+
+100:myorigin = desktop0.example.com
+
+  ##[2]# inet_interfaces 这些系统不接收外部发送来的邮件,仅仅允许本机 loopback网络接口 监听
+  # 指定监听接口 监听
+116:inet_interfaces = loopback-only
+
+ ##[3]# 此行的值设为空,不 对目标邮件域名 做判断(根据本字段值 判断为本域邮件,若为 null,不做判断)
+
+164:mydestination = null
+
+     ##[4]# local_transport 本地 传送 = 提示错误 #若考试无要求,可以不写
+
+193:local_transport = error:local delivery disabled
+
+      ##[5]#  信任网络 mynetworks = 允许本机访问
+267:mynetworks = 127.0.0.0/8  [::1]/128
+
+
+##[6]#  后端邮件服务器 = [smtp0.example.com] #在这些系统上本地发送的任何邮件都会自动路由到后端邮件服务器
+# 特别注意 真实考试的时候,要求的真实 后端邮件服务器地址
+
+318:relayhost = [smtp0.example.com]
+
+[root@server0 ~]# systemctl  restart  postfix.service 
+[root@server0 ~]# systemctl   is-enabled  postfix
+enabled
+
+[root@server0 ~]# host  smtp0.example.com #查看后端邮件服务器地址
+
+smtp0.example.com is an alias for desktop0.example.com.
+desktop0.example.com has address 172.25.0.10
+desktop0.example.com mail is handled by 10 smtp0.example.com.
+[root@server0 ~]# 
+
+[root@server0 ~]# id student
+uid=1000(student) gid=1000(student) 组=1000(student),10(wheel)
+
+                              ----  mail  -s  邮件主题    -r  发件人   收件人 
+[root@server0 ~]# echo  "2019Ican" |mail  -s "MailZhuti" -r root  student
+[root@server0 ~]# mail  -u  student
+No mail for student
+
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+[root@desktop0 ~]# host  smtp0.example.com
+smtp0.example.com is an alias for desktop0.example.com.
+desktop0.example.com has address 172.25.0.10
+desktop0.example.com mail is handled by 10 smtp0.example.com.
+
+[root@desktop0 ~]# id  student
+uid=1000(student) gid=1000(student) 组=1000(student),10(wheel),12(mail)
+
+[root@desktop0 ~]# mail  -u  student
+Heirloom Mail version 12.5 7/5/10.  Type ? for help.
+"/var/mail/student": 1 message 1 new
+>N  1 root@desktop0.exampl  Sat Feb 23 16:05  21/831   "MailZhuti"
+& 1
+Message  1:
+From root@desktop0.example.com  Sat Feb 23 16:05:06 2019
+Return-Path: <root@desktop0.example.com>
+X-Original-To: student@desktop0.example.com
+Delivered-To: student@desktop0.example.com
+Date: Sat, 23 Feb 2019 16:05:05 +0800
+From: root@desktop0.example.com
+To: student@desktop0.example.com
+Subject: MailZhuti
+User-Agent: Heirloom mailx 12.5 7/5/10
+Content-Type: text/plain; charset=us-ascii
+Status: R
+
+2019Ican
+
+& quit
+Held 1 message in /var/mail/student
+
+[root@desktop0 ~]# cat   /var/mail/student |grep -Eni "2019ican|Zhuti"
+
+13:Subject: MailZhuti
+21:2019Ican
+
+[root@desktop0 ~]# 
+
+========================
+=============8.通过 Samba 发布共享目录===================
+-----------------------------  8.通过 Samba 发布共享目录
+在 server0 通过 SMB 共享/common 目录：
+您的 SMB 服务器必须是 STAFF 工作组的一个成员
+共享名必须为 common
+只有 example.com 域内的客户端可以访问 common 共享
+common 必须是可以浏览的
+用户 harry 必须能够读取共享中的内容，如果需要的话，验证的密码是 migwhisk
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@server0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+
+[root@server0 ~]# yum -y install  samba |tail  -3
+  samba.x86_64 0:4.1.1-31.el7                                                   
+
+完毕！
+[root@server0 ~]# rpm  -qa  |grep samba
+samba-4.1.1-31.el7.x86_64
+samba-common-4.1.1-31.el7.x86_64
+samba-libs-4.1.1-31.el7.x86_64
+
+
+[root@server0 ~]# mkdir   /common
+
+[root@server0 ~]# getsebool  -a |grep  -i samba_export_all
+samba_export_all_ro --> off
+samba_export_all_rw --> off
+
+------------------------------------------ 取消 SELinux 限制 ---------------------
+
+[root@server0 ~]# setsebool  -P samba_export_all_rw  on  #取消 SELinux 限制
+
+[root@server0 ~]# getsebool  -a |grep  -i samba_export_all
+
+samba_export_all_ro --> off
+samba_export_all_rw --> on
+
+[root@server0 ~]# useradd   harry  #添加samba 用户
+[root@server0 ~]# id    harry
+
+uid=1001(harry) gid=1001(harry) 组=1001(harry)
+
+[root@server0 ~]# echo  -e  "migwhisk\nmigwhisk" | pdbedit  -a  harry
+new password:
+retype new password:
+Unix username:        harry
+...............................
+Logon hours         : FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+[root@server0 ~]# pdbedit  -L    #查询samba系统用户
+harry:1001:
+
+[root@server0 ~]# vim  /etc/samba/smb.conf 
+
+[root@server0 ~]# grep  -Pn  "^(\s){0,}workgroup ="  /etc/samba/smb.conf 
+
+89:	workgroup = STAFF
+
+[root@server0 ~]# cat  -n  /etc/samba/smb.conf  |tail  -3
+   321	[common]
+   322	path = /common
+   323	hosts allow = 172.25.0.0/24   # 只允许指定网域访问
+
+[root@server0 ~]# systemctl  restart  smb  && systemctl  enable  smb.service 
+
+ln -s '/usr/lib/systemd/system/smb.service' '/etc/systemd/system/multi-user.target.wants/smb.service'
+
+[root@server0 ~]# ls  -ld  /common/
+drwxr-xr-x. 2 root root 6 2月  23 16:14 /common/
+
+[root@server0 ~]# echo  "server0.example.com write add" > /common/serverroot.txt
+
+[root@server0 ~]# ll   /common/serverroot.txt
+-rw-r--r--. 1 root root 30 2月  23 16:46 /common/serverroot.txt
+
+
+-------------------------------- desktop0.example.com ----------------
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+
+[root@desktop0 ~]# yum  -y install  samba-client  cifs-utils |tail   -4
+已安装:
+  cifs-utils.x86_64 0:6.2-6.el7        samba-client.x86_64 0:4.1.1-31.el7       
+
+完毕！
+[root@desktop0 ~]# rpm  -q  samba-client  cifs-utils
+samba-client-4.1.1-31.el7.x86_64
+cifs-utils-6.2-6.el7.x86_64
+
+
+----------------------- 匿名 无密码 查看 samba 共享 资源 --------------
+
+[root@desktop0 ~]# echo |smbclient  -L  172.25.0.11
+Enter root's password: 
+Anonymous login successful
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	common          Disk      
+	IPC$            IPC       IPC Service (Samba Server Version 4.1.1)
+Anonymous login successful
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+
+	Server               Comment
+	---------            -------
+
+	Workgroup            Master
+	---------            -------
+
+------------- 以 samba系统用户 harry 身份 查看指定的共享目录 需要输入 harry的密码 ----------
+
+-------------    smbclient  -U  smb系统用户  "空格"//172.25.0.11/共享的目录
+
+[root@desktop0 ~]# echo "migwhisk" |smbclient  -U  harry //172.25.0.11/common
+Enter harry's password: 
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+
+
+------------- 以 samba系统用户 harry 身份 查看指定的共享目录 需要输入 harry的密码 ----------
+
+-------------    smbclient  -U  smb系统用户  "空格"//172.25.0.11/共享的目录
+
+[root@desktop0 ~]# smbclient  -U  harry //172.25.0.11/common
+
+Enter harry's password: migwhisk    #  需要手动输入密码"migwhisk"
+
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+smb: \> ls
+  .                                   D        0  Sat Feb 23 16:46:37 2019
+  ..                                  D        0  Sat Feb 23 16:14:53 2019
+  serverroot.txt                      N       30  Sat Feb 23 16:46:37 2019
+
+		40913 blocks of size 262144. 28155 blocks available
+smb: \> quit
+[root@desktop0 ~]# mkdir  /desktop
+[root@desktop0 ~]# mount  -t cifs  -o username=harry,password=migwhisk  //172.25.0.11/common  /desktop/
+[root@desktop0 ~]# df  -hT   /desktop/
+文件系统             类型  容量  已用  可用 已用% 挂载点
+//172.25.0.11/common cifs   10G  3.2G  6.9G   32% /desktop
+[root@desktop0 ~]# ls  /desktop/
+serverroot.txt
+[root@desktop0 ~]# cat  /desktop/serverroot.txt 
+server0.example.com write add
+[root@desktop0 ~]# 
+
+
+==============================================
+-------------------------- 9 配置多用户Samba挂载
+-------------------------- 9 配置多用户Samba挂载
+
+在 server0 通过 SMB 共享目录/devops，并满足以下要求：
+共享名为 devops
+共享目录 devops 只能被 example.com 域中的客户端使用
+共享目录 devops 必须可以被浏览
+用户 kenji 必须能以读的方式访问此共享，该问密码是 atenorth
+用户 chihiro 必须能以读写的方式访问此共享，访问密码是 atenorth
+此共享永久挂载在 desktop0.example.com 上的/mnt/dev 目录，
+并使用用户 kenji 作为认证。
+任何用户可以通过用户 chihiro 来临时获取写的权限
+
+[root@server0 ~]# mkdir  /devops
+
+[root@server0 ~]# useradd  kenji 
+
+[root@server0 ~]# id  kenji
+uid=1002(kenji) gid=1002(kenji) 组=1002(kenji)
+
+-------------------------  #添加 samba 系统 只读 用户kenji -------------------
+
+[root@server0 ~]# echo  -e  "atenorth\natenorth" |pdbedit  -a kenji
+new password:
+retype new password:
+Unix username:        kenji
+.....................
+Logon hours         : FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+[root@server0 ~]# pdbedit  -L
+harry:1001:
+kenji:1002:
+
+[root@server0 ~]# useradd  chihiro
+
+[root@server0 ~]# id   chihiro
+uid=1003(chihiro) gid=1003(chihiro) 组=1003(chihiro)
+
+[root@server0 ~]# ls  /home/
+chihiro  harry  kenji  student
+
+--------------------  #添加 samba 系统 读写用户 chihiro ---------------------
+
+[root@server0 ~]# echo  -e  "atenorth\natenorth" |pdbedit  -a chihiro
+new password:
+retype new password:
+Unix username:        chihiro
+................
+Logon hours         : FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+[root@server0 ~]# pdbedit  -L  #查看所有  samba 系统 用户
+harry:1001:
+chihiro:1003:
+kenji:1002:
+
+
+[root@server0 ~]# ls  -ld   /devops/
+drwxr-xr-x. 2 root root 6 2月  23 17:24 /devops/
+
+[root@server0 ~]# setfacl    -m  u:chihiro:7  /devops/
+
+[root@server0 ~]# getfacl  /devops/
+getfacl: Removing leading '/' from absolute path names
+# file: devops/
+# owner: root
+# group: root
+user::rwx
+user:chihiro:rwx
+group::r-x
+mask::rwx
+other::r-x
+
+[root@server0 ~]# ls  -ld   /devops/
+drwxrwxr-x+ 2 root root 6 2月  23 17:24 /devops/
+
+[root@server0 ~]# echo  "server0 ---- devops" > /devops/server.txt
+
+[root@server0 ~]# vim  /etc/samba/smb.conf 
+
+[root@server0 ~]# tail   -7    /etc/samba/smb.conf 
+[common]
+path = /common
+hosts allow = 172.25.0.0/24
+[devops]
+path = /devops
+write list = chihiro
+hosts allow = 172.25.0.0/24
+
+[root@server0 ~]# systemctl  is-active  smb
+active
+[root@server0 ~]# systemctl  is-enabled  smb
+enabled
+[root@server0 ~]# systemctl  restart  smb
+
+
+-------------------------------- desktop0.example.com --------------
+
+[root@desktop0 ~]# firewall-cmd --get-default-zone 
+public
+
+[root@desktop0 ~]# rpm  -q  samba-client cifs-utils
+
+samba-client-4.1.1-31.el7.x86_64
+cifs-utils-6.2-6.el7.x86_64
+
+[root@desktop0 ~]# type  cifscreds
+cifscreds 是 /usr/bin/cifscreds
+
+[root@desktop0 ~]# rpm  -qf  /usr/bin/cifscreds
+cifs-utils-6.2-6.el7.x86_64
+
+[root@desktop0 ~]# echo |smbclient  -L  //172.25.0.11
+Enter root's password: 
+Anonymous login successful
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	common          Disk      
+	devops          Disk      
+	IPC$            IPC       IPC Service (Samba Server Version 4.1.1)
+Anonymous login successful
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+
+	Server               Comment
+	---------            -------
+
+	Workgroup            Master
+	---------            -------
+
+[root@desktop0 ~]# echo "atenorth" |smbclient  -U  chihiro //172.25.0.11/devops
+
+Enter chihiro's password: 
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+
+
+------ 以samba系统用户 chihiro身份 在指定的共享目录(查看 上传或下载 文件) 需要输入chihiro 的密码 -----
+
+-------------    smbclient  -U  smb系统用户  "空格"//172.25.0.11/共享的目录
+
+[root@desktop0 ~]# smbclient  -U  chihiro //172.25.0.11/devops  #验证用户的读写权限
+
+Enter chihiro's password:  atenorth  #  需要手动输入密码"atenorth"
+
+Domain=[STAFF] OS=[Unix] Server=[Samba 4.1.1]
+smb: \> ls
+  .                                   D        0  Sat Feb 23 17:34:16 2019
+  ..                                  D        0  Sat Feb 23 17:24:56 2019
+  server.txt                          N       20  Sat Feb 23 17:34:16 2019
+
+		40913 blocks of size 262144. 28155 blocks available
+smb: \> exit
+
+------------------------------  创建挂载点 ---------------
+
+[root@desktop0 ~]# mkdir  /mnt/dev
+[root@desktop0 ~]# ls  /mnt/
+dev
+
+------------- #注意挂载cifs samba文件系统之后,会出现acl属性"+",drwxrwxr-x+ ------
+
+[root@desktop0 ~]# ls  -ld  /mnt/dev/
+drwxr-xr-x. 2 root root 6 2月  23 17:56 /mnt/dev/
+
+[root@desktop0 ~]# vim   /etc/fstab 
+
+[root@desktop0 ~]# tail  -1   /etc/fstab
+
+//172.25.0.11/devops  /mnt/dev   cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev    0  0
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# df  -hT  /mnt/dev/
+文件系统             类型  容量  已用  可用 已用% 挂载点
+//172.25.0.11/devops cifs   10G  3.2G  6.9G   32% /mnt/dev
+
+[root@desktop0 ~]# ls  /mnt/dev/
+server.txt
+
+------------- #注意挂载cifs samba文件系统之后,会出现acl属性"+",drwxrwxr-x+ ------
+
+[root@desktop0 ~]# ls  -ld   /mnt/dev/
+drwxrwxr-x+ 2 root root 0 2月  23 17:34 /mnt/dev/
+
+
+-------------- 对 挂载点进行权限测试 --------------------
+
+[root@desktop0 ~]# cat   /mnt/dev/server.txt 
+server0 ---- devops
+
+[root@desktop0 ~]# echo  "kenji write" > /mnt/dev/kenji.txt
+-bash: /mnt/dev/kenji.txt: 权限不够
+
+ ------------  验证多用户访问(在 desktopX 上):普通用户 kenji 切换为 chihiro 身份即可读写
+
+------------------ 重新在客户端以 chihiro 身份登陆查看内容，成功
+
+[root@desktop0 ~]# su  -  student
+[student@desktop0 ~]$ echo $USER
+student
+[student@desktop0 ~]$ pwd
+/home/student
+[student@desktop0 ~]$ cifscreds  add  -u chihiro  172.25.0.11
+Password: 
+[student@desktop0 ~]$ echo $USER
+student
+
+[student@desktop0 ~]$ ls  /mnt/dev/
+server.txt
+
+[student@desktop0 ~]$ echo  "chihiro write" > /mnt/dev/chihiro.txt
+
+[student@desktop0 ~]$ ll  /mnt/dev/chihiro.txt
+-rw-r--r--. 1 1003 1003 14 Feb 23 18:09 /mnt/dev/chihiro.txt
+[student@desktop0 ~]$ cat   /mnt/dev/chihiro.txt
+chihiro write
+
+[student@desktop0 ~]$ exit
+logout
+[root@desktop0 ~]# ls  /mnt/
+dev
+[root@desktop0 ~]# ls  /mnt/dev/
+chihiro.txt  server.txt
+
+
+[root@server0 ~]# ll  /devops/
+总用量 8
+-rw-r--r--. 1 chihiro chihiro 14 2月  23 18:09 chihiro.txt
+-rw-r--r--. 1 root    root    20 2月  23 17:34 server.txt
+[root@server0 ~]# ls  -ld  /devops/
+drwxrwxr-x+ 2 root root 41 2月  23 18:09 /devops/
+
+
+=============================================
+---------------------------NFS----------------------
+------------------ 10. 配置 NFS 共享服务
+
+在 server0 配置 NFS 服务，要求如下：
+以只读的方式共享目录 /public，只能被 example.com 域中的系统访问
+以读写的方式共享目录 /protected，只能被 example.com 域中的系统访问
+访问 /protected 需要通过 Kerberos 安全加密，您可以使用下面 URL 提供的
+密钥：http://classroom.example.com/pub/keytabs/server0.keytab
+目录 /protected 应该包含名为 project 拥有人为 ldapuser0 的子目录
+用户 ldapuser0 能以读写方式访问 /protected/project
+
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+
+[root@desktop0 ~]# lab  nfskrb5  setup  # 加入kerberos认证域
+Installing packages ...
+Updating authconfig for ldap & krb5 ...
+SUCCESS
+[root@desktop0 ~]# 
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+trusted
+
+[root@server0 ~]# lab  nfskrb5 setup   # 加入kerberos认证域
+Installing packages ...
+Updating authconfig for ldap & krb5 ...
+SUCCESS
+
+[root@server0 ~]# yum  -y install  nfs-utils
+已加载插件：langpacks
+软件包 1:nfs-utils-1.3.0-0.el7.x86_64 已安装并且是最新版本
+无须任何处理
+
+[root@server0 ~]# mkdir  -p  /public  /protected/project
+
+[root@server0 ~]# ls   -ld   /public/  /protected/project/
+
+drwxr-xr-x. 2 root root 6 2月  23 18:26 /protected/project/
+drwxr-xr-x. 2 root root 6 2月  23 18:26 /public/
+
+
+[root@server0 ~]# ls   -ld  /protected/
+drwxr-xr-x. 3 root root 20 2月  23 18:26 /protected/
+
+[root@server0 ~]# id  ldapuser0
+uid=1700(ldapuser0) gid=1700(ldapuser0) 组=1700(ldapuser0)
+
+[root@server0 ~]# chown   ldapuser0   /protected/project/
+
+[root@server0 ~]# ls  -ld  /protected/project/
+drwxr-xr-x. 2 ldapuser0 root 6 2月  23 18:26 /protected/project/
+
+[root@server0 ~]# ls   -ld  /protected/
+drwxr-xr-x. 3 root root 20 2月  23 18:26 /protected/
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/keytabs/server0.keytab  -O  /etc/krb5.keytab
+
+................
+正在保存至: “/etc/krb5.keytab”
+
+100%[======================================>] 1,242       --.-K/s 用时 0s      
+
+2019-02-23 18:30:20 (93.1 MB/s) - 已保存 “/etc/krb5.keytab” [1242/1242])
+
+[root@server0 ~]# ll  /etc/krb*
+-rw-r--r--. 1 root root  669 2月  23 18:23 /etc/krb5.conf
+-rw-r--r--. 1 root root 1242 7月  11 2014 /etc/krb5.keytab
+
+[root@server0 ~]# vim  /etc/exports
+
+[root@server0 ~]# cat  /etc/exports
+/public      172.25.0.0/24(ro)
+/protected   172.25.0.0/24(rw,sec=krb5p)
+
+[root@server0 ~]# vim  /etc/sysconfig/nfs 
+
+[root@server0 ~]# grep  -n "^RPCNFSDARGS="  /etc/sysconfig/nfs 
+13:RPCNFSDARGS="-V 4"            #激活NFS v4版本
+
+
+----------------  nfs-secure-server 使这个服务端的证书生效 ---------------------
+------------------  开启 nfs-server服务 是 为了读取/etc/exports中的配置文件 ---------------
+
+-------------------------- //启用两个系统服务 ---------------------
+
+[root@server0 ~]# systemctl  start  nfs-server  nfs-secure-server
+[root@server0 ~]# systemctl  enable  nfs-server nfs-secure-server
+
+ln -s '/usr/lib/systemd/system/nfs-server.service' '/etc/systemd/system/nfs.target.wants/nfs-server.service'
+ln -s '/usr/lib/systemd/system/nfs-secure-server.service' '/etc/systemd/system/nfs.target.wants/nfs-secure-server.service'
+
+[root@server0 ~]# showmount  -e
+Export list for server0.example.com:
+/protected 172.25.0.0/24
+/public    172.25.0.0/24
+
+[root@server0 ~]# echo  "public readonly server" > /public/serverroot.txt
+
+[root@server0 ~]# ls  /public/
+serverroot.txt
+[root@server0 ~]# ll  /public/
+总用量 4
+-rw-r--r--. 1 root root 23 2月  23 18:39 serverroot.txt
+
+[root@server0 ~]# ls  -ld  /public/
+drwxr-xr-x. 2 root root 27 2月  23 18:39 /public/
+
+[root@server0 ~]# echo  "protected-project-server-ldap"  > /protected/project/serverldaproot.txt
+
+[root@server0 ~]# ll /protected/project/serverldaproot.txt
+-rw-r--r--. 1 root root 30 2月  23 18:41 /protected/project/serverldaproot.txt
+
+[root@server0 ~]# ls   /protected/project/
+serverldaproot.txt
+
+[root@server0 ~]# ls   /protected/
+project
+
+[root@server0 ~]#  echo  rootwriteserver0 > /protected/root.txt
+
+[root@server0 ~]# exportfs   -rv
+exporting 172.25.0.0/24:/protected
+exporting 172.25.0.0/24:/public
+
+
+===================11 . 挂载NFS共享=======================
+--------------------------------  11 . 挂载NFS共享
+在 desktop0 上挂载一个来自 server0.example.com 的共享，并符合下列要求：
+/public 挂载在下面的目录上 /mnt/nfsmount
+/protected 挂载在下面的目录上 /mnt/nfssecure 并使用安全的方式，
+  密钥下载 URL：http://classroom.example.com/pub/keytabs/desktop0.keytab
+用户 ldapuser0 能够在/mnt/nfssecure/project 上创建文件
+这些文件系统在系统启动时自动挂载
+
+/********** 考试说明,请仔细阅读
+考试说明
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+************/
+
+[root@desktop0 ~]# tail  -2 /etc/fstab 
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1 /      xfs     defaults      1 1
+//172.25.0.11/devops  /mnt/dev   cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev    0  0
+
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+public
+
+[root@desktop0 ~]# df  -hT  /mnt/dev/
+文件系统             类型  容量  已用  可用 已用% 挂载点
+//172.25.0.11/devops cifs   10G  3.2G  6.9G   32% /mnt/dev
+
+[root@desktop0 ~]# showmount  -e  172.25.0.11
+Export list for 172.25.0.11:
+/protected 172.25.0.0/24
+/public    172.25.0.0/24
+
+[root@desktop0 ~]# wget  http://classroom.example.com/pub/keytabs/desktop0.keytab   -O  /etc/krb5.keytab
+
+................
+正在保存至: “/etc/krb5.keytab”
+
+100%[======================================>] 1,258       --.-K/s 用时 0s      
+
+2019-02-23 19:02:15 (77.5 MB/s) - 已保存 “/etc/krb5.keytab” [1258/1258])
+
+[root@desktop0 ~]# ll  /etc/krb5.*
+-rw-r--r--. 1 root root  669 2月  23 18:24 /etc/krb5.conf
+-rw-r--r--. 1 root root 1258 7月  11 2014 /etc/krb5.keytab
+
+[root@desktop0 ~]# mkdir   /mnt/nfs{mount,secure}
+
+[root@desktop0 ~]# ls  -ld   /mnt/nfs{mount,secure}
+
+drwxr-xr-x. 2 root root 6 2月  23 19:04 /mnt/nfsmount
+drwxr-xr-x. 2 root root 6 2月  23 19:04 /mnt/nfssecure
+
+[root@desktop0 ~]# ls    /mnt/nfs{mount,secure}
+/mnt/nfsmount:
+
+/mnt/nfssecure:
+[root@desktop0 ~]# 
+
+-----------------------  启动这个 nfs-secure 安全服务 使客户端的证书生效 --------------------
+
+[root@desktop0 ~]# systemctl  start  nfs-secure  && systemctl  enable  nfs-secure
+
+[root@desktop0 ~]# vim   /etc/fstab 
+
+[root@desktop0 ~]# tail  -3   /etc/fstab
+
+//172.25.0.11/devops  /mnt/dev   cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev    0  0
+172.25.0.11:/public   /mnt/nfsmount  nfs  defaults,_netdev  0   0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,_netdev  0  0
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# ls  /mnt/
+dev  nfsmount  nfssecure
+
+[root@desktop0 ~]# ls  /mnt/dev/
+chihiro.txt  server.txt
+
+[root@desktop0 ~]# ls  /mnt/nfsmount/
+serverroot.txt
+
+[root@desktop0 ~]# ls  /mnt/nfssecure/ 
+project  root.txt
+
+[root@desktop0 ~]# ls  /mnt/nfssecure/project/
+serverldaproot.txt
+
+[root@desktop0 ~]# ls  -ld  /mnt/nfssecure/project/
+drwxr-xr-x. 2 ldapuser0 root 31 2月  23 18:41 /mnt/nfssecure/project/
+
+[root@desktop0 ~]# df  -hT   /mnt/*
+文件系统               类型  容量  已用  可用 已用% 挂载点
+//172.25.0.11/devops   cifs   10G  3.2G  6.9G   32% /mnt/dev
+172.25.0.11:/public    nfs4   10G  3.2G  6.9G   32% /mnt/nfsmount
+172.25.0.11:/protected nfs    10G  3.2G  6.9G   32% /mnt/nfssecure
+
+[root@desktop0 ~]# ssh -o StrictHostKeyChecking=no -l  ldapuser0 172.25.0.10Warning: Permanently added '172.25.0.10' (ECDSA) to the list of known hosts.
+
+ldapuser0@172.25.0.10's password: kerberos（输入密码 kerberos)
+
+Creating home directory for ldapuser0.
+
+[ldapuser0@desktop0 ~]$ echo  $USER
+ldapuser0
+
+[ldapuser0@desktop0 ~]$ pwd
+/home/guests/ldapuser0
+
+[ldapuser0@desktop0 ~]$ ls  -ld  /mnt/nfssecure/project/
+drwxr-xr-x. 2 ldapuser0 root 31 2月  23 18:41 /mnt/nfssecure/project/
+
+[ldapuser0@desktop0 ~]$ echo  "ldapuser0 write " > /mnt/nfssecure/project/ldapuser0.txt
+
+[ldapuser0@desktop0 ~]$ ll /mnt/nfssecure/project/ldapuser0.txt
+-rw-rw-r--. 1 ldapuser0 ldapuser0 17 2月  23 19:21 /mnt/nfssecure/project/ldapuser0.txt
+
+[ldapuser0@desktop0 ~]$ echo  "ldapuser0 write " > /mnt/nfssecure/ldapuser0.txt-bash: /mnt/nfssecure/ldapuser0.txt: 权限不够
+
+[ldapuser0@desktop0 ~]$ cat   /mnt/nfsmount/serverroot.txt 
+public readonly server
+
+[ldapuser0@desktop0 ~]$ ls   /mnt/nfssecure/
+project  root.txt
+[ldapuser0@desktop0 ~]$ cat   /mnt/nfssecure/root.txt 
+rootwriteserver0
+[ldapuser0@desktop0 ~]$ echo  ldapuser0write >>  /mnt/nfssecure/root.txt
+-bash: /mnt/nfssecure/root.txt: 权限不够
+
+[ldapuser0@desktop0 ~]$ echo  ldapuser0write >  /mnt/nfssecure/ldapuser0.txt
+-bash: /mnt/nfssecure/ldapuser0.txt: 权限不够
+
+[ldapuser0@desktop0 ~]$ exit
+登出
+Connection to 172.25.0.10 closed.
+
+[root@desktop0 ~]# ls  /mnt/
+dev  nfsmount  nfssecure
+[root@desktop0 ~]# ls  /mnt/dev/
+chihiro.txt  server.txt
+
+[root@desktop0 ~]# ls  /mnt/nfsmount/   # server0 ~  /public/
+serverroot.txt
+[root@desktop0 ~]# cat  /mnt/nfsmount/serverroot.txt 
+public readonly server
+[root@desktop0 ~]# echo desktop write >>  /mnt/nfsmount/serverroot.txt
+-bash: /mnt/nfsmount/serverroot.txt: 权限不够
+[root@desktop0 ~]# ls  /mnt/nfssecure/    # server0 ~ /protected/
+project  root.txt
+[root@desktop0 ~]# cat   /mnt/nfssecure/root.txt 
+rootwriteserver0
+[root@desktop0 ~]# echo  desktopwrite >  /mnt/nfssecure/desktoproot.txt
+-bash: /mnt/nfssecure/desktoproot.txt: 权限不够
+
+[root@server0 ~]# ls  /public/
+serverroot.txt
+[root@server0 ~]# ls  /protected/
+project  root.txt
+[root@server0 ~]# ls  /protected/project/
+ldapuser0.txt  serverldaproot.txt
+
+
+[root@desktop0 ~]# klist  -k  /etc/krb5.keytab 
+Keytab name: FILE:/etc/krb5.keytab
+KVNO Principal
+---- --------------------------------------------------------------------------
+   2 host/desktop0.example.com@EXAMPLE.COM
+   2 host/desktop0.example.com@EXAMPLE.COM
+   2 host/desktop0.example.com@EXAMPLE.COM
+........
+
+[root@server0 ~]# klist  -k  /etc/krb5.keytab 
+Keytab name: FILE:/etc/krb5.keytab
+KVNO Principal
+---- --------------------------------------------------------------------------
+   2 host/server0.example.com@EXAMPLE.COM
+   2 host/server0.example.com@EXAMPLE.COM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
