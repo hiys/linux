@@ -3785,7 +3785,7 @@ httpd_enable_homedirs --> on
 [root@desktop0 ~]# getsebool   -a  |grep httpd_enable_homedir
 httpd_enable_homedirs --> off
 
-[root@desktop0 ~]# sestatus  #查看selinx的工作状态
+[root@desktop0 ~]# sestatus  #查看selinux的工作状态
 SELinux status:                 enabled
 SELinuxfs mount:                /sys/fs/selinux
 SELinux root directory:         /etc/selinux
@@ -3893,6 +3893,8 @@ drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
 [root@server0 ~]# yum   -y install  elinks  |tail  -2
 
 完毕！
+[root@server0 ~]# systemctl  start httpd  &&  systemctl  enable  httpd
+
 [root@server0 ~]# elinks  -dump  server0.example.com
    Default Site.
 [root@server0 ~]# curl  server0.example.com
@@ -4537,7 +4539,7 @@ apache采用非标准端口，需执行如下命令：
 /var/www/svn/conf(/.*)?     all files    system_u:object_r:httpd_sys_content_t:s0 
 
   假设希望 Apache 使用 /srv/www 作为网站文件目录，
-那么就需要给这个目录下的文件增加 httpdsyscontent_t 标签，
+那么就需要给这个目录下的文件增加 httpd_syscontent_t 标签，
 分两步实现。
     首先为 /srv/www 这个目录下的文件添加默认标签类型：
  semanage fcontext -a -t httpd_sys_content_t '/srv/www(/.*)?'
@@ -5475,6 +5477,41 @@ mariadb-server-5.5.35-3.el7.x86_64
 [root@server0 ~]# systemctl   enable  mariadb
 ln -s '/usr/lib/systemd/system/mariadb.service' '/etc/systemd/system/multi-user.target.wants/mariadb.service'
 
+/**************** 在shell中或者命令行使用mysql命令连接数据库
+  # mysql
+注：不需用户名和秘密，因为MariaDB启动时使用了skip-networking  # 添加此行,跳过网络监听
+重新加载授权表，以便使用用户管理命令
+
+登陆MariaDB数据库后，运行如下命令，重新加载授权表
+FLUSH PRIVILEGES;
+MariaDB [mysql]> flush privileges;
+
+修改MariaDB root密码
+1）对应于MySQL 5.7.6和之后的版本使用如下命令修改root密码：
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass';
+MariaDB [mysql]> alter user  root@localhost identified by 'mimaya';
+
+
+UPDATE mysql.user SET authentication_string = PASSWORD('MyNewPass')
+WHERE User = 'root' AND Host = 'localhost';
+
+------------------------------------ //设置 root 新密码
+MariaDB [mysql]> update  user  set password=password('atenorth') where user='root'  and  host='localhost';
+--------------------------------------- 给用户设置密码
+对应于MySQL 5.7.5和之前的版本使用如下命令修改root密码
+
+MariaDB [mysql]> set  password  for  Raikon@'localhost' =password('patenorth');
+
+--------- ----------------- 创建 用户 Raikon2
+MariaDB [mysql]> create  user  'Raikon2'@'172.25.0.0/255.255.255.0' identified by  'patenorth';
+
+去除添加的选项，重启MariaDB服务
+
+去除在MariaDB配置文件中添加的skip-grant-tables，skip-networking选项，
+然后重启MariaDB服务
+**********/
+
+
 -----------mysqladmin -u  用户名root  password  '初始密码'  
 [root@server0 ~]# mysqladmin -u root password 'atenorth'  //设置原始密码
 
@@ -5781,6 +5818,93 @@ CREATE TABLE `base` (
 
 -- Dump completed on 2016-02-27 21:54:02
 [root@server0 ~]# 
+
+/***************
+ 使用客户端命令创建数据库：
+        ~]# mysqladmin create mydb
+        ~]# mysql -e "create database mydb;"
+
+    使用客户端命令删除数据库：
+        ~]# mysqladmin drop mydb   //会对删除数据库的操作进行确认；
+        ~]# mysql -e "drop database mydb;"
+
+current_date()		当前日期
+MariaDB [prictice]> select current_date();
+
+current_time()		当前时间
+MariaDB [prictice]> select current_time();
+
+current_timestamp()		当前时间戳
+MariaDB [prictice]> select current_timestamp();
+
+ucase(string)		转换成大写
+MariaDB [prictice]> select ucase('xixi');
++---------------+
+| ucase('xixi') |
++---------------+
+| XIXI          |
++---------------+
+
+lcase(string)		转换成小写
+MariaDB [prictice]> select lcase('XIXI');
+
+rand()		返回随机数, 范围[0.0, 1.0]
+MariaDB [prictice]> select rand();
++--------------------+
+| rand()             |
++--------------------+
+| 0.6307388568583306 |
+
+聚合函数
+
+count(expr)		返回查询到的数据的数量
+MariaDB [prictice]> select count(name) from student;
++-------------+
+| count(name) |
++-------------+
+|           6 |
++-------------+
+注: 使用count(*)不受null的影响; count(name), name中有为null的, 不计入总数
+
+sum(expr)		返回查询到的数据的总和, 不是数字无意义
+MariaDB [prictice]> select sum(chinese) from student;
+
+
+avg(expr)		返回查询到的数据的平均值, 不是数字无意义
+MariaDB [prictice]> select avg(chinese) from student;
++--------------+
+| avg(chinese) |
++--------------+
+|     94.00000 |
++--------------+
+
+max(expr)		返回查询到的数据的最大值, 不是数字无意义
+MariaDB [prictice]> select max(chinese) from student;
+
+user()		查询当前用户
+MariaDB [prictice]> select user();
++----------------+
+| user()         |
++----------------+
+| root@localhost |
++----------------+
+
+md5(str)		MD5消息摘要算法
+MariaDB [prictice]> select md5('xixi');
++----------------------------------+
+| md5('xixi')                      |
++----------------------------------+
+| de156e39c8481df78050021b1ffcd425 |
+
+password()		加密函数
+MariaDB [prictice]> select password('xixi');
++-------------------------------------------+
+| password('xixi')                          |
++-------------------------------------------+
+| *F13AA038C6D4B48040F842128FE6CEA90CEE3A9E |
+
+***************/
+
 
 
 =================导入数据库Contacts
