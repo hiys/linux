@@ -1212,7 +1212,7 @@ desktop0.example.com
 rhce:0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         inet 172.25.0.250  netmask 255.255.0.0  broadcast 172.25.255.255
 
-[root@server0 ~]# scp -P7920 -o StrictHostKeyChecking=no  root@172.25.0.250:'/root/桌 面/ab2.tar.gz' ./
+[root@server0 ~]# scp -P7920 -o StrictHostKeyChecking=no  root@172.25.0.250:'/root/桌 面/lab2.tar.gz' ./
 
 Warning: Permanently added '[172.25.0.250]:7920' (ECDSA) to the list of known hosts.
 root@172.25.0.250's password: 1
