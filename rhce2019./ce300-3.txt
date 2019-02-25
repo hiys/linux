@@ -946,6 +946,11 @@ Connection 'team0-1' (886abed3-8b60-4c2a-b4cf-ff0aa35baa2d) successfully added.
 
 Connection 'team0-2' (c5cb0f76-edce-466b-9ca9-bf0304541c82) successfully added.
 [root@desktop0 ~]# 
+/*****
+ ~]# nmcli connection add con-name team0-2 ifname eth2 type team-slave autoconnect yes master team0 
+
+*********/
+
 [root@desktop0 ~]# nmcli  device  status
 设备   类型      状态                  CONNECTION  
 eth0   ethernet  连接的                System eth0 
