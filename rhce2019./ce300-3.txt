@@ -552,7 +552,7 @@ tcp6       0      0 :::22          :::*         LISTEN      30855/sshd
 public
 [root@desktop0 ~]# firewall-cmd  --state
 running
-[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24  --zone=block
+[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24 
 
 success
 
