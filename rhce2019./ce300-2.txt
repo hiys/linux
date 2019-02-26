@@ -3634,6 +3634,16 @@ chcon  -t public_content_t  -R /var/ftp
 如果你想让你设置的FTP目录可以上传文件的话，SELINUX需要设置：
 chcon -t public_content_rw_t /var/ftp/incoming
 
+/**************
+[root@server0 ~]# mkdir  /var/www/virtual
+[root@server0 ~]# ls  -Zd  /var/www/virtual
+drwxr-xr-x. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/virtual
+[root@server0 ~]# ls  -Zd  /var/www/html/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
+[root@server0 ~]# chcon -R  --reference=/var/www/html/  /var/www/virtual/
+[root@server0 ~]# ls  -Zd   /var/www/virtual/
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/virtual/
+************/
 
 [root@desktop0 ~]# ls  -Zd  /var/www/html/
 drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html/
