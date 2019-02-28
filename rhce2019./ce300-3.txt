@@ -1298,6 +1298,11 @@ postfix-2.10.1-6.el7.x86_64
 317-#relayhost = [an.ip.add.ress]
 318:relayhost = [smtp0.example.com]
 
+/*************************
+<Directory  /var/www/html/private/>
+  Require  ip  127.0.0.1  ::1  172.25.0.11
+</Directory>
+*******************/
 
 [root@server0 ~]# grep  -En  "^(myorigin |inet_interfaces |mydestination |local_transport |mynetworks |relayhost )"  /etc/postfix/main.cf 
 
@@ -1788,6 +1793,30 @@ drwxrwxr-x+ 2 root root 41 2月  23 18:09 /devops/
 目录 /protected 应该包含名为 project 拥有人为 ldapuser0 的子目录
 用户 ldapuser0 能以读写方式访问 /protected/project
 
+/************
+centos查看nfs版本
+服务器端使用：
+# nfsstat -s
+[root@server0 ~]# nfsstat  -s |grep  "nfs v"
+Server nfs v3:
+Server nfs v4:
+Server nfs v4 operations:
+[root@server0 ~]# 
+
+客户端使用：
+[root@desktop0 ~]# nfsstat  -c |grep "nfs v"
+Client nfs v3:
+Client nfs v4:
+[root@desktop0 ~]# nfsstat  -m
+/mnt/nfssecure from 172.25.0.11:/protected
+ Flags:	rw,relatime,vers=3,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=krb5p,mountaddr=172.25.0.11,mountvers=3,mountport=20048,mountproto=udp,local_lock=none,addr=172.25.0.11
+
+/mnt/nfsmount from 172.25.0.11:/public
+ Flags:	rw,relatime,vers=4.0,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr=172.25.0.10,local_lock=none,addr=172.25.0.11
+
+[root@desktop0 ~]# 
+***********/
+
 
 [root@desktop0 ~]# firewall-cmd  --get-default-zone 
 trusted
@@ -1928,7 +1957,8 @@ UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1 /      xfs     defaults      1 1
 
 
 [root@desktop0 ~]# firewall-cmd  --get-default-zone 
-public
+trusted
+
 
 [root@desktop0 ~]# df  -hT  /mnt/dev/
 文件系统             类型  容量  已用  可用 已用% 挂载点
@@ -2503,6 +2533,12 @@ manual.conf     ssl.conf  VirtualHost.conf
   ServerName    www0.example.com
   DocumentRoot  /var/www/virtual/
 </VirtualHost>
+
+
+/**************************
+266-#mynetworks = hash:/etc/postfix/network_table
+267:mynetworks = 127.0.0.0/8  [::1]/128
+*************/
 
 [root@server0 ~]# vim  /etc/httpd/conf.d/Directory.conf
 [root@server0 ~]# cat  /etc/httpd/conf.d/Directory.conf
@@ -3116,6 +3152,16 @@ mariadb-server-5.5.35-3.el7.x86_64
 [root@server0 ~]# systemctl  restart  mariadb
 [root@server0 ~]# systemctl   enable  mariadb
 
+
+/*************************
+-----------mysqladmin -u  用户名root  password  '初始密码'  
+[root@server0 ~]# mysqladmin -u root password 'atenorth'  //设置原始密码
+
+
+-------------mysqladmin  -u用户名   -p旧密码   password  '新密码'  //设置新密码
+[root@server0 ~]# mysqladmin   -uroot  -patenorth  password  'atenorth'
+
+********************/
 ----------------------   root用户的密码为 atenorth，同时不允许空密码登陆 
 
        -----------mysqladmin -u  用户名root  password  '初始密码'  
@@ -3270,6 +3316,35 @@ MariaDB [mysql]> show grants  for Raikon@localhost;
 MariaDB [mysql]> quit;
 Bye
 
+/*********************************
+
+------------------------------------- 查看所有的授权用户的信息 (包含用户名 主机ip )-----------------------------------
+
+MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') as
+    -> query from mysql.user;
++--------------------------------+
+| query                          |
++--------------------------------+
+| username:'Raikon'@'localhost'; |
+| username:'root'@'localhost';   |
++--------------------------------+
+2 rows in set (0.00 sec)
+
+------------------------------------ 查看所有的授权用户的信息(包含用户名 主机ip 密码)-----------------------------------
+MariaDB [Contacts]> select  distinct concat('userName:''',user,'''@''',host,'''xxPasswordxx:''',password,''';') 
+    -> from mysql.user;
+
+---------------------------------------------------------------------------------------------
+| concat('userName:''',user,'''@''',host,'''xxPasswordxx:''',password,''';')             |
++----------------------------------------------------------------------------------------+
+| userName:'root'@'localhost'xxPasswordxx:'*2CB38271572C66F5E558D7A1DFCA8263F861C1F6';   |
+| userName:'Raikon'@'localhost'xxPasswordxx:'*2CB38271572C66F5E558D7A1DFCA8263F861C1F6'; |
++----------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [Contacts]> 
+******************/
+
 ------------ 数据库应该包含来自数据库复制的内容，复制文件的 
             URL 为：http://classroom.example.com/pub/materials/users.sql
 
@@ -3390,7 +3465,12 @@ tcp    0      0 0.0.0.0:3306    0.0.0.0:*       LISTEN      8096/mysqld
 
 --------------------------- 有多少人的姓名是 Barbara 同时居住在 Sunnyvale？
 
-[root@server0 ~]# mysql -uroot  -patenorth -D Contacts -e "select  base.name,location.city,base.id from  location,base  where base.name='Barbara' and location.city='Sunnyvale' and base.id=location.id;"
+[root@server0 ~]# mysql -uroot  -patenorth -D Contacts -e 
+"select  base.name,location.city,base.id 
+from  location,base  
+where base.name='Barbara' 
+and location.city='Sunnyvale' 
+and base.id=location.id;"
 
 +---------+-----------+------+
 | name    | city      | id   |
@@ -3449,7 +3529,69 @@ left join table2 b on  a.sems_role_rid=b.rid
 left join table3 c on  a.udeptid=c.deptid 
 
 
+MariaDB [Contacts]> select base.name,location.city,base.id,location.id
+    -> from  base
+    -> left  join  location on base.id=location.id;
++---------+-----------+------+------+
+| name    | city      | id   | id   |
++---------+-----------+------+------+
+| Tom     | Beijing   |    1 |    1 |
+| Barbara | Paris     |    2 |    2 |
+| James   | Sunnyvale |    3 |    3 |
+| Smith   | Berlin    |    4 |    4 |
+| Barbara | Sunnyvale |    5 |    5 |
++---------+-----------+------+------+
+5 rows in set (0.00 sec)
 
+MariaDB [Contacts]>  select base.name,location.city,base.id,location.id 
+    -> from  base 
+    -> left  join  location 
+    -> on  base.id=location.id  
+    -> where base.name='Barbara'  
+    -> and location.city='Sunnyvale';
++---------+-----------+------+------+
+| name    | city      | id   | id   |
++---------+-----------+------+------+
+| Barbara | Sunnyvale |    5 |    5 |
++---------+-----------+------+------+
+1 row in set (0.00 sec)
+
+
+MariaDB [Contacts]> select count(*)  
+    -> from  base  
+    -> left  join  location  
+    -> on  base.id=location.id   
+    -> where base.name='Barbara'   
+    -> and location.city='Sunnyvale';
++----------+
+| count(*) |
++----------+
+|        1 |
++----------+
+1 row in set (0.00 sec)
+
+
+[root@server0 ~]# mysql -uroot  -patenorth  mysql  -e "
+select distinct concat('username:''',user,'''@''',host,''';') 
+> from mysql.user;"
+
++-----------------------------------------------+
+| concat('username:''',user,'''@''',host,''';') |
++-----------------------------------------------+
+| username:'Raikon'@'localhost';                |
+| username:'root'@'localhost';                  |
++-----------------------------------------------+
+
+[root@server0 ~]# mysql -uroot  -patenorth  mysql  -e "
+> show grants for  Raikon@localhost;"
+
++---------------------------------------------------------------------------------------------------------------+
+| Grants for Raikon@localhost                                                                                   |
++---------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'Raikon'@'localhost' IDENTIFIED BY PASSWORD '*2CB38271572C66F5E558D7A1DFCA8263F861C1F6' |
+| GRANT SELECT ON `Contacts`.* TO 'Raikon'@'localhost'                                                          |
++---------------------------------------------------------------------------------------------------------------+
+[root@server0 ~]# 
 
 
 

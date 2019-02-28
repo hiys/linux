@@ -6065,12 +6065,6 @@ MariaDB [Contacts]> select  base.name,location.city,base.id  from Contacts.base,
 +---------+-----------+------+
 1 row in set (0.01 sec)
 
-查出first name(看英文题)是Alan用户住址在Cupertino的用户个数
-select count(*) from User_Contacts,User_Names 
-where User_Contacts.Location="Cupertino" 
-and User_Names.first_name="Alan" 
-and User_Contacts.id=User_Names.user_id;
-
 
 MariaDB [Contacts]> select  count(*)  from  Contacts.base,location  
 where base.name='Barbara'  
@@ -6149,19 +6143,7 @@ MariaDB [inventory]> show tables;
 在密码表当中查出密码是forsook的用户叫什么名字 
 查出first name(看英文题)是Alan用户住址在Cupertino的用户个数
 
-select User_Names.first_name from User_Names,User_Logins where User_Names.user_id=User_Logins.id and User_Logins.User_Pass="forsook";
-
-或select user.name from user inner join infor on user.id=infor.id where infor.pass="tapacalaya";
-
-查出first name(看英文题)是Alan用户住址在Cupertino的用户个数
-select count(*) from User_Contacts,User_Names 
-where User_Contacts.Location="Cupertino" 
-and User_Names.first_name="Alan" 
-and User_Contacts.id=User_Names.user_id;
-
-或select count(*)  from user inner join address on user.id=address.id where user.name="john" and address.addr="Washion";
-
-
+------------------------------------- 查看所有的授权用户的信息 (包含用户名 主机ip )-----------------------------------
 
 MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') as
     -> query from mysql.user;
@@ -6172,6 +6154,20 @@ MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') a
 | username:'root'@'localhost';   |
 +--------------------------------+
 2 rows in set (0.00 sec)
+
+------------------------------------ 查看所有的授权用户的信息(包含用户名 主机ip 密码)-----------------------------------
+MariaDB [Contacts]> select  distinct concat('userName:''',user,'''@''',host,'''xxPasswordxx:''',password,''';') from mysql.user;
+
++----------------------------------------------------------------------------------------+
+| concat('userName:''',user,'''@''',host,'''xxPasswordxx:''',password,''';')             |
++----------------------------------------------------------------------------------------+
+| userName:'root'@'localhost'xxPasswordxx:'*2CB38271572C66F5E558D7A1DFCA8263F861C1F6';   |
+| userName:'Raikon'@'localhost'xxPasswordxx:'*2CB38271572C66F5E558D7A1DFCA8263F861C1F6'; |
++----------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [Contacts]> 
+
 
 MariaDB [mysql]> show grants  for Raikon@localhost;
 +---------------------------------------------------------------------------------------------------------------+
@@ -6186,7 +6182,7 @@ MariaDB [mysql]> show grants;
 +----------------------------------------------------------------------------------------------------------------------------------------+
 | Grants for root@localhost                                                                                                              |
 +----------------------------------------------------------------------------------------------------------------------------------------+
-| GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY PASSWORD '*2CB38271572C66F5E558D7A1DFCA8263F861C1F6' WITH GRANT OPTION |
+| GRANT ALL PRIVILEGES ON *.* TO 'root'@'localho@'st' IDENTIFIED BY PASSWORD '*2CB38271572C66F5E558D7A1DFCA8263F861C1F6' WITH GRANT OPTION |
 | GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION                                                                           |
 +----------------------------------------------------------------------------------------------------------------------------------------+
 2 rows in set (0.00 sec)
