@@ -552,7 +552,7 @@ tcp6       0      0 :::22          :::*         LISTEN      30855/sshd
 public
 [root@desktop0 ~]# firewall-cmd  --state
 running
-[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24 
+[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24  --zone=block
 
 success
 
@@ -946,11 +946,6 @@ Connection 'team0-1' (886abed3-8b60-4c2a-b4cf-ff0aa35baa2d) successfully added.
 
 Connection 'team0-2' (c5cb0f76-edce-466b-9ca9-bf0304541c82) successfully added.
 [root@desktop0 ~]# 
-/*****
- ~]# nmcli connection add con-name team0-2 ifname eth2 type team-slave autoconnect yes master team0 
-
-*********/
-
 [root@desktop0 ~]# nmcli  device  status
 设备   类型      状态                  CONNECTION  
 eth0   ethernet  连接的                System eth0 
@@ -1477,7 +1472,8 @@ drwxr-xr-x. 2 root root 6 2月  23 16:14 /common/
 -------------------------------- desktop0.example.com ----------------
 
 [root@desktop0 ~]# firewall-cmd  --get-default-zone 
-public
+trusted
+
 
 [root@desktop0 ~]# yum  -y install  samba-client  cifs-utils |tail   -4
 已安装:
@@ -1794,7 +1790,8 @@ drwxrwxr-x+ 2 root root 41 2月  23 18:09 /devops/
 
 
 [root@desktop0 ~]# firewall-cmd  --get-default-zone 
-public
+trusted
+
 
 [root@desktop0 ~]# lab  nfskrb5  setup  # 加入kerberos认证域
 Installing packages ...
@@ -2489,8 +2486,9 @@ index.html
 
 [root@server0 ~]# wget  http://classroom.example.com/pub/materials/private.html   -O  /var/www/html/private/index.html
 .........
-[root@server0 ~]# cat  /var/www/private/index.html
+[root@server0 ~]# cat  /var/www/html/private/index.html
 Private Site.
+
 
 [root@server0 ~]# ls  /etc/httpd/conf.d/
 autoindex.conf  README    userdir.conf      welcome.conf
@@ -2934,7 +2932,8 @@ vdb    253:16   0  10G  0 disk
   zlib.i686 0:1.2.7-13.el7                                            
 
 完毕！
-[root@desktop0 ~]# rpm  -qa  |grep   ^iscsi-iniiscsi-initiator-utils-iscsiuio-6.2.0.873-21.el7.x86_64
+[root@desktop0 ~]# rpm  -qa  |grep   ^iscsi-ini
+iscsi-initiator-utils-iscsiuio-6.2.0.873-21.el7.x86_64
 iscsi-initiator-utils-6.2.0.873-21.el7.i686
 iscsi-initiator-utils-6.2.0.873-21.el7.x86_64
 

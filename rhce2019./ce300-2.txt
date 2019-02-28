@@ -2827,6 +2827,14 @@ posixpaths,serverino,acl,noperm,
 rsize=1048576,wsize=65536,actimeo=1    0   0
 
 **********/
+NT (New Technology) 新技术
+NTLMSSP (NT LAN Manager (NTLM) Security Support Provider) 
+
+NTLMSSP（NT LAN Manager（NTLM）安全支持提供程序）
+
+是Microsoft安全支持提供程序接口（SSPI）使用的二进制消息传递协议，
+用于促进NTLM质询响应身份验证和协商完整性和机密性选项。
+
 
 ------------------  把挂载条目写入/etc/fstab以使开机自动挂载 -------------
 
