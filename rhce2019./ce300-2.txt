@@ -3332,7 +3332,55 @@ ln -s '/usr/lib/systemd/system/nfs-secure.service' '/etc/systemd/system/nfs.targ
 172.25.0.11:/public     /mnt/nfsmount   nfs  defaults,_netdev           0  0
 172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,sec=krb5p,_netdev  0  0
 
+
+/************
+mount -t nfs -o vers=4.0,hard,timeo=600,noresvport file-system-id-xxx.aliyuncs.com:/dir  /mount-point
+
+vers	文件系统版本，目前只支持nfsv3和nfsv4。
+
+[root@desktop0 ~]# vim  /etc/fstab 
+[root@desktop0 ~]# tail  -4  /etc/fstab 
+UUID=9bf6b9f7-92ad-441b-848e-0257cbb883d1 /     xfs     defaults      1 1
+//172.25.0.11/devops  /mnt/dev cifs  defaults,multiuser,sec=ntlmssp,user=kenji,pass=atenorth,_netdev  0   0
+172.25.0.11:/public  /mnt/nfsmount  nfs  defaults,vers=4.0,_netdev  0  0
+172.25.0.11:/protected /mnt/nfssecure  nfs  defaults,vers=3,_netdev  0  0
+
 [root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# df  -hT
+文件系统               类型      容量  已用  可用 已用% 挂载点
+/dev/vda1              xfs        10G  3.2G  6.9G   32% /
+devtmpfs               devtmpfs  906M     0  906M    0% /dev
+tmpfs                  tmpfs     921M   80K  921M    1% /dev/shm
+tmpfs                  tmpfs     921M   17M  904M    2% /run
+tmpfs                  tmpfs     921M     0  921M    0% /sys/fs/cgroup
+//172.25.0.11/devops   cifs       10G  3.2G  6.9G   32% /mnt/dev
+172.25.0.11:/public    nfs4       10G  3.2G  6.9G   32% /mnt/nfsmount
+172.25.0.11:/protected nfs        10G  3.2G  6.9G   32% /mnt/nfssecure
+
+[root@desktop0 ~]# nfsstat   -m
+/mnt/nfsmount from 172.25.0.11:/public
+ Flags:	rw,relatime,vers=4.0,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr=172.25.0.10,local_lock=none,addr=172.25.0.11
+
+/mnt/nfssecure from 172.25.0.11:/protected
+ Flags:	rw,relatime,vers=3,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=krb5p,mountaddr=172.25.0.11,mountvers=3,mountport=20048,mountproto=udp,local_lock=none,addr=172.25.0.11
+
+[root@desktop0 ~]# 
+
+************/
+
+[root@desktop0 ~]# mount  -a
+
+/*************
+[root@desktop0 ~]# nfsstat  -m
+/mnt/nfsmount from 172.25.0.11:/public
+ Flags:	rw,relatime,vers=4.0,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr=172.25.0.10,local_lock=none,addr=172.25.0.11
+
+/mnt/nfssecure from 172.25.0.11:/protected
+ Flags:	rw,relatime,vers=3,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=krb5p,mountaddr=172.25.0.11,mountvers=3,mountport=20048,mountproto=udp,local_lock=none,addr=172.25.0.11
+
+*********/
+
 [root@desktop0 ~]# df  -hT
 文件系统               类型      容量  已用  可用 已用% 挂载点
 /dev/vda1              xfs        10G  3.2G  6.9G   32% /
