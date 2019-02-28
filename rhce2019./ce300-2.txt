@@ -6065,7 +6065,17 @@ MariaDB [Contacts]> select  base.name,location.city,base.id  from Contacts.base,
 +---------+-----------+------+
 1 row in set (0.01 sec)
 
-MariaDB [Contacts]> select  count(*)  from  Contacts.base,location  where base.name='Barbara'  and  location.city='Sunnyvale'  and base.id=location.id;
+查出first name(看英文题)是Alan用户住址在Cupertino的用户个数
+select count(*) from User_Contacts,User_Names 
+where User_Contacts.Location="Cupertino" 
+and User_Names.first_name="Alan" 
+and User_Contacts.id=User_Names.user_id;
+
+
+MariaDB [Contacts]> select  count(*)  from  Contacts.base,location  
+where base.name='Barbara'  
+and  location.city='Sunnyvale'  
+and base.id=location.id;
 +----------+
 | count(*) |
 +----------+
@@ -6102,12 +6112,105 @@ Bye
 
 
 
+MariaDB [mysql]> select  host,user,password from  mysql.user limit 4,5; #从零(编号 0 )开始计数
++---------------------+------+----------+
+| host                | user | password |
++---------------------+------+----------+
+| localhost           |      |          |
+| server0.example.com |      |          |
++---------------------+------+----------+
+2 rows in set (0.00 sec)
+
+MariaDB [mysql]> select  host,user,password from  mysql.user;
++---------------------+------+-------------------------------------------+
+| host                | user | password                                  |
++---------------------+------+-------------------------------------------+
+| localhost           | root | *2CB38271572C66F5E558D7A1DFCA8263F861C1F6 |
+| server0.example.com | root |                                           |
+| 127.0.0.1           | root |                                           |
+| ::1                 | root |                                           |
+| localhost           |      |                                           |
+| server0.example.com |      |                                           |
++---------------------+------+-------------------------------------------+
+
+
+MariaDB [inventory]> show tables;
++———————+
+| Tables_in_inventory |
++———————+
+| category |
+| manufacturer |
+| product |
++———————+
+3 rows in set (0.00 sec)
+
+23.数据库中的数据查询，填空 
+数据库中有三张表，“User_Names   User_Logins   User_Contacts” 
+在密码表当中查出密码是forsook的用户叫什么名字 
+查出first name(看英文题)是Alan用户住址在Cupertino的用户个数
+
+select User_Names.first_name from User_Names,User_Logins where User_Names.user_id=User_Logins.id and User_Logins.User_Pass="forsook";
+
+或select user.name from user inner join infor on user.id=infor.id where infor.pass="tapacalaya";
+
+查出first name(看英文题)是Alan用户住址在Cupertino的用户个数
+select count(*) from User_Contacts,User_Names 
+where User_Contacts.Location="Cupertino" 
+and User_Names.first_name="Alan" 
+and User_Contacts.id=User_Names.user_id;
+
+或select count(*)  from user inner join address on user.id=address.id where user.name="john" and address.addr="Washion";
 
 
 
+MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') as
+    -> query from mysql.user;
++--------------------------------+
+| query                          |
++--------------------------------+
+| username:'Raikon'@'localhost'; |
+| username:'root'@'localhost';   |
++--------------------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [mysql]> show grants  for Raikon@localhost;
++---------------------------------------------------------------------------------------------------------------+
+| Grants for Raikon@localhost                                                                                   |
++---------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'Raikon'@'localhost' IDENTIFIED BY PASSWORD '*2CB38271572C66F5E558D7A1DFCA8263F861C1F6' |
+| GRANT SELECT ON `Contacts`.* TO 'Raikon'@'localhost'                                                          |
++---------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [mysql]> show grants;
++----------------------------------------------------------------------------------------------------------------------------------------+
+| Grants for root@localhost                                                                                                              |
++----------------------------------------------------------------------------------------------------------------------------------------+
+| GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY PASSWORD '*2CB38271572C66F5E558D7A1DFCA8263F861C1F6' WITH GRANT OPTION |
+| GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION                                                                           |
++----------------------------------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+MariaDB [mysql]> select user();
++----------------+
+| user()         |
++----------------+
+| root@localhost |
++----------------+
+1 row in set (0.00 sec)
+
+MariaDB [mysql]> 
 
 
+三张表，需要得到的数据是标红色部分的。sql如下：
 
+select a.uid, a.uname, a.upsw, a.urealname, a.utel, a.uremark, 
+b.rid, b.rname, b.rremark,
+c.deptid, c.deptname, c.deptremark
+
+from table1 a,table2 b,table3 c 
+where a.sems_role_rid=b.rid 
+and a.udeptid=c.deptid 
 
 
 

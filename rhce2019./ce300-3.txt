@@ -3427,9 +3427,26 @@ tcp    0      0 0.0.0.0:3306    0.0.0.0:*       LISTEN      8096/mysqld
 ..........
 
 
+三张表，需要得到的数据是标红色部分的。sql如下：
+
+select a.uid, a.uname, a.upsw, a.urealname, a.utel, a.uremark, 
+b.rid, b.rname, b.rremark,
+c.deptid, c.deptname, c.deptremark
+
+from table1 a,table2 b,table3 c 
+where a.sems_role_rid=b.rid 
+and a.udeptid=c.deptid 
 
 
+或者：
 
+select a.uid,a.uname,a.upsw,a.urealname,a.utel,a.uremark,
+ b.rid,b.rname,b.rremark,
+c.deptid,c.deptname,c.deptremark
+
+from table1 a 
+left join table2 b on  a.sems_role_rid=b.rid 
+left join table3 c on  a.udeptid=c.deptid 
 
 
 
