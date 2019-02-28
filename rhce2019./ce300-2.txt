@@ -4592,6 +4592,12 @@ fcontext：主要用在安全上下文方面。
 管理网络端口类型定义
 semanage port [-S store] -{a|d|m|l|n|D} [-tr] [-p proto] port | port_range
 
+ 若想删除已停用的端口可使用-d删除命令，
+# semanage port -d -t ssh_port_t -p tcp 6022
+
+ 若想添加其他已定义的端口（如443）到SSH，可使用-m修改命令，
+# semanage port -m -t ssh_port_t -p tcp 443
+
 ]# semanage port -a -t http_port_t -p tcp 8909  //开启非标准端口
 apache采用非标准端口，需执行如下命令：
  # emanage port -a -t http_port_t -p tcp port_number
