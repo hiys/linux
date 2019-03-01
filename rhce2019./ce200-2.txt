@@ -46,6 +46,27 @@ server [OK]
 ......
 ***************************************/
 
+@server0 ~]#  yum -y install  cronie  crontabs
+                       sssd   autofs  chrony
+
+
+[root@server0 ~]# vim   /etc/yum.repos.d/content.example.com_rhel7.0_x86_64_dvd.repo 
+
+[root@server0 ~]# vim  /etc/yum.conf 
+
+[root@server0 ~]# vim  /etc/fstab 
+
+[root@server0 ~]# vim   /etc/auto.master
+
+[root@server0 ~]# vim  /etc/guests.rule   # 注意减号" - "
+
+[root@server0 ~]# vim  /etc/chrony.conf 
+
+@server0 ~]#  yum -y install  cronie  crontabs
+                       sssd   autofs  chrony
+
+
+
 -------------------   00a、重设 root 密码  ----------------------------
 --------------------  00a、重设 root 密码  ------------------------------
 

@@ -29,6 +29,58 @@ running
 
 *************/
 
+@server0 ~]# yum -y install   postfix   samba    nfs-utils    elinks
+               httpd-manual   httpd     mod_ssl   mod_wsgi
+               targetcli     mariadb-server      mariadb
+
+
+[root@desktop0 ~]# yum  -y install  samba-client  cifs-utils   elinks
+            iscsi-initiator-utils   iscsi-initiator-utils.i686 
+
+
+
+[root@server0 ~]# vim /etc/selinux/config
+
+[root@server0 ~]# vim /etc/ssh/sshd_config
+
+[root@server0 ~]# vim /etc/bashrc
+
+[root@server0 ~]# vim /etc/postfix/main.cf 
+
+[root@server0 ~]# vim /etc/samba/smb.conf 
+
+[root@server0 ~]# vim /etc/exports
+
+[root@server0 ~]# vim /etc/sysconfig/nfs 
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/VirtualHost.conf
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/ssl.conf 
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/Directory.conf
+
+[root@server0 ~]# vim  /root/foo.sh
+
+[root@server0 ~]# vim  /root/batchusers
+
+[root@server0 ~]# vim /etc/my.cnf
+
+
+
+
+[root@desktop0 ~]# vim /etc/selinux/config 
+
+[root@desktop0 ~]# vim /etc/ssh/sshd_config
+
+[root@desktop0 ~]# vim /etc/bashrc
+
+[root@desktop0 ~]# vim /etc/fstab
+
+[root@desktop0 ~]# vim   /etc/iscsi/initiatorname.iscsi 
+
+[root@desktop0 ~]# vim  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default 
+
+
 RHCE7-EX300模拟测试
 考试说明,请仔细阅读
 

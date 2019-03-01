@@ -202,6 +202,87 @@ vdb    252:16   0   10G  0 disk
 └─vdb9 252:25   0    1G  0 part 
 
 
+https://access.redhat.com/user/24368472
+https://www.redhat.com/wapps/ugc/protected/personalInfo.html
+您的信息   个人信息
+
+* 名字： 海龙
+* 姓氏： 胡
+
+电子邮件地址： m13530503630@163.com 
+
+* 电话号码：   13530503630
+
+
+
+[root@server0 ~]# vim   /etc/yum.repos.d/content.example.com_rhel7.0_x86_64_dvd.repo 
+
+[root@server0 ~]# vim  /etc/yum.conf 
+
+[root@server0 ~]# vim  /etc/fstab 
+
+[root@server0 ~]# vim   /etc/auto.master
+
+[root@server0 ~]# vim  /etc/guests.rule   # 注意减号" - "
+
+[root@server0 ~]# vim  /etc/chrony.conf 
+
+@server0 ~]#  yum -y install  cronie  crontabs
+                       sssd   autofs  chrony
+
+========================================
+
+[root@server0 ~]# vim /etc/selinux/config
+
+[root@server0 ~]# vim /etc/ssh/sshd_config
+
+[root@server0 ~]# vim /etc/bashrc
+
+[root@server0 ~]# vim /etc/postfix/main.cf 
+
+[root@server0 ~]# vim /etc/samba/smb.conf 
+
+[root@server0 ~]# vim /etc/exports
+
+[root@server0 ~]# vim /etc/sysconfig/nfs 
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/VirtualHost.conf
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/ssl.conf 
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/Directory.conf
+
+[root@server0 ~]# vim  /root/foo.sh
+
+[root@server0 ~]# vim  /root/batchusers
+
+[root@server0 ~]# vim /etc/my.cnf
+
+
+
+
+[root@desktop0 ~]# vim /etc/selinux/config 
+
+[root@desktop0 ~]# vim /etc/ssh/sshd_config
+
+[root@desktop0 ~]# vim /etc/bashrc
+
+[root@desktop0 ~]# vim /etc/fstab
+
+[root@desktop0 ~]# vim   /etc/iscsi/initiatorname.iscsi 
+
+[root@desktop0 ~]# vim  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default 
+
+
+@server0 ~]# yum -y install   postfix   samba    nfs-utils    elinks
+               httpd-manual   httpd     mod_ssl   mod_wsgi
+               targetcli     mariadb-server      mariadb
+
+
+[root@desktop0 ~]# yum  -y install  samba-client  cifs-utils   elinks
+            iscsi-initiator-utils   iscsi-initiator-utils.i686 
+
+
 
 
 
