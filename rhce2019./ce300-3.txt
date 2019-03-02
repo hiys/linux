@@ -1803,7 +1803,8 @@ student
 [student@desktop0 ~]$ pwd
 /home/student
 [student@desktop0 ~]$ cifscreds  add  -u chihiro  172.25.0.11
-Password: 
+Password: atenorth
+
 [student@desktop0 ~]$ echo $USER
 student
 

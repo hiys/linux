@@ -214,6 +214,19 @@ https://www.redhat.com/wapps/ugc/protected/personalInfo.html
 * 电话号码：   13530503630
 
 
+===================   CE200 =====================
+[root@server0 ~]# systemctl is-enabled  crond   sssd  autofs  chronyd  
+enabled
+enabled
+enabled
+enabled
+[root@server0 ~]# rpm  -q  cronie  crontabs  sssd  autofs  chrony
+cronie-1.4.11-11.el7.x86_64
+crontabs-1.11-6.20121102git.el7.noarch
+sssd-1.11.2-65.el7.x86_64
+autofs-5.0.7-40.el7.x86_64
+chrony-1.29.1-1.el7.x86_64
+[root@server0 ~]# 
 
 [root@server0 ~]# vim   /etc/yum.repos.d/content.example.com_rhel7.0_x86_64_dvd.repo 
 
@@ -221,30 +234,60 @@ https://www.redhat.com/wapps/ugc/protected/personalInfo.html
 
 [root@server0 ~]# vim  /etc/fstab 
 
+[root@server0 ~]# systemctl   restart  crond.service  
+
+[root@server0 ~]# systemctl  restart  sssd && systemctl  enable  sssd
+
 [root@server0 ~]# vim   /etc/auto.master
 
 [root@server0 ~]# vim  /etc/guests.rule   # 注意减号" - "
 
+[root@server0 ~]# systemctl  start  autofs  &&  systemctl   enable  autofs  
+
 [root@server0 ~]# vim  /etc/chrony.conf 
+
+[root@server0 ~]# systemctl  restart  chronyd && systemctl  enable  chronyd
+
+
+firewalld  firewall-config  
 
 @server0 ~]#  yum -y install  cronie  crontabs
                        sssd   autofs  chrony
 
-========================================
+===================   CE200 =====================
+
+
+[root@server0 ~]# rpm  -q  openssh-server
+openssh-server-6.4p1-8.el7.x86_64
+
+
+==================== CE300 ===============================
 
 [root@server0 ~]# vim /etc/selinux/config
 
 [root@server0 ~]# vim /etc/ssh/sshd_config
 
+[root@server0 ~]# systemctl   restart   sshd  && systemctl  enable  sshd
+
+[root@server0 ~]# systemctl  restart  firewalld.service
+
 [root@server0 ~]# vim /etc/bashrc
 
 [root@server0 ~]# vim /etc/postfix/main.cf 
 
+[root@server0 ~]# systemctl  restart    postfix.service 
+[root@server0 ~]# systemctl   is-enabled  postfix
+
 [root@server0 ~]# vim /etc/samba/smb.conf 
+
+[root@server0 ~]# systemctl  restart  smb  && systemctl  enable  smb.service 
 
 [root@server0 ~]# vim /etc/exports
 
 [root@server0 ~]# vim /etc/sysconfig/nfs 
+
+[root@server0 ~]# systemctl  start  nfs-server  nfs-secure-server
+[root@server0 ~]# systemctl  enable  nfs-server nfs-secure-server
 
 [root@server0 ~]# vim   /etc/httpd/conf.d/VirtualHost.conf
 
@@ -252,37 +295,234 @@ https://www.redhat.com/wapps/ugc/protected/personalInfo.html
 
 [root@server0 ~]# vim  /etc/httpd/conf.d/Directory.conf
 
+[root@server0 ~]# systemctl  start httpd  &&  systemctl  enable  httpd
+
 [root@server0 ~]# vim  /root/foo.sh
 
 [root@server0 ~]# vim  /root/batchusers
 
+[root@server0 ~]# systemctl  start   target  && systemctl  enable   target.service 
+
 [root@server0 ~]# vim /etc/my.cnf
 
+[root@server0 ~]# systemctl  restart  mariadb &&  systemctl   enable  mariadb
 
-
-
+---------------------------------------------------------------------------
 [root@desktop0 ~]# vim /etc/selinux/config 
 
 [root@desktop0 ~]# vim /etc/ssh/sshd_config
+
+[root@desktop0 ~]# systemctl restart  sshd  && systemctl  enable  sshd
+
+[root@desktop0 ~]# firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
 
 [root@desktop0 ~]# vim /etc/bashrc
 
 [root@desktop0 ~]# vim /etc/fstab
 
+[root@desktop0 ~]# systemctl  start  nfs-secure  && systemctl  enable  nfs-secure
+
 [root@desktop0 ~]# vim   /etc/iscsi/initiatorname.iscsi 
 
+[root@desktop0 ~]# systemctl  daemon-reload  #守护进程重新加载
+
+[root@desktop0 ~]# systemctl  restart  iscsid && systemctl  enable  iscsid
+
 [root@desktop0 ~]# vim  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default 
+
+[root@desktop0 ~]# systemctl   restart  iscsi   &&  systemctl   enable  iscsi 
+
 
 
 @server0 ~]# yum -y install   postfix   samba    nfs-utils    elinks
                httpd-manual   httpd     mod_ssl   mod_wsgi
                targetcli     mariadb-server      mariadb
 
+firewalld  firewall-config   
 
 [root@desktop0 ~]# yum  -y install  samba-client  cifs-utils   elinks
             iscsi-initiator-utils   iscsi-initiator-utils.i686 
 
 
+
+
+==============================================
+=============8.通过 Samba 发布共享目录============
+-------------------------- 9 配置多用户Samba挂载
+
+[root@server0 ~]# firewall-cmd  --set-default-zone=trusted 
+
+[root@server0 ~]# firewall-cmd  --complete-reload 
+success
+[root@server0 ~]# grep  -in  defaultzone= /etc/firewalld/firewalld.conf
+6:DefaultZone=trusted
+
+[root@server0 ~]# firewall-cmd --get-default-zone 
+trusted
+
+[root@server0 ~]# yum -y install samba
+
+[root@server0 ~]# setsebool -P samba_export_all_rw on
+
+[root@server0 ~]# getsebool  -a  |grep samba_export_all_
+samba_export_all_ro --> off
+samba_export_all_rw --> on
+
+[root@server0 ~]# useradd harry 
+[root@server0 ~]# useradd  kenji 
+[root@server0 ~]# useradd  chihiro
+
+[root@server0 ~]# echo  -e  "migwhisk\nmigwhisk" |pdbedit -a harry
+[root@server0 ~]# echo  -e  "atenorth\natenorth" |pdbedit -a kenji
+[root@server0 ~]# echo  -e  "atenorth\natenorth" |pdbedit -a chihiro
+
+[root@server0 ~]# mkdir  /common   /devops
+
+[root@server0 ~]# echo  common  > /common/root.txt
+[root@server0 ~]# echo  devops  > /devops/root.txt
+
+[root@server0 ~]# setfacl    -m  u:chihiro:7  /devops/
+
+[root@server0 ~]# vim  /etc/samba/smb.conf 
+
+[root@server0 ~]# tail   -7    /etc/samba/smb.conf 
+[common]
+path = /common
+hosts allow = 172.25.0.0/24
+[devops]
+path = /devops
+write list = chihiro
+hosts allow = 172.25.0.0/24
+
+[root@server0 ~]# grep  -Pn  "^(\s){0,}workgroup ="  /etc/samba/smb.conf 
+89:	workgroup = STAFF
+
+[root@server0 ~]# systemctl  restart  smb  && systemctl  enable  smb.service
+
+-----------------------------------------------------------------------------------------------------
+[root@desktop0 ~]# firewall-cmd  --set-default-zone=trusted
+
+[root@desktop0 ~]# firewall-cmd  --complete-reload 
+
+[root@desktop0 ~]# grep  -in  defaultzone=  /etc/firewalld/firewalld.conf
+6:DefaultZone=trusted
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+trusted
+[root@desktop0 ~]# yum  -y install  samba-client  cifs-utils |tail   -4
+
+[root@desktop0 ~]# echo |smbclient  -L   //172.25.0.11
+
+[root@desktop0 ~]# mkdir  /desktop   /mnt/dev
+
+[root@desktop0 ~]# mount  -t cifs  -o username=harry,password=migwhisk  //172.25.0.11/common  /desktop/
+
+[root@desktop0 ~]# vim  /etc/fstab 
+
+[root@desktop0 ~]# tail  -1   /etc/fstab
+
+//172.25.0.11/devops  /mnt/dev   cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev    0  0
+
+/***************
+NT (New Technology) 新技术
+LAN  local area network 局域网
+NTLMSSP (NT LAN Manager (NTLM) Security Support Provider) 
+NTLMSSP（ NT LAN Manager (NTLM) 安全支持提供程序 ）
+************/
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# su  -  student
+
+[student@desktop0 ~]$ cifscreds   add  -u chihiro
+Usage:
+	cifscreds add [-u username] [-d] <host|domain>
+	cifscreds clear [-u username] [-d] <host|domain>
+	cifscreds clearall 
+	cifscreds update [-u username] [-d] <host|domain>
+
+[student@desktop0 ~]$ cifscreds  add  -u chihiro  172.25.0.11
+Password: atenorth
+
+[student@desktop0 ~]$ echo  "chihiro write" > /mnt/dev/chihiro.txt
+
+=============================================
+===========================================
+
+------------------ 10. 配置 NFS 共享服务 ------------------------------------
+
+[root@server0 ~]# lab  nfskrb5 setup   # 加入kerberos认证域
+[root@server0 ~]# wget  http://classroom.example.com/pub/keytabs/server0.keytab  -O  /etc/krb5.keytab
+[root@server0 ~]# klist  -k  /etc/krb5.keytab 
+
+[root@server0 ~]# yum  -y install  nfs-utils
+
+[root@server0 ~]# mkdir  -p  /public  /protected/project
+
+[root@server0 ~]# echo  public > /public/root.txt
+[root@server0 ~]# echo protected > /protected/root.txt
+
+[root@server0 ~]# id  ldapuser0
+
+[root@server0 ~]# chown   ldapuser0   /protected/project/
+
+[root@server0 ~]# vim  /etc/exports
+
+[root@server0 ~]# cat  /etc/exports
+/public      172.25.0.0/24(ro)
+/protected   172.25.0.0/24(rw,sec=krb5p)
+
+[root@server0 ~]# vim  /etc/sysconfig/nfs 
+
+[root@server0 ~]# grep  -n "^RPCNFSDARGS="  /etc/sysconfig/nfs 
+13:RPCNFSDARGS="-V 4"            #激活NFS v4版本
+
+-------------------------- //启用两个系统服务 ---------------------
+[root@server0 ~]# systemctl  start  nfs-server  nfs-secure-server
+[root@server0 ~]# systemctl  enable  nfs-server nfs-secure-server
+
+[root@server0 ~]# showmount  -e
+
+[root@server0 ~]# exportfs   -rv
+
+
+--------------------------------  11 . 挂载NFS共享 --------------------------------------------
+
+[root@desktop0 ~]# lab  nfskrb5  setup  # 加入kerberos认证域
+
+[root@desktop0 ~]# wget  http://classroom.example.com/pub/keytabs/desktop0.keytab   -O  /etc/krb5.keytab
+
+[root@desktop0 ~]# klist  -k  /etc/krb5.keytab 
+
+[root@desktop0 ~]# systemctl  start  nfs-secure  && systemctl  enable  nfs-secure
+
+[root@desktop0 ~]# showmount  -e  172.25.0.11
+Export list for 172.25.0.11:
+/protected 172.25.0.0/24
+/public    172.25.0.0/24
+
+[root@desktop0 ~]# mkdir   /mnt/nfs{mount,secure}
+
+[root@desktop0 ~]# vim   /etc/fstab 
+
+[root@desktop0 ~]# tail  -3   /etc/fstab
+
+//172.25.0.11/devops  /mnt/dev   cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev    0  0
+172.25.0.11:/public   /mnt/nfsmount  nfs  defaults,_netdev  0   0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,_netdev  0  0
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# ls  -ld  /mnt/nfssecure/project/
+
+[root@desktop0 ~]# ssh -o StrictHostKeyChecking=no -l  ldapuser0 172.25.0.10
+
+ldapuser0@172.25.0.10's password: kerberos（输入密码 kerberos)
+
+[ldapuser0@desktop0 ~]$ echo  "ldapuser0 write " > /mnt/nfssecure/project/ldapuser0.txt
+
+[ldapuser0@desktop0 ~]$ exit
+登出
 
 
 

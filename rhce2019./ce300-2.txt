@@ -2828,6 +2828,7 @@ rsize=1048576,wsize=65536,actimeo=1    0   0
 
 **********/
 NT (New Technology) 新技术
+LAN  local area network 局域网
 NTLMSSP (NT LAN Manager (NTLM) Security Support Provider) 
 
 NTLMSSP（NT LAN Manager（NTLM）安全支持提供程序）
