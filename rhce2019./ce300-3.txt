@@ -1874,6 +1874,16 @@ Client nfs v4:
 [root@desktop0 ~]# firewall-cmd  --get-default-zone 
 trusted
 
+/************************************
+
+lab  nfskrb5  setup 操作的作用：
+
+安装LDAP、kerberos的客户端相关的软件包
+
+将用户认证配置为支持LDAP+kerberos（authconfig-gtk）
+
+启动LDAP、kerberos的客户端相关服务
+***************************************/
 
 [root@desktop0 ~]# lab  nfskrb5  setup  # 加入kerberos认证域
 Installing packages ...
@@ -3448,7 +3458,8 @@ tcp    0      0 0.0.0.0:3306    0.0.0.0:*       LISTEN      8096/mysqld
   -u, --user=name     User for login if not current user.
 ---------------------------------------------------
                       	查询当前用户
-[root@server0 ~]# mysql  -uroot  -hlocalhost  -P3306  -patenorth  -e "select  user();"+----------------+
+[root@server0 ~]# mysql  -uroot  -hlocalhost  -P3306  -patenorth  -e "select  user();"
++----------------+
 | user()         |
 +----------------+
 | root@localhost |

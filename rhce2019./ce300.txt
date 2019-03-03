@@ -1164,6 +1164,18 @@ Username not found!
 使用下面 URL 提供的密钥：http://classroom.example.com/pub/keytabs/server0.keytab
 目录/protected 应该包含名为 project 拥有人为 ldapuser0 的子目录
 用户 ldapuser0 能以读写方式访问/protected/project
+
+/************************************
+
+lab  nfskrb5  setup 操作的作用：
+
+安装LDAP、kerberos的客户端相关的软件包
+
+将用户认证配置为支持LDAP+kerberos（authconfig-gtk）
+
+启动LDAP、kerberos的客户端相关服务
+***************************************/
+
 [root@desktop0 ~]# lab nfskrb5 setup
 Installing packages ...
 Updating authconfig for ldap & krb5 ...

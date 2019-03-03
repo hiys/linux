@@ -525,7 +525,20 @@ ldapuser0@172.25.0.10's password: kerberos（输入密码 kerberos)
 登出
 
 
+查找所有或者某个服务
+[root@desktop0 ~]# systemctl list-units --type=service
+UNIT                       LOAD   ACTIVE SUB     DESCRIPTION
+abrt-ccpp.service          loaded active exited  Install ABRT coredump hook
+abrt-oops.service          loaded active running ABRT kernel log watcher
+..............
 
+[root@server0 ~]# systemctl list-units  --type=service  |grep target
+target.service       loaded active exited  Restore LIO kernel target configuration
+                         加载的活动退出还原 LIO 内核目标配置
+
+[root@server0 ~]# systemctl list-units  --type=service  |grep httpd
+httpd.service      loaded active running The Apache HTTP Server
+                            运行Apache HTTP服务器时已加载为活动
 
 
 
