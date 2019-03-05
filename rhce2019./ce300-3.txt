@@ -604,7 +604,7 @@ tcp6       0      0 :::22          :::*         LISTEN      30855/sshd
 public
 [root@desktop0 ~]# firewall-cmd  --state
 running
-[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24  --zone=block
+[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24 
 
 success
 
@@ -1862,10 +1862,12 @@ Client nfs v3:
 Client nfs v4:
 [root@desktop0 ~]# nfsstat  -m
 /mnt/nfssecure from 172.25.0.11:/protected
- Flags:	rw,relatime,vers=3,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=krb5p,mountaddr=172.25.0.11,mountvers=3,mountport=20048,mountproto=udp,local_lock=none,addr=172.25.0.11
+ Flags:	rw,relatime,vers=3,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=krb5p,
+mountaddr=172.25.0.11,mountvers=3,mountport=20048,mountproto=udp,local_lock=none,addr=172.25.0.11
 
 /mnt/nfsmount from 172.25.0.11:/public
- Flags:	rw,relatime,vers=4.0,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr=172.25.0.10,local_lock=none,addr=172.25.0.11
+ Flags:	rw,relatime,vers=4.0,rsize=131072,wsize=131072,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,
+clientaddr=172.25.0.10,local_lock=none,addr=172.25.0.11
 
 [root@desktop0 ~]# 
 ***********/

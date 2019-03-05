@@ -1,0 +1,2125 @@
+
+
+RHCE7红帽认证 
+
+    >上午 9:00-11:00 EX200--RHCSA模拟测试
+
+    >下午 12:30-15:30 EX300--RHCE模拟测试
+
+一，考场纪律
+
+1，不能在考场内问考官任何考题内容方面的问题，
+这属于违规。
+考官有权给提问者判0分。
+设备问题，可以请求考官的帮助。
+
+2，不要在考场内，大声喧哗。
+有任何问题请举手询问考官，获得允许后再进行操作、处理。
+
+3，需要去卫生间，
+请举手获得考官同意后，
+方可离开考场；
+注意进出考场时，保持安静。
+
+4，考试当天，
+一定要带好自己的身份证。
+如果身份证过期或遗失，一定要在确定考试名单时和负责CE考试的老师说明。
+考试当天未带身份证者，
+将取消考试资格，且本次考试以0分处理。
+
+5，尽量使用大键盘上面的数字键位！！！
+
+
+二，上午EX200考题注意点
+
+1   在正式开考后，
+跟着考官的要求填写相关的信息。
+在此，需要特别注意的一点：
+上午和下午都需要填写自己的姓名，
+写汉语拼音，
+不要写中文。
+上、下午的名字格式必须保持完全一致，
+不能颠倒顺序；
+不能多一个空格、少一个空格；
+不能一个是有大写，一个没有大写。
+记住一点：
+必须完全一致！完全一致！！完全一致！！！
+
+2   破密成功后，
+将root的密码设置为考试时要求的用户密码。
+（一定要看“考试说明”，要求密码设置成什么，你就必须设置什么。)
+
+3   按“考试说明”里的要求，
+配置我们的主机名、IP、子网掩码、网关、dns（nameserver）这四项。
+注意，一定要配置静态IP的，
+保证在重启后还能正常使用。
+
+4   完成了网络配置后，
+配置防火墙的模式为trusted，
+并执行
+ firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
+使设置生效
+
+5   所有需要开机自启的服务，
+必须设置为开机自启（systemctl enable 服务名）
+
+6   先做搭建yum这一题。
+需要注意：
+因为是给的域名，如果前面DNS未配置正确，
+那么yum肯定无法成功使用的。
+还有，IP配置错误也会导致yum不成功.
+
+7    配置成功yum后，
+我们先做内核升级这一道题。
+我们根据题目中的地址链接去下载，下载成功后，用rpm -ivh 去升级安装
+安装成功新的内核后，
+重启我们的机器。
+
+8   创建新逻辑卷，
+注意 在创建这个逻辑卷前 
+ 一定要 先修改 PE大小为 16M（具体大小按题目要求）
+ @server0 ~]# vgcreate   -s  16MiB   datastore   /dev/vdb?
+
+9   在做autofs时，
+一定要注意写在两个文件里的内容格式；
+@server0 ~]# vim   /etc/auto.master
+27:+auto.master
+28:/home/guests       /etc/guests.rule
+
+@server0 ~]# vim  /etc/guests.rule   # 注意减号" - "
+如果有版本要求，
+则必须加上v3这种版本信息
+（例如 *   -rw,v3   classroom.example.com:/home/guests/&  )
+
+========================================
+
+三，EX300考题注意点
+
+1， 下午需要用到2台机器，
+不需要破密，
+只需要配置静态主机名，
+IP不需要配置，
+让其通过DHCP自动获取就可。
+
+2，  防火墙设置，
+要按“考试说明”里的要求去配置，
+让你拒绝哪个域就设置哪个.
+ 在做ssh那道题时，
+必须要按要求把2个都加入配置里，
+不能只写一个。
+2个机器都需要操作！！！切记
+
+3， 所有的服务，必须开机自启。
+
+4， SELinux这道题，
+必须要vim去看一下配置文件里的模式
+是否为强制启用模式。
+
+5，  做题顺序：
+做完防火墙和SELinux后，
+开始做iscsi这道题。
+注意在做客户端操作时，
+软件包名太长，
+记不住又不能tab时，
+用yum list | grep iscsi 去查找。
+
+@desktop0 ~]# vim   /etc/iscsi/initiatorname.iscsi 
+
+修改*.iscsi里的iqn名时，
+一定要和服务端写的一模一样。
+default那个文件里，
+@desktop0 ~]# grep  -n  automatic  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default
+
+4:node.startup = automatic
+50:node.conn[0].startup = automatic
+
+需要把manual改为automatic。
+在分区完，写自动挂载时，
+一定要用分区的UUID去挂载，
+用命令blkid /dev/sda1去查看UUID号。
+做完后，客户端一定要去重启测试，
+看看能否正常开机。
+如果开机失败，
+进入修复模式看看是不是/etc/fstab里写错了，
+或者是没有
+执行sync ;reboot -f。
+桌面上有一些reset这些图标，
+点击就会重置了，小心点。
+别手贱误点。
+
+6，重启成功后，
+就按题目顺序一道一道做下去即可。
+
+7，IPV6一定要用命令去配置，
+考试的时候没有伪图形界面。
+这里一定要注意，
+配置静态永久主机名！！！
+
+8，邮件服务，
+考试的时候
+  2 台 虚 拟 机 要做 一模一样的 配置修改。
+在考试的时候
+不需要执行以下的 lab 命令。切记！！！
+@desktop0 ~]# lab  smtp-nullclient  setup  #搭建练习环境
+@server0 ~]# lab  smtp-nullclient  setup  #搭建练习环境
+
+验证的时候，
+@server0 ~]# host  smtp0.example.com #查看后端邮件服务器地址
+
+验证的时候，
+题目上面会有一个URL链接，
+直接点链接验证即可。
+如果题目
+没有要求要
+添加local_transport这条语句，
+则不需要在配置文件里添加。
+193:local_transport = error:local delivery disabled
+
+9，nfs和samba，
+  @server0 ~]# setsebool  -P samba_export_all_rw  on  #取消 SELinux 限制
+ 可能失败或死机
+原因：内存不够
+解决办法： 把虚拟机强制关机，重新开机，重新做这些操作
+
+在考试的时候
+不需要执行 以下的 lab 命令。切记！！！
+@desktop0 ~]# lab  nfskrb5  setup  # 加入kerberos认证域#搭建练习环境
+@server0 ~]# lab  nfskrb5 setup   # 加入kerberos认证域#搭建练习环境
+
+安全的nfs在启动服务的时候要注意，
+服务端是nfs-secure-server和nfs-server，
+客户端是nfs-secure。
+千万别搞错，
+特别是喜欢用tab补全的同学，
+补全后一定要查看一下服务名是否正确。
+如果在mount -a 时提示accessed denied，
+请检测用户密码、证书是否正确，
+还有服务是否启动正确。
+
+如果题目有版本的要求，
+[root@server0 ~]# grep  -n "^RPCNFSDARGS="  /etc/sysconfig/nfs 
+13:RPCNFSDARGS="-V 4"            #激活NFS v4版本
+
+则需要在写开机自动挂载时，
+在参数那边加一个“,vers=4.0,”即可。
+@desktop0 ~]# tail  -2 /etc/fstab 
+172.25.0.11:/public   /mnt/nfsmount  nfs  defaults,vers=4.0,_netdev  0   0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,_netdev  0  0
+
+10，在做动态web时，
+要求开启8909端口，
+用 SELinux 管理配置工具 semanage，来修改开启非标准端口
+----- # semanage port -a -t http_port_t -p tcp 8909  //开启非标准端口
+ @server0 ~]# semanage  port  -a  -t  http_port_t  -p  tcp  8909
+
+如果设置为永久开启可能会报错，
+原因是因为我们练习环境的内存不够，导致报错。
+如果在考试遇到了报错，
+先确认命令是否有误，
+若确认无误，
+则可以试一下重启，释放一下内存。
+
+11，做完所有的题目后，
+把机器重启，
+验证服务这些有没有自动开启。
+重启的时候需要注意，
+
+先启服务端server，
+隔个20秒后再起客户端desktop
+原因 是 服务端要开启一系列的服务，
+耗时会有点长，
+客户端可等一会在开机。
+
+
+邮件服务的配置：
+inet_interfaces =       ## 接受来自哪儿的请求（练习、考试loopback-only）
+mydestination =         ## 指定发给本地邮件的域名 （练习、考试为空）
+relayhost =      #考试时写 里的值
+myorigin =      #  考试时写 里的值      
+mynetworks =       ## 所写的就代表是信任的网络
+local_transport = error:local delivery disabled    //模拟测试写此项，考试若无要求可不设 
+
+autofs的配置：
+创建的挂载点，
+考试时必须要按照这个要求去写。
+[root@server0 ~]# vim   /etc/auto.master
+27:+auto.master
+28:/home/guests       /etc/guests.rule
+被监控的目录路径 	 自定义操作策略文件的路径
+
+必须要和上面创建的挂载点一模一样。
+
+这边的写的是服务端的路径，
+严格按照 这里的路径来写。
+
+破密：
+开机出现FRUB启动菜单时，按“e”键。
+找到linux16所在的行，在行尾添加“rd.break console=tty0”，按ctrl+x键进入恢复模式
+以可写方式挂载硬盘中的根目录，并重设root密码：
+# mount -o remount,rw /sysroot
+# chroot /sysroot
+# echo "123456" | passwd --stdin root
+# touch /.autorelabel
+# exit
+# reboot
+
+
+======================     开始EX200 考试   =====================
+
+--------------------  00a、重设 root 密码  ------------------------------
+
+1)重启虚拟机 server,出现 GRUB 启动菜单时按 e 键进入编辑状态
+2)找到 linux16 所在行, LANG=en_US.UTF-8 末尾
+                                 添加 rd.break console=tty0
+   按 Ctrl+x 键 进入 恢复模式
+
+-----------------  //以可读写方式重新挂载根系统  ----------------------
+switch_root:/# mount  -o   remount,rw  /sysroot
+
+---------------- //切换到临时根系统  /sysroot/------------ 
+switch_root:/# chroot   /sysroot/
+
+   --------- 非 交互式  将系统的 root 账号密码设置为 redhat ------------
+输入命令 echo redhat  |passwd  --stdin  root  回车确认
+注意若出现乱码,直接 Ctrl + c  结束当前命令,等到显示
+sh-4.2# 再接着 设置密码
+输入命令 echo redhat  |passwd  --stdin  root  回车确认
+
+--------------------  //标记下一次启动重做 SELinux 标签  ----------------
+sh-4.2# touch  /.autorelabel
+sh-4.2# exit
+switch_root:/#reboot
+
+--------------------  00b、配置主机名、IP 地址/掩码/默认网关/DNS 地址 -------------
+
+考试说明
+
+为了能够继续考试，您必须首先完成下述任务。
+
+将系统的 root 账号密码设置为 redhat 。
+配置您的虚拟机系统使用下述静态网络配置：
+ * Hostname：server0.example.com
+ * IP address：172.25.0.11
+ * Netmask：255.255.255.0
+ * Gateway：172.25.0.254
+ * Name server：172.25.254.254
+
+您必须完成对网络的修改，这样才能访问其余的考题，一旦您完成了上述修改，
+点击下面的URL地址：http://rhgls.domain254.example.com/exam/ex200/index2.html
+
+如果您已经成功完成了初始的题目，您将被重定向到考试的其余部分。
+
+防火墙默认是打开的，在您认为是适当的时候可以关闭。
+在评分之前您的系统会被重新启动，
+所以请您确保您所做的所有修改和服务配置在重新启动之后仍然能够生效，
+而无需人工干预。
+所有考试用的虚拟机实例必须能重启之后进入正确的用户级别，而无需人工协助。
+如果考试用的虚拟机不能启动或不能正常启动，将被评零分。
+
+[root@server0 ~]# echo  redhat  |passwd  --stdin  root  #设置考试指定的密码
+
+         -------------------  配置主机名  -------------------------
+[root@server0 ~]# hostnamectl   set-hostname   server0.example.com
+
+-------------------------  配置 IP 地址/掩码 /默认网关 /DNS 地址  -----------------
+[root@server0 ~]# nmcli   connection  modify  "System eth0"  \
+> ipv4.method manual          \
+> ipv4.addresses  "172.25.0.11/24   172.25.0.254"  \
+> ipv4.dns  172.25.254.254    \
+> connection.autoconnect  yes
+
+     ---------------------------  激活 配置  ---------------------------------------
+[root@server0 ~]# nmcli  connection   up  "System eth0" 
+
+=============   完成了网络配置后，
+配置防火墙的模式为trusted，
+[root@server0 ~]# firewall-cmd   --set-default-zone=trusted 
+success
+[root@server0 ~]# firewall-cmd   --get-default-zone 
+trusted
+
+并执行
+ firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
+使设置生效
+
+------------------------------ 1. 为您的系统指定一个默认的软件仓库 ----------------------
+为您的系统指定一个默认的软件仓库
+
+YUM的软件库源为 
+http://content.example.com/rhel7.0/x86_64/dvd ，
+将此配置为您的系统的默认软件仓库。 
+
+[root@server0 ~]# mkdir  /etc/yum.repos.d/repo
+
+[root@server0 ~]# mv  /etc/yum.repos.d/rhel_dvd.repo   /etc/yum.repos.d/repo/
+
+[root@server0 ~]# yum-config-manager  --add   http://content.example.com/rhel7.0/x86_64/dvd
+
+[root@server0 ~]# vim   /etc/yum.repos.d/content.example.com_rhel7.0_x86_64_dvd.repo 
+[root@server0 ~]# cat   /etc/yum.repos.d/content.example.com_rhel7.0_x86_64_dvd.repo
+
+[content.example.com_rhel7.0_x86_64_dvd]
+name=added from: http://content.example.com/rhel7.0/x86_64/dvd
+baseurl=http://content.example.com/rhel7.0/x86_64/dvd
+enabled=1
+gpgcheck=0    #手动添加的//不检查软件签名
+
+[root@server0 ~]# yum  clean  all  > /dev/null && yum repolist
+
+/************---------------  提示 您尚未安装任何 GPG 公钥  没有签名
+               ###    后面加上 --nogpgcheck 参数 即可
+ ~]# yum  -y  install  docker-engine  --nogpgcheck
+*********/
+
+-------------------------------------  7  安装内核的升级
+从指定的地址 
+http://classroom.example.com/content/rhel7.0/x86_64/errata/Pa ckages/ 
+找到新版kernel的rpm安装文件，
+下载并用来升级内核，
+同时要满足下列要求：
+当系统重新启动之后升级的内核要作为默认的内核
+原来的内核要被保留，并且仍然可以正常启动
+
+[root@server0 ~]# uname    -r  #查看版本//确认内核版本
+
+[ ]	kernel-3.10.0-123.1...>	2018-11-27 05:39 	29M	----右键复制链接地址 
+
+------------------ 下载 找到新版kernel的rpm安装文件 ----------------------------
+
+[root@server0 ~]# wget   http://classroom.example.com/content/rhel7.0/x86_64/errata/Packages/kernel-3.10.0-123.1.2.el7.x86_64.rpm
+
+[root@server0 ~]# ll  kernel-3.10.0-123.1.2.el7.x86_64.rpm 
+
+[root@server0 ~]# rpm  -ivh   kernel-3.10.0-123.1.2.el7.x86_64.rpm 
+
+[root@server0 ~]# reboot    #重启以使新内核生效
+
+[root@server0 ~]# uname   -r   # 确认新内核版本已经改变
+3.10.0-123.1.2.el7.x86_64
+
+
+------------------------------- 2 调整逻辑卷的大小
+
+自行建立一个200MiB的逻辑卷 /dev/systemvg/vo，
+格式化为ext3文件系统并挂载到 /vo 。
+然后将逻辑卷vo和其文件系统大小调整到 300 MiB。
+要确保文件系统中的内容保持完整。
+请注意：分区大小很少能够完全符合要求的大小，
+所以大小在 270 MiB 和 330 MiB 之间都是可以接受的。 
+
+------------------------------- 12 添加一个swap分区
+
+在您的系统中添加一个大小为 512 MiB 的swap分区：
+当您的系统启动时，swap 分区应该可以自动挂载
+不要移除或者修改其他已经存在于您的系统中的 swap 分区
+
+---------------------------------------------- 15 创建一个逻辑卷
+
+根据下面的要求创建一个新的逻辑卷：
+逻辑卷命名为database，属于datastore卷组，
+并且逻辑卷的大小为50个物理扩展单元 (physical extent)
+在datastore卷组中的逻辑卷，
+物理扩展单元 (physical extent) 大小应为 16 MiB
+使用ext3 文件系统对新的逻辑卷进行格式化，
+此逻辑卷应该在系统启动的时候自动挂载在 /mnt/database 目录下
+
+
+[root@server0 ~]# lsblk 
+
+[root@server0 ~]# fdisk   /dev/vdb 
+...............
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended
+Select (default p): e
+分区号 (1-4，默认 1)：4    #输入 数字 4 直接回车
+起始 扇区 (2048-20971519，默认为 2048)： 直接回车
+将使用默认值 2048
+Last 扇区, +扇区 or +size{K,M,G} (2048-20971519，默认为 20971519)：+3G
+
+Select (default p): l
+
+Last 扇区, +扇区 or +size{K,M,G} (4096-6293503，默认为 6293503)：+210M   #考题/vo
+
+Select (default p): l
+
+Last 扇区, +扇区 or +size{K,M,G} (436224-6293503，默认为 6293503)：+110M  #考题/vo
+
+Select (default p): l
+
+Last 扇区, +扇区 or +size{K,M,G} (1320960-6293503，默认为 6293503)：+512M  #考题/swap
+
+Select (default p): l
+
+Last 扇区, +扇区 or +size{K,M,G} (2371584-6293503，默认为 6293503)：+1G  #考题/PE
+
+命令(输入 m 获取帮助)：w
+
+[root@server0 ~]# partprobe  /dev/vdb   # 刷新分区表
+
+[root@server0 ~]# lsblk 
+
+[root@server0 ~]# reboot     # 强烈建议重启一次
+
+
+[root@server0 ~]# lsblk  /dev/vdb{5..8}
+
+[root@server0 ~]# blkid  /dev/vdb{5,6}
+
+[root@server0 ~]# blkid    /dev/vdb8  #卷组 datastore 使用的物理分区
+
+[root@server0 ~]# blkid   /dev/vdb7  #swap 交换分区
+
+[root@server0 ~]# mkswap    /dev/vdb7  #创建交换分区,格式化交换文件系统
+
+----------------- 创建卷组 datastore  的时候设置PE的大小 16MiB   ---------------
+
+[root@server0 ~]# vgcreate   -s  16MiB   datastore   /dev/vdb8
+
+[root@server0 ~]# vgdisplay datastore |grep  -i size
+
+----------   创建逻辑卷database  设置 PE的个数50 -------------------------
+
+[root@server0 ~]# lvcreate -l 50 -n database   /dev/datastore
+
+----------  查看 逻辑卷/dev/datastore/database  的信息------
+[root@server0 ~]# lvs   /dev/datastore/database 
+
+
+[root@server0 ~]# vgcreate   systemvg   /dev/vdb5  #创建卷组 /dev/systemvg
+
+[root@server0 ~]# vgs  /dev/systemvg
+
+[root@server0 ~]# lvcreate  -L 200MiB -n  vo  systemvg  #创建逻辑卷/dev/systemvg/vo
+
+
+
+--------------------------------- 创建挂载 目录 --------------------------
+
+[root@server0 ~]# mkdir   /vo   /mnt/database
+
+
+--------------------------------------  #格式化文件系统ext3  ------------
+
+[root@server0 ~]# mkfs.ext3   /dev/systemvg/vo  #格式化文件系统ext3 
+[root@server0 ~]# mkfs.ext3  /dev/datastore/database  #格式化 ext3 文件系统
+
+
+----------------------------  设置 开启自动挂载 ----------------------------------------
+
+[root@server0 ~]# vim  /etc/fstab 
+[root@server0 ~]# tail  -3   /etc/fstab 
+/dev/systemvg/vo   /vo   ext3   defaults   0   0
+/dev/vdb7         swap   swap   defaults   0   0
+/dev/datastore/database  /mnt/database  ext3  defaults  0  0
+
+[root@server0 ~]# swapon   -a   ## -a 参数是开启全部的交换空间
+
+[root@server0 ~]# swapon   -s   #-s 显示简短的装置讯息,查看swap是否挂载
+
+[root@server0 ~]# blkid   /dev/vdb7  #swap 交换分区
+
+[root@server0 ~]# lsblk
+
+[root@server0 ~]# mount  -a
+
+[root@server0 ~]# blkid   /dev/datastore/database
+[root@server0 ~]# df  -hT   /mnt/database/
+
+---------------  #注意文件系统类型 ext3  文件系统大小 200MiB (有误差 10M 正常)-------
+[root@server0 ~]# df  -hT  /vo/    #注意文件系统类型 ext3  文件系统大小 190M
+
+[root@server0 ~]# lvs   /dev/systemvg/vo 
+
+[root@server0 ~]# blkid   /dev/systemvg/vo
+
+=============  使用卷组扩容的方式 扩展 逻辑卷 文件系统大小  ==============
+
+---- #扩展卷组 ,注意是mount 在线扩容,仅仅支持ext3 文件系统格式 ,注意空闲分区物理卷 /dev/vdb6 ----
+
+[root@server0 ~]# vgextend   systemvg   /dev/vdb6
+
+[root@server0 ~]# vgs  systemvg    #查看卷组剩余空间
+
+----  # 扩展逻辑卷空间  310MiB ,注意设置的逻辑卷空间要略微大于>考题要求的300MiB (文件系统大小) ---
+
+[root@server0 ~]# lvextend   -L  310MiB  /dev/systemvg/vo 
+
+------------------------  刷新 逻辑卷  /dev/systemvg/vo 文件系统  -----------------------
+
+[root@server0 ~]# resize2fs   /dev/systemvg/vo 
+
+--------------  #注意文件系统类型 ext3  文件系统大小 299MiB (已经刷新文件系统)-------
+
+[root@server0 ~]# df  -hT  /vo/
+文件系统                类型  容量  已用  可用 已用% 挂载点
+/dev/mapper/systemvg-vo ext3  299M  2.1M  278M    1% /vo
+
+
+
+---------------------------------  8 绑定到外部验证服务
+
+系统 classroom.example.com 提供了一个 LDAP 验证服务。
+您的系统需要按照以下要求绑定到这个服务上：
+
+验证服务器的基本 DN 是：dc=example,dc=com
+帐户信息和验证信息都是由 LDAP 提供的
+连接要使用证书进行加密，
+
+证书可以在下面的链接中下载 ：http://classroom.example.com/pub/example-ca.crt
+当正确完成配置后，
+用户 ldapuser0 应该能够登录到您的系统中，但是没有主目录。
+当您完成 autofs的题目之后，才能生成主目录
+用户ldapuser0的密码是password
+
+------------------------  9 autofs的配置
+
+按照下述要求配置 autofs 用来自动挂载 LDAP 用户的主目录：
+classroom.example.com（172.25.0.11）通过 NFS 输出 /home/guests 目录到您的系统，
+这个文件系统包含了用户ldapuser0的主目录，
+并且已经预先配置好了
+ldapuser0用户的主目录是 classroom.example.com:/home/guests/ldapuser0
+ldapuser0的主目录应该按需挂载到本地的/home/guests/ldapuser0 目录下
+用户对其主目录必须是可写的
+ldapuser0用户的密码是password
+
+[root@server0 ~]# yum  -y install   sssd  autofs |tail  -4
+
+[root@server0 ~]# rpm  -ql  autofs  |grep master
+/etc/auto.master
+...........
+
+[root@server0 ~]# vim   /etc/auto.master
+27:+auto.master
+28:/home/guests       /etc/guests.rule
+被监控的目录路径 	 自定义操作策略文件的路径
+
+[root@server0 ~]# mkdir   /home/guests  #根据文件 auto.master定义的文件名
+
+[root@server0 ~]# vim  /etc/guests.rule   # 注意减号" - "
+[root@server0 ~]# cat   /etc/guests.rule   #根据文件 auto.master定义的文件名
+*     -rw    classroom.example.com:/home/guests/&
+            ## 若有版本 3 要求,则添加 v3改成  -rw,v3
+
+
+[root@server0 ~]# ls  /etc/openldap/
+certs  ldap.conf
+
+[root@server0 ~]# authconfig-tui   #使用简易配置工具
+
+authconfig-tui - (c) │                                         │ 
+                     │  用户信息           认证                                │ 
+                     │  [ ] 缓存信息       [ ] 使用 MD5 密码                    │ 
+                     │  [*] 使用 LDAP      [*] 使用 shadow 密码            │ 
+                     │  [ ] 使用 NIS       [*] 使用 LDAP 认证               │ 
+                     │  [ ] 使用 IPAv2     [ ] 使用 Kerberos             │ 
+                     │  [ ] 使用 Winbind   [*] 使用指纹读取器                 │ 
+                     │                     [ ] 使用 Winbind 认证                │ 
+                     │                     [*] 本地授权即可                       │ 
+                     │                                                            │ 
+                     │      ┌──────┐            ┌────────┐    │ 
+                     │      │ 取消        │           │ 下一步   (点击) │    │ 
+                     │      └──────┘            └────────┘    │ 
+
+              ┌───────────────────┤ LDAP 设置 ├────────────┐
+                 │                                                                   │ 
+                 │           [*] 使用 TLS                                  │ 
+                 │  服务器： classroom.example.com___________________   │---指定服务器主机名
+                 │ 基础 DN： dc=example,dc=com_______________________   │-指定服务端域名(用DNS域名的不同部分组成的基准DN)
+                 │                                                                   │ 
+                 │         ┌──────┐                 ┌──────┐       │ 
+                 │         │ 后退       │                  │ 确定 (点击)│       │ 
+                 │         └──────┘                 └──────┘       │ 
+                 │                                                                   │ 
+                 │                                                                   │ 
+                 └───────────────────────────────┘ 
+LDAP目录树的最顶部就是根，也就是所谓的“基准DN"
+LDAP目录记录的标识名（Distinguished Name，简称DN）
+https://baike.baidu.com/item/LDAP/2875565?fr=aladdin
+
+             ┌─────────────┤ 警告 ├────────────┐
+             │                                                                │ 
+             │                                                                │ 
+             │ 要连到启用 TLS 的 LDAP                            ↑ │ 
+             │ 服务器，您需要一个签署您服务器证书的 CA              ▮ │ 
+             │ 证书。将此PEM                                    ▒ │ 
+             │ 格式的证书复制到“/etc/openldap/cacerts”目录中。⏎ ↓ │ 
+             │                                                                │ 
+             │                     ┌──────┐                           │ 
+             │                     │ 确定       │                           │ 
+             │                     └──────┘                           │ 
+             │                                                                 │ 
+             └──────────────────────────────┘ 
+
+提示下载证书到 /etc/openldap/cacerts 目录时, =======>>> 另开一终端执行:
+
+[root@room9pc27 ~]# ssh  -X  172.25.0.11
+
+[root@server0 ~]# ls  /etc/openldap/
+cacerts  certs  ldap.conf
+
+[root@server0 ~]# cd  /etc/openldap/cacerts/
+[root@server0 cacerts]# ls
+连接要使用证书进行加密，
+证书可以在下面的链接中下载 ：http://classroom.example.com/pub/example-ca.crt 
+
+[root@server0 cacerts]# wget   http://classroom.example.com/pub/example-ca.crt
+
+[root@server0 cacerts]# ls
+example-ca.crt
+
+[root@server0 cacerts]# file   example-ca.crt
+example-ca.crt: PEM certificate
+
+-----------------------  然后回到 authconfig-tui 工具确认,稍等片刻即可。 -------------------
+
+                 ┌─────────────┤ 警告 ├─────────────┐
+                 │                                                                  │ 
+                 │ 要连到启用 TLS 的 LDAP                             ↑ │ 
+                 │ 服务器，您需要一个签署您服务器证书的 CA                ▮ │ 
+                 │                                                                  │ 
+                 │                     ┌──────┐                            │ 
+                 │                     │ 确定  (点击)│                           │ 
+                 │                     └──────┘                            │ 
+                 │                                                                  │ 
+                 └───────────────────────────────┘ 
+
+要连到启用 TLS 的 LDAP                           ↑ │ 
+服务器，您需要一个签署您服务器证书的 CA 
+ 证书。将此PEM                               
+ 格式的证书复制到“/etc/openldap/cacerts”目录中。⏎ ▮ │                                               
+ 然后按“确定”。 
+
+[root@server0 ~]# id  ldapuser0          #验证 LDAP 用户
+uid=1700(ldapuser0) gid=1700(ldapuser0) 组=1700(ldapuser0)
+
+[root@server0 ~]# systemctl  is-active   sssd   autofs
+
+[root@server0 ~]# systemctl  restart  sssd  autofs  
+[root@server0 ~]# systemctl   enable  sssd  autofs  #开机自启动服务 
+
+[root@server0 ~]# su   -l  ldapuser0   -c   "ls  /home/guests/"
+ldapuser0
+[root@server0 ~]# su   -   ldapuser20  -c   "pwd"
+/home/guests/ldapuser20
+
+[root@server0 ~]# ls  /home/guests/
+ldapuser0  ldapuser20
+
+[root@server0 ~]# df  -hT   /home/guests/
+
+
+--------------------------------- 3  创建用户帐户
+
+创建下列用户、组以及和组的成员关系：
+一个名为adminuser的组
+一个名为natasha的用户，其属于adminuser，这个组是该用户的从属组
+一个名为harry的用户，属于adminuser，这个组是该用户的从属组
+一个名为sarah的用户，其在系统中没有可交互的shell，并且不是adminuser组的成员用户
+natasha、harry、和sarah的密码都要设置为flectrag
+
+----------------------------- 11 配置一个用户帐户
+
+创建一个名为alex的用户，用户ID是 3456，密码是flectrag 
+
+
+[root@server0 ~]# groupadd   adminuser   #创建组名adminuser
+
+[root@server0 ~]# useradd  -G  adminuser  natasha
+[root@server0 ~]# useradd  -G  adminuser  harry
+[root@server0 ~]# useradd   -s  /sbin/nologin  sarah
+[root@server0 ~]# useradd    -u  3456  alex
+[root@server0 ~]# echo  flectrag  |passwd  --stdin  alex
+[root@server0 ~]# echo  flectrag  |passwd  --stdin  natasha
+[root@server0 ~]# echo  flectrag  |passwd  --stdin  harry
+[root@server0 ~]# echo  flectrag  |passwd  --stdin  sarah
+
+[root@server0 ~]# tail  -4   /etc/passwd
+
+[root@server0 ~]# grep  -n  adminuser  /etc/group
+
+
+------------------------------- 4  配置文件/var/tmp/fstab的权限 ---------------------
+
+拷贝文件/etc/fstab到/var/tmp/fstab，配置文件/var/tmp/fstab的权限：
+文件/var/tmp/fstab的拥有者是root用户
+文件/var/tmp/fstab属于root组
+文件/var/tmp/fstab对任何人都不可执行
+用户natasha能够对文件/var/tmp/fstab执行读和写操作
+用户harry 对文件/var/tmp/fstab既不能读，也不能写
+所有其他用户（当前的和将来的）能够对文件/var/tmp/fstab进行读操作
+
+[root@server0 ~]# cp  /etc/fstab    /var/tmp/
+[root@server0 ~]# ll   /var/tmp/fstab 
+
+[root@server0 ~]# setfacl   -m  u:natasha:rw  /var/tmp/fstab
+
+[root@server0 ~]# setfacl   -m  u:harry:-  /var/tmp/fstab
+
+
+--------------------------------------------- 5  配置一个cron任务
+
+为用户natasha配置一个定时任务，每天在本地时间14:23时执行命令 /bin/echo hiya 
+
+[root@server0 ~]# systemctl  is-active  crond  && systemctl  is-enabled  crond
+active
+enabled
+[root@server0 ~]# rpm  -q  cronie  crontabs
+
+[root@server0 ~]# crontab   -e  -u  natasha    #编辑 任务
+
+[root@server0 ~]# cat  /var/spool/cron/natasha 
+23 14 * * * /bin/echo  hiya
+
+[root@server0 ~]# crontab   -l  -u natasha
+23 14 * * * /bin/echo  hiya
+
+---------------  #重启定时crond任务 服务(确保开机自启动 enable) --------
+
+[root@server0 ~]# systemctl   restart  crond.service  
+
+[root@server0 ~]# ls  /var/spool/mail/
+
+
+-------------------------------- 6 创建一个共享目录
+
+创建一个共享目录/home/admins ，特性如下：
+/home/admins目录的组所有权是adminuser
+adminuser组的成员对目录有读写和执行的权限。
+除此之外的其他所有用户没有任何权限（root用户能够访问系统中的所有文件和目录）
+在/home/admins目录中创建的文件，其组所有权会自动设置为属于adminuser组
+
+[注]此处所谓的共享目录并不是指网络共享，只是某个组成员共用 
+
+[root@server0 ~]# grep  -n  adminuser   /etc/group
+
+[root@server0 ~]# mkdir   -m  2770  /home/admins
+
+[root@server0 ~]# chown   root:adminuser  /home/admins/
+
+[root@server0 ~]# ls  -ld   /home/admins/
+
+
+---------------------------- 10 配置NTP网络时间客户端
+
+配置您的系统，让其作为 NTP 服务器 classroom.example.com 的客户端
+
+[root@server0 ~]# rpm  -q   chrony
+
+[root@server0 ~]# vim  /etc/chrony.conf 
+       //注释掉默认的 server 配置
+server  classroom.example.com  iburst  #手动添加服务器//添加新的配置
+
+[root@server0 ~]# egrep   iburst   /etc/chrony.conf
+#server 0.rhel.pool.ntp.org iburst
+#server 1.rhel.pool.ntp.org iburst
+#server 2.rhel.pool.ntp.org iburst
+#server 3.rhel.pool.ntp.org iburst
+server   classroom.example.com  iburst
+
+
+[root@server0 ~]# date  -s  "2018-12-22 12:55:33"
+
+[root@server0 ~]# systemctl  restart  chronyd.service 
+[root@server0 ~]# systemctl  enable  chronyd
+[root@server0 ~]# date
+
+[root@server0 ~]# timedatectl set-ntp yes && timedatectl |grep -i ntp
+
+
+-------------------------- 13  查找文件
+
+找出所有用户student拥有的文件，并且把它们拷贝到/root/findfiles 目录中
+
+[root@server0 ~]# mkdir   /root/findfiles
+
+[root@server0 ~]# find  /  -user student  -type f  -exec cp  -p {} /root/findfiles/  \;
+
+[root@server0 ~]# ls   /root/findfiles/
+
+
+-------------------------------  14 查找一个字符串
+
+在文件/usr/share/dict/words中查找到所有包含字符串seismic的行：
+将找出的行按照原文的先后顺序拷贝到/root/wordlist文件中
+/root/wordlist文件不要包含空行，
+并且其中的所有行的内容都必须是
+ /usr/share/dict/words 文件中原始行的准确副本
+
+[root@server0 ~]# grep   "seismic"  /usr/share/dict/words  >  /root/wordlist
+
+[root@server0 ~]# wc  -l   /root/wordlist 
+24 /root/wordlist
+
+
+------------------------------------------ 16 创建一个归档
+
+创建一个名为/root/backup.tar.bz2的归档文件，
+其中包含/usr/local目录中的内容，
+tar归档必须使用bzip2进行压缩
+
+[root@server0 ~]# ls  /usr/local/
+bin  etc  games  include  lib  lib64  libexec  sbin  share  src
+
+[root@server0 ~]# tar  -jcPf  /root/backup.tar.bz2   /usr/local/
+
+[root@server0 ~]# tar  -jtPf  /root/backup.tar.bz2  #-P使用绝对路径来压缩/查看
+
+
+-----------------------------------------------------------
+[root@room9pc27 ~]# tar   -xPf  /root/checkcsa-2.4.0.tar.gz 
+[root@room9pc27 ~]# tar  -tPf  /root/checkcsa-2.4.0.tar.gz
+rht-checkcsa.py
+checkcsa.py
+.checkcsa
+ReadMe.txt
+[root@room9pc27 ~]# tar  -tPvf  /root/checkcsa-2.4.0.tar.gz 
+-rw-r--r-- root/root       874 2017-12-05 18:18 rht-checkcsa.py
+-rw-r--r-- root/root     22103 2017-12-05 11:24 checkcsa.py
+-rw-r--r-- root/root     19550 2017-12-09 10:20 .checkcsa
+-rw-r--r-- root/root      1355 2017-12-09 10:22 ReadMe.txt
+
+[root@room9pc27 ~]# chmod  a+x  rht-checkcsa.py
+[root@room9pc27 ~]# ll  rht-checkcsa.py 
+
+------------------------  #RHCSA评分  ---------------------
+
+[root@room9pc27 ~]# ./rht-checkcsa.py 
+
+
+
+======================   开始EX300 考试   ======================
+
+--------------------------------------------------
+考试说明,请仔细阅读
+
+---------------------
+考试说明
+
+您在考试过程中将使用的两个系统的信息如下：
+ * server0.example.com(ServerX) 是一个主要的服务器
+ * desktop0.example.com(DesktopX)主要用作客户端
+
+两个系统的root密码为redhat
+
+系统的IP地址由DHCP提供，您可以视其正常
+
+您的系统是DNS域 .example.com 的成员，
+所有在DNS域 .example.com 中的系统
+都在子网172.25.0.0/24中，
+同样在这个子网中的系统都在DNS域 .example.com 中。
+除非特别指明，
+所有要求配置的网络都必须能被 .example.com 域中的系统访问
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+ * fleyd （密码：redhat)
+ * sergio （密码：redhat)
+ * krishna （密码：redhat)
+
+防火墙默认是打开的，在您认为是适当的时候可以关闭。
+其他的关于防火墙的设置可能在单独的要求中。
+
+在评分之前您的系统会被重新启动，
+所以请您确保您所做的所有修改和服务配置在重新启动之后仍然能够生效，而无需人工干预。
+所有考试用的虚拟机实例必须能重启之后进入正确的用户级别，而无需人工协助。
+如果考试用的虚拟机不能启动或不能正常启动，将被评零分。
+
+您在考试中使用的Red Hat Enterprise Linux操作系统版本对应的分发包可以通过YUM在下面的链接中找到：
+http://content.example.com/rhel7.0/x86_64/dvd
+
+一部分要求包含了主机安全、确定您的对主机安全限制没有阻挡要求允许的主机或网络。
+虽然您正确配置了网络服务但本来允许访问的主机或网络被阻挡。
+这样也不会得分。
+您将会注意到一些要求明确不允许服务被域 my133t.org 访问，
+这个域的系统在 172.34.0.0/255.255.255.0 子网中，
+并且这些子网中的系统都属于域 my133t.org 。
+
+
+------------------- #注意 设置主机名,一定要看清楚 主机名--------------
+
+[root@localhost ~]# hostnamectl  set-hostname   server0.example.com 
+[root@localhost ~]# hostname
+server0.example.com
+[root@localhost ~]# cat   /etc/hostname 
+server0.example.com
+[root@localhost ~]# exit
+
+[root@room9pc27 ~]# ssh  server
+------------------------  两个系统的root密码为redhat ----------------
+[root@server0 ~]# echo  redhat  |passwd  --stdin  root  #设置考试指定的密码
+
+
+
+--------------------------------- desktop0.example.com -----------------
+
+[root@room9pc27 ~]# ssh  desktop
+
+[root@desktop0 ~]# hostnamectl   set-hostname  desktop0.example.com
+
+[root@desktop0 ~]# cat  /etc/hostname
+desktop0.example.com
+
+------------------------------  两个系统的root密码为redhat -----------------
+[root@desktop0 ~]# echo  redhat  |passwd  --stdin  root  #设置考试指定的密码
+
+
+------------------------------------  1 . 配置SELinux
+确保您的两个虚拟机的SELinux处于强制启用模式
+
+
+[root@server0 ~]# setenforce  1
+[root@server0 ~]# getenforce 
+Enforcing
+[root@server0 ~]# vim  /etc/selinux/config 
+[root@server0 ~]# grep   -Env  "^#|^$"   /etc/selinux/config 
+7:SELINUX=enforcing
+12:SELINUXTYPE=targeted
+
+[root@desktop0 ~]# setenforce  1
+[root@desktop0 ~]# getenforce   
+Enforcing
+[root@desktop0 ~]# vim  /etc/selinux/config 
+[root@desktop0 ~]# grep  -Pnv  "^(\s){0,}#|^$"  /etc/selinux/config 
+7:SELINUX=enforcing
+12:SELINUXTYPE=targeted
+
+
+==================2. 配置 SSH 访问=====================
+2. 配置 SSH 访问
+按以下要求配置 SSH 访问：
+用户能够从
+域 example.com 内的客户端 SSH 远程访问您的两个虚拟机系统
+在域 my133t.org 内的客户端不能访问您的两个虚拟机系统
+
+/*********** 考试说明
+您将会注意到一些要求明确不允许服务被域 my133t.org 访问，
+这个域的系统在 172.34.0.0/255.255.255.0 子网中，
+并且这些子网中的系统都属于域 my133t.org 。
+*****/
+
+---------------------------------  4 配置防火墙端口转发
+
+在系统 server0 上配置端口转发，要求如下：
+在 172.25.0.0/24 网络中的系统，访问 server0 的本地端口 5423 将被转发到80
+此设置必须永久有效
+
+
+[root@server0 ~]# vim   /etc/ssh/sshd_config 
+
+[root@server0 ~]# tail   -2   /etc/ssh/sshd_config 
+#	ForceCommand cvs server
+DenyUsers   *@*.my133t.org   *@172.34.0.*
+
+[root@server0 ~]# systemctl   restart   sshd  && systemctl  enable  sshd
+
+
+[root@server0 ~]# man  firewall-cmd  #非常重要的帮助手册
+
+[root@server0 ~]# systemctl is-active firewalld && systemctl is-enabled firewalld
+active
+enabled
+[root@server0 ~]# firewall-cmd  --state
+running
+
+[root@server0 ~]# firewall-cmd  --get-zones
+ROL block dmz drop external home internal public trusted work
+
+
+[root@server0 ~]# firewall-cmd   --set-default-zone=trusted 
+success
+
+[root@server0 ~]# firewall-cmd --permanent --add-source=172.34.0.0/24 --zone=block 
+success
+
+-------------------------------------- 添加 转发端口 绑定 -----------------------
+[root@server0 ~]# firewall-cmd  --permanent  --zone=trusted --add-forward-port=port=5423:proto=tcp:toport=80
+
+success
+
+[root@server0 ~]# firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
+success
+
+[root@server0 ~]# firewall-cmd   --get-default-zone 
+trusted
+[root@server0 ~]# firewall-cmd   --permanent  --zone=block  --list-sources 
+172.34.0.0/24
+
+[root@server0 ~]# firewall-cmd  --permanent  --zone=trusted   --list-all 
+trusted (default)
+  interfaces: 
+  sources: 
+  services: 
+  ports: 
+  masquerade: no
+  forward-ports: port=5423:proto=tcp:toport=80:toaddr=
+  icmp-blocks: 
+  rich rules: 
+
+
+[root@desktop0 ~]# vim   /etc/ssh/sshd_config 
+
+[root@desktop0 ~]# grep -Pnv "^(\s){0,}#|^$" /etc/ssh/sshd_config |tail -2
+147:Subsystem sftp	/usr/libexec/openssh/sftp-server
+
+158:DenyUsers  *@*.my133t.org  *@172.34.0.*
+
+[root@desktop0 ~]# systemctl restart  sshd  && systemctl  enable  sshd
+
+
+[root@desktop0 ~]# firewall-cmd   --set-default-zone=trusted 
+success
+
+[root@desktop0 ~]# firewall-cmd --permanent --zone=block --add-source=172.34.0.0/24
+
+
+[root@desktop0 ~]# firewall-cmd  --complete-reload  # 更新规则，重启firewalld 服务
+success
+
+[root@desktop0 ~]# firewall-cmd   --get-default-zone 
+trusted
+[root@desktop0 ~]# firewall-cmd   --permanent  --zone=block  --list-sources 
+172.34.0.0/24
+
+[root@desktop0 ~]# grep  -in  defaultzone=  /etc/firewalld/firewalld.conf
+6:DefaultZone=trusted
+
+
+----------------------------------- 19. 配置 iSCSI 服务端
+配置 server0 提供一个 iSCSI 服务，
+磁盘名为 iqn.2016-02.com.example:server0，并符合下列要求：
+服务端口为 3260
+使用 iscsi_store 作其后端卷，其大小为 3GiB
+此服务只能被 desktop0.example.com 访问
+
+-------------------- 20 . 配置iSCSI客户端
+配置 desktop0 使其能连接 server0 上提供的 iqn.2016-02.com.example:server0 ，
+并符合以下要求：
+iSCSI设备在系统启动的期间自动加载
+块设备iSCSI上包含一个大小为 2100MiB 的分区，并格式化为ext4文件系统
+此分区挂载在 /mnt/data 上，同时在系统启动的期间自动挂载 
+
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vda    253:0    0  10G  0 disk 
+└─vda1 253:1    0  10G  0 part /
+vdb    253:16   0  10G  0 disk 
+
+[root@server0 ~]# lsblk 
+
+[root@server0 ~]# fdisk   /dev/vdb
+...............
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended
+Select (default p): p
+分区号 (1-4，默认 1)：1    #输入 数字 1 直接回车
+起始 扇区 (2048-20971519，默认为 2048)： 直接回车
+将使用默认值 2048
+Last 扇区, +扇区 or +size{K,M,G} (2048-20971519，默认为 20971519)：+3G
+
+命令(输入 m 获取帮助)：w
+............
+[root@server0 ~]#  partprobe  /dev/vdb
+
+[root@server0 ~]# lsblk 
+
+[root@server0 ~]# yum  -y  install  targetcli
+
+[root@server0 ~]# targetcli 
+..................
+
+------------ 一个木箱子 可以 存储  多个 纸箱子 ----------------------
+------------ # [ 1 ]先 创建后端存储 (纸箱子)  使用 iscsi_store 作其后端卷，其大小为 3GiB -----------
+
+/> backstores/block  create  name=iscsi_store  dev=/dev/vdb1
+............
+
+------------------ # [ 2 ] 后 创建iqn对象 (木箱子)磁盘名为 iqn.2016-02.com.example:server0 ----------
+
+/> iscsi/  create  iqn.2016-02.com.example:server0
+............
+
+      ------------ 一个木箱子 可以 存储  多个 纸箱子 ----------------------
+  ------- [ 3 ]  将 纸箱子(纸箱子iscsi_store 后端卷)   装进   木箱子iqn对象 (木箱子)  -------------
+--- #将iqn对象iqn.2016-02.com.example:server0 与后端存储 /backstores/block/iscsi_store 绑定 ----
+
+/> iscsi/iqn.2016-02.com.example:server0/tpg1/luns   create   /backstores/block/iscsi_store 
+......................
+
+
+---------  # [ 4 ] 设置客户端的iqn 授权客户机访问  ----------------------------------------
+         ------------ 此服务只能被 desktop0.example.com 访问 -------------
+/> iscsi/iqn.2016-02.com.example:server0/tpg1/acls  create  iqn.2016-02.com.example:desktop0
+............................
+
+
+--------------------------------  [ 5 ]  #开启本地监听的IP地址与端口 -----------------------
+
+/> iscsi/iqn.2016-02.com.example:server0/tpg1/portals  create  172.25.0.11  3260
+................
+
+/> saveconfig   #保存配置结果(缺省)
+........
+/> exit
+
+[root@server0 ~]# targetcli   ls
+..............
+[root@server0 ~]# systemctl  start   target  && systemctl  enable   target.service 
+
+[root@server0 ~]# systemctl  is-active  target
+active
+[root@server0 ~]# netstat  -npult |grep   3260
+
+
+[root@desktop0 ~]# yum  -y  install iscsi-initiator-utils  iscsi-initiator-utils.i686 
+
+[root@desktop0 ~]# ls  /etc/iscsi/
+initiatorname.iscsi  iscsid.conf
+
+[root@desktop0 ~]# vim   /etc/iscsi/initiatorname.iscsi 
+
+[root@desktop0 ~]# cat   /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2016-02.com.example:desktop0
+
+[root@desktop0 ~]# systemctl  daemon-reload  #守护进程重新加载
+
+[root@desktop0 ~]# systemctl  restart  iscsid # 启动 iscsid 服务以读取 iqn 名称
+
+[root@desktop0 ~]# systemctl  enable  iscsid
+
+
+[root@desktop0 ~]# man  iscsiadm
+
+---------------------  发现磁盘 -----------------------------
+[root@desktop0 ~]# iscsiadm --mode discoverydb --type sendtargets --portal 172.25.0.11  --discover
+
+------------------- 连接磁盘 --------------------------
+[root@desktop0 ~]# iscsiadm --mode node --targetname  iqn.2016-02.com.example:server0  --portal 172.25.0.11:3260 --login
+...........
+
+[root@desktop0 ~]# lsblk 
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   3G  0 disk 
+...........
+
+[root@desktop0 ~]# vim  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default 
+
+---------------------  #iSCSI设备在系统启动的期间自动加载startup = automatic ----------
+
+[root@desktop0 ~]# grep  -n  automatic  /var/lib/iscsi/nodes/iqn.2016-02.com.example\:server0/172.25.0.11\,3260\,1/default
+
+4:node.startup = automatic
+50:node.conn[0].startup = automatic
+
+[root@desktop0 ~]# systemctl   restart  iscsi  #重启iscsi  服务
+[root@desktop0 ~]# systemctl   enable  iscsi  #开机自启动 iscsi 服务
+
+[root@desktop0 ~]# fdisk   /dev/sda
+
+命令(输入 m 获取帮助)：n
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended
+Select (default p): p
+分区号 (1-4，默认 1)：1
+起始 扇区 (8192-6289407，默认为 8192)：
+将使用默认值 8192
+Last 扇区, +扇区 or +size{K,M,G} (8192-6289407，默认为 6289407)：+2100M
+分区 1 已设置为 Linux 类型，大小设为 2.1 GiB
+
+命令(输入 m 获取帮助)：w
+..........
+[root@desktop0 ~]# partprobe 
+
+[root@desktop0 ~]# lsblk  /dev/sda 
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0    3G  0 disk 
+└─sda1   8:1    0  2.1G  0 part 
+
+[root@desktop0 ~]# mkfs.ext4   /dev/sda1  #注意sda1,不是sda,仔细细心
+...............
+[root@desktop0 ~]# blkid  /dev/sda1
+/dev/sda1: UUID="0b3bf73b-30a1-4991-821c-0436e189b0f8" TYPE="ext4" 
+
+----------- 此分区挂载在 /mnt/data 上，同时在系统启动的期间自动挂载 
+[root@desktop0 ~]# mkdir  /mnt/data
+
+[root@desktop0 ~]# vim  /etc/fstab 
+UUID=0b3bf73b-30a1-4991-821c-0436e189b0f8  /mnt/data  ext4  _netdev  0  0
+
+[root@desktop0 ~]# mount -a
+
+[root@desktop0 ~]# df  -hT  /mnt/*
+
+[root@desktop0 ~]# sync ; reboot  -f
+
+
+------------------- 5 配置链路聚合
+
+在 server0.example.com 和
+  desktop0.example.com 之间按以下要求
+配置一个链路team0：
+
+此链路使用接口 eth1 和 eth2
+此链路在一个接口失效时仍然能工作
+此链路在 server0 使用下面的地址 172.16.3.20/255.255.255.0
+此链路在 desktop0 使用下面的地址 172.16.3.25/255.255.255.0
+此链路在系统重启之后依然保持正常状态
+
+--------------------------  6  配置IPv6地址
+
+在您的两个考试系统上配置接口 eth0 使用下列 IPv6 地址：
+server0 上的地址应该是 2003:ac18::305/64
+desktop0 上的地址应该是 2003:ac18::306/64
+两个系统必须能与网络 2003:ac18/64 内的系统通信
+地址必须在重启系统后依旧生效
+两个系统必须保持当前的 IPv4 地址并仍然能够通信
+
+//为两个系统设置固定主机名,避免误操作
+# hostnamectl  set-hostname   server0.example.com 
+# hostnamectl  set-hostname   desktop0.example.com
+
+[root@server0 ~]# firewall-cmd  --get-default-zone 
+trusted
+
+[root@desktop0 ~]# firewall-cmd  --get-default-zone 
+trusted
+
+[root@desktop0 ~]# man  nmcli
+       nmcli connection add type ethernet autoconnect no ifname eth0
+
+[root@desktop0 ~]# man  nmcli-examples
+
+[root@desktop0 ~]# man  teamd.conf
+EXAMPLES
+
+[root@server0 ~]# nmcli  device  status
+
+[root@server0 ~]# nmcli  connection add con-name team0 ifname  team0  type  team  autoconnect  yes  config  '{"runner":{"name":"activebackup"}}'
+
+[root@server0 ~]# nmcli connection add con-name  team0-1  ifname eth1 type team-slave autoconnect  yes  master  team0 
+
+[root@server0 ~]# nmcli connection add con-name  team0-2  ifname eth2 type team-slave autoconnect  yes  master  team0 
+
+[root@server0 ~]# nmcli  device  status
+
+[root@server0 ~]# nmcli  connection modify  team0  ipv4.method  manual  ipv4.addresses   172.16.3.20/24  connection.autoconnect   yes
+
+[root@server0 ~]# nmcli  connection  up team0
+
+[root@server0 ~]# nmcli  connection  up team0-1
+
+[root@server0 ~]# nmcli  connection  up team0-2
+
+[root@server0 ~]# teamdctl  team0  state
+............
+
+
+[root@desktop0 ~]# nmcli  connection add  con-name  team0  ifname  team0  type team  autoconnect  yes  config  '{"runner":{"name":"activebackup"}}'
+
+[root@desktop0 ~]# nmcli connection add con-name team0-1 ifname eth1  type team-slave  autoconnect yes  master team0 
+
+[root@desktop0 ~]# nmcli connection add con-name team0-2 ifname eth2  type team-slave  autoconnect yes  master team0 
+
+[root@desktop0 ~]# nmcli  device  status
+   
+[root@desktop0 ~]# nmcli connection modify team0 ipv4.method  manual ipv4.addresses 172.16.3.25/24  connection.autoconnect  yes
+
+
+[root@desktop0 ~]# nmcli  connection  up  team0
+
+[root@desktop0 ~]# nmcli  connection  up  team0-1
+
+[root@desktop0 ~]# nmcli  connection  up  team0-2
+
+[root@desktop0 ~]# nmcli  device  status
+
+[root@desktop0 ~]# ifconfig  team0  |head  -2
+
+[root@desktop0 ~]# teamdctl  team0  state
+
+---------------------- ipv6--------------
+
+    0   1   0   1   0  1   0   1   0   1   0  1   0   1   0   1
+   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+ (0000 0000)2 = (00)16 = 0
+ (0000 0001)2 = (01)16 = 1
+(0000 1111)2=(0F)16=15
+  2^8 = 256     2^7 =  128   2^4=16  2^3=8
+ 1 个 16 进制数 = 4  个 2 进制数
+ 4 个 16 进制数 = 16 个 2 进制数
+
+     FFFF:0000:FFFF:0000/64
+     FFFF:0000:FFFF:0000:FFFF:0000:FFFF:0000/128
+
+  0    0   0   0    0   0   0   0
+  1    1    1   1    1   1    1   1
+ 128  64  32  16   8   4    2   1
+-------------------------------------------------------------------
+
+[root@server0 ~]# nmcli  connection  modify  'System eth0'  ipv6.method  manual  ipv6.addresses   2003:ac18::305/64  connection.autoconnect  yes
+
+[root@server0 ~]# nmcli  connection  up  'System eth0' 
+
+[root@server0 ~]# ifconfig  eth0  |head  -4
+
+[root@desktop0 ~]# nmcli  connection modify  'System eth0'  ipv6.method  manual  ipv6.addresses  2003:ac18::306/64 connection.autoconnect   yes
+
+[root@desktop0 ~]# nmcli  connection up  'System eth0' 
+
+[root@desktop0 ~]# ping6  -c2 -i0.2 -W1  -I eth0  2003:ac18::305
+
+
+=============3.自定义用户环境===========================
+------------------------ 3. 自定义用户环境
+在系统 server0 和 desktop0 上创建自定义命令为 qstat：
+此自定义命令将执行以下命令：/bin/ps -Ao pid,tt,user,fname,rsz
+此命令对系统中所有用户有效
+
+[root@server0 ~]# vim  /etc/bashrc 
+
+[root@server0 ~]# head  -2  /etc/bashrc 
+# /etc/bashrc
+alias  qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@server0 ~]# . /etc/bashrc
+
+[root@server0 ~]# qstat  |head  -1
+  PID TT       USER     COMMAND    RSZ
+
+
+[root@desktop0 ~]# vim  /etc/bashrc 
+[root@desktop0 ~]# head  -2  /etc/bashrc
+# /etc/bashrc
+alias   qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@desktop0 ~]# source  /etc/bashrc
+
+[root@desktop0 ~]# alias   qstat
+alias qstat='/bin/ps -Ao pid,tt,user,fname,rsz'
+
+[root@desktop0 ~]# qstat  |head  -1
+
+
+/***************** ============= 邮件服务，
+考试的时候 2 台 虚拟机 要做 一模一样 的配置修改。
+验证的时候，
+题目上面会有一个URL链接，
+直接点链接验证即可
+
+--------------------------------- 7. 配置本地邮件服务
+在系统 server0 和 desktop0 上配置邮件服务，满足以下要求：
+这些系统不接收外部发送来的邮件
+在这些系统上本地发送的任何邮件都会自动路由到
+ smtp0.example.com
+
+从这些系统上发送的邮件显示来自于
+ desktop0.example.com
+您可以通过在 server0.example.com 发送邮件到
+本地用户 student 来测试您的配置，
+并将系统 desktop0.example.com 配置为后端邮件服务器，
+确保可接收并投递来自 server0 的邮件
+
+[root@server0 ~]# rpm  -q  postfix
+postfix-2.10.1-6.el7.x86_64
+
+[root@server0 ~]# vim  /etc/postfix/main.cf 
+
+[root@server0 ~]# grep  -B1 -En  "^(myorigin |inet_interfaces |mydestination |local_transport |mynetworks |relayhost )"  /etc/postfix/main.cf 
+
+99-#myorigin = $mydomain
+100:myorigin = desktop0.example.com
+--
+115-#inet_interfaces = $myhostname, localhost
+116:inet_interfaces = loopback-only
+--
+163-#
+164:mydestination = 
+--
+192-# - You redefine the "local_transport" setting in main.cf.
+193:local_transport = error:local delivery disabled
+--
+266-#mynetworks = hash:/etc/postfix/network_table
+267:mynetworks = 127.0.0.0/8  [::1]/128
+--
+317-#relayhost = [an.ip.add.ress]
+318:relayhost = [smtp0.example.com]
+
+[root@server0 ~]# systemctl  restart  postfix.service 
+[root@server0 ~]# systemctl   is-enabled  postfix
+enabled
+
+[root@server0 ~]# host  smtp0.example.com #查看后端邮件服务器地址
+
+[root@server0 ~]# echo  "2019Ican" |mail  -s "MailZhuti" -r root  student
+[root@server0 ~]# mail  -u  student
+No mail for student
+
+/***************** ============= 邮件服务，
+考试的时候 2 台 虚拟机 要做 一模一样 的配置修改。
+验证的时候，
+题目上面会有一个URL链接，
+直接点链接验证即可
+
+[root@desktop0 ~]# vim  /etc/postfix/main.cf 
+[root@desktop0 ~]# systemctl restart postfix && systemctl enable postfix
+
+[root@desktop0 ~]# host  smtp0.example.com  #查看后端邮件服务器地址
+
+[root@desktop0 ~]# mail  -u  student
+
+[root@desktop0 ~]# tail  -4  /var/mail/student 
+
+
+-----------------------------  8.通过 Samba 发布共享目录
+在 server0 通过 SMB 共享/common 目录：
+您的 SMB 服务器必须是 STAFF 工作组的一个成员
+共享名必须为 common
+只有 example.com 域内的客户端可以访问 common 共享
+common 必须是可以浏览的
+用户 harry 必须能够读取共享中的内容，如果需要的话，验证的密码是 migwhisk
+
+-------------------------- 9 配置多用户Samba挂载
+
+在 server0 通过 SMB 共享目录/devops，并满足以下要求：
+共享名为 devops
+共享目录 devops 只能被 example.com 域中的客户端使用
+共享目录 devops 必须可以被浏览
+用户 kenji 必须能以读的方式访问此共享，该问密码是 atenorth
+用户 chihiro 必须能以读写的方式访问此共享，访问密码是 atenorth
+此共享永久挂载在 desktop0.example.com 上的/mnt/dev 目录，
+并使用用户 kenji 作为认证。
+任何用户可以通过用户 chihiro 来临时获取写的权限
+
+[root@server0 ~]# yum -y install samba
+
+[root@server0 ~]# setsebool -P samba_export_all_rw on
+
+[root@server0 ~]# getsebool  -a  |grep samba_export_all_
+samba_export_all_ro --> off
+samba_export_all_rw --> on
+
+[root@server0 ~]# useradd  harry 
+[root@server0 ~]# useradd  kenji 
+[root@server0 ~]# useradd  chihiro
+
+[root@server0 ~]# echo  -e  "migwhisk\nmigwhisk" |pdbedit -a harry
+[root@server0 ~]# echo  -e  "atenorth\natenorth" |pdbedit -a kenji
+[root@server0 ~]# echo  -e  "atenorth\natenorth" |pdbedit -a chihiro
+
+[root@server0 ~]# pdbedit  -L  #查看所有  samba 系统 用户
+
+[root@server0 ~]# mkdir  /common   /devops
+
+[root@server0 ~]# echo  common  > /common/root.txt
+[root@server0 ~]# echo  devops  > /devops/root.txt
+
+[root@server0 ~]# setfacl  -m  u:chihiro:7  /devops/
+
+[root@server0 ~]# vim  /etc/samba/smb.conf 
+
+[root@server0 ~]# tail   -7    /etc/samba/smb.conf 
+[common]
+path = /common
+hosts allow = 172.25.0.0/24
+[devops]
+path = /devops
+write list = chihiro
+hosts allow = 172.25.0.0/24
+
+[root@server0 ~]# grep  -Pn  "^(\s){0,}workgroup ="  /etc/samba/smb.conf 
+89:	workgroup = STAFF
+
+[root@server0 ~]# systemctl  restart  smb  && systemctl  enable  smb
+
+
+--------------------------------  desktop0.example.com ---------------
+
+[root@desktop0 ~]# yum  -y install  samba-client  cifs-utils |tail   -4
+
+[root@desktop0 ~]# echo |smbclient  -L   //172.25.0.11
+
+[root@desktop0 ~]# mkdir  /desktop   /mnt/dev
+
+[root@desktop0 ~]# mount -t cifs -o username=harry,password=migwhisk  //172.25.0.11/common  /desktop/
+
+[root@desktop0 ~]# vim  /etc/fstab 
+
+//172.25.0.11/devops  /mnt/dev   cifs  defaults,user=kenji,pass=atenorth,multiuser,sec=ntlmssp,_netdev    0  0
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# su  -  student
+
+[student@desktop0 ~]$ cifscreds  add  -u chihiro  172.25.0.11
+Password: atenorth
+
+[student@desktop0 ~]$ echo  "chihiro write" > /mnt/dev/chihiro.txt
+
+
+
+------------------ 10. 配置 NFS 共享服务
+
+在 server0 配置 NFS 服务，要求如下：
+以只读的方式共享目录 /public，只能被 example.com 域中的系统访问
+以读写的方式共享目录 /protected，只能被 example.com 域中的系统访问
+访问 /protected 需要通过 Kerberos 安全加密，您可以使用下面 URL 提供的
+密钥：http://classroom.example.com/pub/keytabs/server0.keytab
+目录 /protected 应该包含名为 project 拥有人为 ldapuser0 的子目录
+用户 ldapuser0 能以读写方式访问 /protected/project
+
+--------------------------------  11 . 挂载NFS共享
+在 desktop0 上挂载一个来自 server0.example.com 的共享，并符合下列要求：
+/public 挂载在下面的目录上 /mnt/nfsmount
+/protected 挂载在下面的目录上 /mnt/nfssecure 并使用安全的方式，
+  密钥下载 URL：http://classroom.example.com/pub/keytabs/desktop0.keytab
+用户 ldapuser0 能够在/mnt/nfssecure/project 上创建文件
+这些文件系统在系统启动时自动挂载
+
+/********** 考试说明,请仔细阅读
+考试说明
+
+classroom.example.com 提供了集中认证的服务域 .example.com，
+两个系统 server0 和 desktop0 已经预先配置成此域的客户端，
+此域提供了下列用户帐号（模拟环境酌情创建）：
+ * ldapuser0 （密码：kerberos)
+************/
+[root@server0 ~]# rpm  -q  nfs-utils
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/keytabs/server0.keytab  -O  /etc/krb5.keytab
+
+[root@server0 ~]# klist  -k  /etc/krb5.keytab 
+
+[root@server0 ~]# mkdir  -p  /public  /protected/project
+
+[root@server0 ~]# echo    public > /public/root.txt
+[root@server0 ~]# echo protected > /protected/root.txt
+
+[root@server0 ~]# id  ldapuser0
+
+[root@server0 ~]# chown   ldapuser0   /protected/project/
+
+[root@server0 ~]# vim  /etc/exports
+
+[root@server0 ~]# cat  /etc/exports
+/public      172.25.0.0/24(ro)
+/protected   172.25.0.0/24(rw,sec=krb5p)
+
+[root@server0 ~]# vim  /etc/sysconfig/nfs 
+
+[root@server0 ~]# grep  -n "^RPCNFSDARGS="  /etc/sysconfig/nfs 
+13:RPCNFSDARGS="-V 4"            #激活NFS v4版本
+
+-------------------------- //启用两个系统服务 ---------------------
+[root@server0 ~]# systemctl  start  nfs-server  nfs-secure-server
+[root@server0 ~]# systemctl  enable  nfs-server nfs-secure-server
+
+[root@server0 ~]# showmount  -e
+
+[root@server0 ~]# exportfs   -rv
+
+-----------------  desktop0.example.com ---------------
+
+[root@desktop0 ~]# wget  http://classroom.example.com/pub/keytabs/desktop0.keytab   -O  /etc/krb5.keytab
+
+[root@desktop0 ~]# klist  -k  /etc/krb5.keytab 
+
+[root@desktop0 ~]# systemctl  start  nfs-secure  && systemctl  enable  nfs-secure
+
+[root@desktop0 ~]# showmount  -e  172.25.0.11
+Export list for 172.25.0.11:
+/protected 172.25.0.0/24
+/public    172.25.0.0/24
+
+[root@desktop0 ~]# mkdir   /mnt/nfs{mount,secure}
+
+[root@desktop0 ~]# vim   /etc/fstab 
+
+172.25.0.11:/public   /mnt/nfsmount  nfs  defaults,_netdev  0   0
+172.25.0.11:/protected  /mnt/nfssecure  nfs  defaults,_netdev  0  0
+
+
+[root@desktop0 ~]# mount  -a
+
+[root@desktop0 ~]# df  -hT   /mnt/*
+
+[root@desktop0 ~]# ls  -ld  /mnt/nfssecure/project/
+
+[root@desktop0 ~]# ssh -o StrictHostKeyChecking=no -l  ldapuser0 172.25.0.10
+
+ldapuser0@172.25.0.10's password: kerberos（输入密码 kerberos)
+
+[ldapuser0@desktop0 ~]$ echo  "ldapuser0 write " > /mnt/nfssecure/project/ldapuser0.txt
+
+[ldapuser0@desktop0 ~]$ exit
+登出
+
+
+----------------------------   12 实现一个Web服务器
+为 http://server0.example.com 配置 Web 服务器：
+从URL地址 http://classroom.example.com/pub/materials/station.html 
+下载一个主页文件，
+并将该文件重命名为 index.html
+
+将文件 index.html 拷贝到您的 web 服务器的 DocumentRoot 目录下
+不要对文件 index.html 的内容进行任何修改 
+
+------------------- ------------ 13  配置安全Web服务
+
+为站点 http://server0.example.com 配置TLS加密：
+一个已签名证书从 http://classroom.example.com/pub/tls/certs/server0.crt 获取
+此证书的密钥从 http://classroom.example.com/pub/tls/private/server0.key 获取
+此证书的签名授权信息从 http://classroom.example.com/pub/example-ca.crt 获取
+
+-------------------------- 14 配置虚拟主机
+
+在 server0 上扩展您的 web 服务器，
+为站点 http://www0.example.com 创建一个虚拟主机，
+然后执行下述步骤：
+设置 DocumentRoot 为/var/www/virtual
+从 http://classroom.example.com/pub/materials/www.html 下载文件并
+重命名为index.html
+不要对文件 index.html 的内容进行任何修改
+
+将文件 index.html 放到虚拟主机的 DocumentRoot 目录下
+确保 fleyd 用户能够在/var/www/virtual 目录下创建文件
+注意：原始站点 http://server0.example.com 必须仍然能够访问，
+名称服务器 example.com 提供对主机名 www0.example.com 的域名解析。
+
+----------------------- 15  配置Web内容访问
+
+在您的 server0 web服务器的 DocumentRoot 目录下
+  创建一个名为 private 的目录，要求如下：
+从 http://classroom.example.com/pub/materials/private.html 下载
+一个文件副本到这个目录，
+并且命名为 index.html
+不要对这个文件的内容做任何修改
+从 server0 上，
+任何人都可以浏览 private 的内容，
+但是从其他系统不能访问这个目录的内容
+
+----------------------------- 16.实现动态 WEB 内容
+实现动态Web内容
+
+在 server0 上配置提供动态Web内容，要求如下：
+动态内容由名为 webapp0.example.com 的虚拟主机提供
+虚拟主机侦听在端口 8909
+从 http://classroom.example.com/pub/materials/webinfo.wsgi 下载一个脚本，
+然后放在适当的位置，
+无论如何不要修改此文件的内容
+客户端访问 http://webapp0.example.com:8909 可接收到动态生成的 Web 页
+此 http://webapp0.example.com:8909/必须能
+被 example.com 域内的所有系统访问
+
+[root@desktop0 ~]# yum  -y install  elinks  |tail   -2
+
+[root@server0 ~]# yum -y install mod_wsgi mod_ssl httpd elinks  httpd-manual |tail -3
+
+[root@server0 ~]# httpd  -M  |egrep  "wsgi|ssl"
+
+[root@server0 ~]# semanage port -l|grep  http_port  #查看当前允许的httpd端口
+
+#删除通行规则（参数 -d）
+# semanage port -d -t http_port_t -p tcp 9090
+
+------------------------------------- #  //开启非标准端口 ----------------------
+
+[root@server0 ~]# semanage  port  -a  -t  http_port_t  -p  tcp  8909
+
+
+[root@server0 ~]# semanage   port  -l  |grep  http_port
+http_port_t              tcp      8909, 80, 81, 443, 488, 8008, 8009, 8443, 9000
+pegasus_http_port_t      tcp      5988
+
+
+[root@server0 ~]# mkdir   /var/www/{virtual,html/private,webapp0}
+
+[root@server0 ~]# useradd  fleyd
+
+[root@server0 ~]# ls  /home/
+------------------- 确保 fleyd 用户能够在/var/www/virtual 目录下创建文件
+
+[root@server0 ~]# setfacl   -m  u:fleyd:7  /var/www/virtual/
+[root@server0 ~]# getfacl   /var/www/virtual/
+
+
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/station.html -O  /var/www/html/index.html
+
+[root@server0 ~]# cat  /var/www/html/index.html
+Default Site.
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/private.html   -O  /var/www/html/private/index.html
+.........
+[root@server0 ~]# cat  /var/www/html/private/index.html
+Private Site.
+
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/www.html   -O   /var/www/virtual/index.html
+
+[root@server0 ~]# cat   /var/www/virtual/index.html
+Virtual Site.
+
+
+[root@server0 ~]# wget   http://classroom.example.com/pub/materials/webinfo.wsgi  -O   /var/www/webapp0/webinfo.wsgi
+
+[root@server0 ~]# file  /var/www/webapp0/webinfo.wsgi
+
+
+[root@server0 ~]# vim  /etc/httpd/conf.d/Directory.conf
+[root@server0 ~]# cat  /etc/httpd/conf.d/Directory.conf
+
+<Directory  /var/www/html/private/>
+  Require  ip  127.0.0.1  ::1  172.25.0.11
+</Directory>
+
+
+[root@server0 ~]# cd  /var/www/html/private/
+[root@server0 private]# httpd  -t
+Syntax OK
+
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/VirtualHost.conf
+
+[root@server0 ~]# cat  /etc/httpd/conf.d/VirtualHost.conf
+<VirtualHost  *:80>
+  ServerName    server0.example.com
+  DocumentRoot   /var/www/html/
+</VirtualHost>
+<VirtualHost   *:80>
+  ServerName    www0.example.com
+  DocumentRoot  /var/www/virtual/
+</VirtualHost>
+Listen  8909
+<VirtualHost  *:8909>  #注意这里 应该写 8909
+  ServerName      webapp0.example.com
+  DocumentRoot       /var/www/webapp0
+  WsgiScriptAlias  /  /var/www/webapp0/webinfo.wsgi
+</VirtualHost>
+
+
+[root@server0 ~]# httpd  -t
+Syntax OK
+
+
+[root@server0 ~]# ls  /etc/pki/tls/
+cert.pem  certs  misc  openssl.cnf  private
+
+[root@server0 ~]# ls  /etc/pki/tls/private/
+localhost.key
+
+[root@server0 ~]# ls  /etc/pki/tls/certs/
+.................
+[root@server0 ~]# cd  /etc/pki/tls/certs/
+
+  --------------------------------  网站 已签名证书--【营业执照】certs/server0.crt======-----
+一个已签名证书从 http://classroom.example.com/pub/tls/certs/server0.crt 获取
+
+[root@server0 certs]# wget  http://classroom.example.com/pub/tls/certs/server0.crt
+.............
+[root@server0 certs]# ll  /etc/pki/tls/certs/server0.crt   #网站 已签名证书【营业执照】
+
+
+----------------------  此证书的签名授权【部署根证书CA证书--公安局信息】example-ca.crt------
+  此证书的签名授权信息从 http://classroom.example.com/pub/example-ca.crt 获取 
+
+[root@server0 certs]# wget  http://classroom.example.com/pub/example-ca.crt
+..............
+----------------------------------------------------------  #此证书的签名授权【根证书CA证书--公安局信息】
+
+[root@server0 certs]# ll  /etc/pki/tls/certs/example-ca.crt  
+
+
+---------------------------部署解密的私钥---此证书的密钥-/private/server0.key-------
+  此证书的密钥从 http://classroom.example.com/pub/tls/private/server0.key 获取
+
+[root@server0 certs]# cd  /etc/pki/tls/private/
+
+[root@server0 private]# wget  http://classroom.example.com/pub/tls/private/server0.key
+
+[root@server0 private]# ll  /etc/pki/tls/private/server0.key #解密的私钥---此证书的密钥文件
+
+[root@server0 private]# cd
+
+[root@server0 ~]# ls   /etc/pki/tls/private/
+localhost.key  server0.key
+
+[root@server0 ~]# ls  /etc/pki/tls/certs/
+ca-bundle.crt        example-ca.crt  make-dummy-cert  renew-dummy-cert
+ca-bundle.trust.crt  localhost.crt   Makefile         server0.crt
+
+[root@server0 ~]# ls  /etc/httpd/conf.d/
+............
+
+[root@server0 ~]# vim   /etc/httpd/conf.d/ssl.conf 
+
+             ----网站 已签名证书--【营业执照】certs/server0.crt===
+100 SSLCertificateFile /etc/pki/tls/certs/server0.crt
+
+          =====此证书的签名授权【部署根证书CA证书--公安局信息】===
+123 SSLCACertificateFile /etc/pki/tls/certs/example-ca.crt
+
+                  -------------------    部署解密的私钥---此证书的密钥-------------------
+107 SSLCertificateKeyFile /etc/pki/tls/private/server0.key
+
+[root@server0 ~]# sed  -n  "100p;107p;123p"   /etc/httpd/conf.d/ssl.conf
+
+SSLCertificateFile /etc/pki/tls/certs/server0.crt  #-网站 已签名证书--【营业执照】
+SSLCertificateKeyFile /etc/pki/tls/private/server0.key #解密的私钥---此证书的密钥
+SSLCACertificateFile  /etc/pki/tls/certs/example-ca.crt #此证书的签名授权【根证书CA证书]
+
+
+[root@server0 ~]# systemctl  restart  httpd  && systemctl  enable  httpd
+
+[root@server0 ~]# netstat  -npult  |grep httpd
+
+
+
+[root@server0 ~]# elinks   -dump  http://server0.example.com/private
+   Private Site.
+
+[root@desktop0 ~]# elinks   -dump  http://server0.example.com/private
+                                   Forbidden
+
+   You don't have permission to access /private on this server.
+
+[root@desktop0 ~]# elinks   -dump  https://server0.example.com
+ELinks: SSL error
+
+[root@desktop0 ~]# elinks   -dump  http://server0.example.com
+   Default Site.
+
+[root@desktop0 ~]# curl  http://www0.example.com
+Virtual Site.
+
+[root@desktop0 ~]# elinks  -dump   http://webapp0.example.com:8909
+   UNIX EPOCH time is now: 1550990238.36
+
+
+------------------------- 17  创建一个脚本
+
+在 server0 上创建一个名为/root/foo.sh 的脚本，让其提供下列特性：
+当运行/root/foo.sh redhat，输出为 fedora
+当运行/root/foo.sh fedora，输出为 redhat
+当没有任何参数或者参数不是 redhat 或者 fedora 时，
+其错误输出产生以下的信息：/root/foo.sh redhat|fedora
+
+[root@server0 ~]# vim  /root/foo.sh
+[root@server0 ~]# cat   /root/foo.sh
+#!/bin/bash
+if [ $# -eq  0 ];then
+  echo  "/root/foo.sh redhat|fedora" >&2
+  exit  1
+else
+  if [ $1 == redhat ];then
+    echo  fedora
+    exit  0
+  elif [ $1 == fedora ];then
+    echo  redhat
+    exit  0
+  else
+    echo  "/root/foo.sh redhat|fedora" >&2
+    exit 2
+  fi
+fi
+[root@server0 ~]# chmod  a+x  /root/foo.sh
+
+----------------------------------- 18 创建一个添加用户的脚本
+
+在 server0 上创建一个脚本，名为/root/batchusers，
+此脚本能实现为系统 server0 创建本地用户，
+并且这些用户的用户名来自一个包含用户名的文件，
+同时满足下列要求：
+此脚本要求提供一个参数，此参数就是包含用户名列表的文件
+
+如果没有提供参数，
+此脚本应该给出下面的提示信息 Usage: /root/batchusers <userfile> 
+然后退出并返回相应的值
+
+如果提供一个不存在的文件名，
+此脚本应该给出下面的提示信息 Input file not found 
+然后退出并返回相应的值
+
+创建的用户登陆Shell为/bin/false，
+此脚本不需要为用户设置密码
+您可以从下面的 URL 获取用户名列表作为测试用：
+http://classroom.example.com/pub/materials/userlist
+
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/userlist
+.............
+[root@server0 ~]# cat   /root/userlist 
+duanwu
+zhongqiu
+zhsan
+lisi
+[root@server0 ~]# vim  /root/batchusers
+
+[root@server0 ~]# cat  /root/batchusers
+#!/bin/bash
+if [ $#  -eq  0 ];then
+  echo "Usage: /root/batchusers <userfile>"
+  exit  1
+else
+  if [ ! -f $1 ];then
+    echo "Input file not found"
+    exit 2
+  else
+    for  name  in  $(cat  $1);do
+      useradd  -s  /bin/false  $name
+    done
+    exit  0
+  fi
+fi
+[root@server0 ~]# chmod  +x  /root/batchusers
+
+
+--------------------   21 配置一个数据库
+
+在 server0 上创建一个 MariaDB 数据库，名为 Contacts，
+并符合以下条件：
+数据库应该包含来自数据库复制的内容，复制文件的 URL 为：
+http://classroom.example.com/pub/materials/users.sql
+
+数据库只能被 localhost 访问
+除了root用户，此数据库只能被用户 Raikon 查询，此用户密码为 atenorth
+root用户的密码为 atenorth，同时不允许空密码登陆 
+
+-----------------  22 .数据库查询
+
+在系统 server0 上使用数据库 Contacts，并使用相应的 SQL 查询以回答下列问题：
+密码是 solicitous 的人的名字？
+有多少人的姓名是 Barbara 同时居住在 Sunnyvale？
+
+
+[root@server0 ~]# yum  -y  install  mariadb-server mariadb
+
+[root@server0 ~]# vim  /etc/my.cnf
+
+[root@server0 ~]# grep  -Env  "^#|^$"   /etc/my.cnf
+1:[mysqld]
+2:# skip-networking  # 添加此行,跳过网络监听 #恢复网络,把此行注释
+
+[root@server0 ~]# systemctl  restart  mariadb
+[root@server0 ~]# systemctl   enable  mariadb
+
+       -----------mysqladmin -u  用户名root  password  '初始密码'  
+[root@server0 ~]# mysqladmin -u root password 'atenorth'  //设置原始密码
+
+[root@server0 ~]# mysql  -uroot  -patenorth
+
+MariaDB [(none)]> use mysql;
+
+MariaDB [mysql]> desc  mysql.user\G;
+
+MariaDB [mysql]> select  host,user,password,authentication_string from mysql.user;
+
+---------------------------- 查看 所有的 密码账号
+MariaDB [mysql]> select host,user,password  from mysql.user;
+
+---------------------------- 删除所有的空密码账号
+
+MariaDB [mysql]> delete  from  mysql.user  where  password='';
+
+---------------- 在 server0 上创建一个 MariaDB 数据库，名为 Contacts
+
+MariaDB [mysql]> create   database  Contacts;  #创建空数据库 Contacts
+
+---给用户Raikon 授权查看,使用密码atenorth登陆数据库Contacts,可以查看所有的表
+
+MariaDB [mysql]> grant  select  on  Contacts.* to Raikon@localhost  identified  by 'atenorth';
+
+MariaDB [mysql]> show grants  for Raikon@localhost;
+
+----------------------------- 查看所有的授权用户的信息 (包含用户名 主机ip )-----------------------------------
+
+MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') as
+    -> query from mysql.user;
+
+
+
+---------------------------------- 在另外一个终端 导入 数据库 Contacts  -----------------
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/users.sql
+...............
+[root@server0 ~]# ll  users.sql 
+-rw-r--r--. 1 root root 2634 11月 27 18:38 users.sql
+
+==========----------------------     导入数据库Contacts
+[root@server0 ~]# mysql  -uroot  -patenorth  Contacts  < users.sql 
+
+------------------------------------ 回到 原来 的 终端 继续 数据库 操作   -------------------
+
+MariaDB [mysql]> use  Contacts;
+
+MariaDB [Contacts]> show  tables;
+
+MariaDB [Contacts]> desc base ;  desc   location;
+
+-----------------  密码是 solicitous 的人的名字  James
+
+MariaDB [Contacts]> select  name  from  Contacts.base  where  base.password='solicitous';
+
+
+------------------ 有多少人的姓名是 Barbara 同时居住在 Sunnyvale？
+
+MariaDB [Contacts]> select  base.name,location.city,base.id  
+from Contacts.base,location  
+where base.name='Barbara' 
+and  location.city='Sunnyvale'  
+and  base.id=location.id;
+
+MariaDB [Contacts]>  select base.name,location.city,base.id,location.id 
+    -> from  base 
+    -> left  join  location 
+    -> on  base.id=location.id  
+    -> where base.name='Barbara'  
+    -> and location.city='Sunnyvale';
++---------+-----------+------+------+
+| name    | city      | id   | id   |
++---------+-----------+------+------+
+| Barbara | Sunnyvale |    5 |    5 |
+
+MariaDB [Contacts]> select  count(*)  from  Contacts.base,location  
+where base.name='Barbara'  
+and  location.city='Sunnyvale'  
+and base.id=location.id;
+
+MariaDB [Contacts]> select count(*)  
+    -> from  base  
+    -> left  join  location  
+    -> on  base.id=location.id   
+    -> where base.name='Barbara'   
+    -> and location.city='Sunnyvale';
++----------+
+| count(*) |
++----------+
+|        1 |
+
+=============== 三表或多表 查询 左连接 ===============
+
+select tab1.fd1, tab1.fd2, 
+         t2.fd1,   t2.fd2, 
+         t3.fd1,   t3.fd2
+from  tab1
+ 
+left  join t2 
+  on  tab1.fd1=t2.fd1
+
+left  join t3 
+  on  t2.fd2=t3.fd2
+
+where  tab1.fd1='xxx'
+  and  t2.fd2='www';
+
+
+
+
+
+
+
