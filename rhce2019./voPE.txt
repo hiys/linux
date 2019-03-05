@@ -541,6 +541,56 @@ httpd.service      loaded active running The Apache HTTP Server
                             运行Apache HTTP服务器时已加载为活动
 
 
+一，考场纪律
+二，上午EX200考题注意点
+三，EX300考题注意点
+1，下午需要用到2台机器，不需要破密，
+"?" 只需要配置静态主机名，
+IP不需要配置，
+让其通过DHCP自动获取就可。"?"
+
+RHCE7-EX300模拟测试
+考试说明,请仔细阅读
+您在考试过程中将使用的两个系统的信息如下：
+ * server0.example.com(ServerX) 是一个主要的服务器
+ * desktop0.example.com(DesktopX)主要用作客户端
+两个系统的root密码为redhat
+
+系统的IP地址由DHCP提供，您可以视其正常，
+或者您可以按以下信息重新设置为静态IP：
+
+ * server0.example.com ：172.25.0.11
+ * desktop0.example.com ：172.25.0.10
+ * 子网掩码为：255.255.255.0
+ * 默认网关为：172.25.0.254
+
+
+匿名登入ftp://176.121.0.120，找到目录“software”，
+把里面的checkcsa-2.4.0.tar.gz       rht-labcheck.tar.gz下载到真机的/root下面
+
+4，验证server和desktop的yum源是否可用。如果不可用，解决方法如下：
+1）先查看真机的防火墙是否是trusted，如果不是，则需要设置为该模式；
+2）查看真机的/content目录下，是否有3个目录：rhel7.0、lost+found、courses，如果没有，则执行第3步；
+3）在真机上查看/var/lib/libvrit/images/content这个目录是否存在，及目录下面是否有3个子目录rhel7.0、lost+found、courses；如果存在，则可以通过软链接ln  -s  /var/lib/libvrit/images/content  /content来实现。
+4）上面的步骤完成后，真机重启nfs服务，systemctl restart nfs。
+5）再次还原3台虚拟机，并远程连接后测试yum源。
+
+
+
+
+[root@room9pc27 ~]# firewall-cmd  --state
+not running
+[root@room9pc27 ~]# semanage  port -l |grep ssh_port
+ssh_port_t                     tcp      22
+[root@room9pc27 ~]# netstat  -npult |grep sshd
+tcp        0      0 0.0.0.0:7920     0.0.0.0:*    LISTEN      941/sshd
+tcp6       0      0 :::7920           :::*        LISTEN      941/sshd
+[root@room9pc27 ~]# grep  -n  Port  /etc/ssh/sshd_config 
+16:Port 7920
+17:#Port 22
+100:#GatewayPorts no
+
+
 
 
 
