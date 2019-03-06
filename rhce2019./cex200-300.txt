@@ -1591,6 +1591,12 @@ classroom.example.com 提供了集中认证的服务域 .example.com，
 ************/
 [root@server0 ~]# rpm  -q  nfs-utils
 
+[root@server0 ~]# cp  /etc/krb5.conf  /etc/krb5.conf.bak
+cp：是否覆盖"/etc/krb5.conf.bak"？ y
+[root@server0 ~]# ll  /etc/krb5*
+-rw-r--r--. 1 root root 669 3月   6 18:26 /etc/krb5.conf
+-rw-r--r--. 1 root root 669 3月   6 18:27 /etc/krb5.conf.bak
+
 [root@server0 ~]# wget  http://classroom.example.com/pub/keytabs/server0.keytab  -O  /etc/krb5.keytab
 
 [root@server0 ~]# klist  -k  /etc/krb5.keytab 
@@ -1624,6 +1630,11 @@ classroom.example.com 提供了集中认证的服务域 .example.com，
 [root@server0 ~]# exportfs   -rv
 
 -----------------  desktop0.example.com ---------------
+
+[root@desktop0 ~]# \cp  /etc/krb5.conf   /etc/krb5.conf.bak 
+[root@desktop0 ~]# ll  /etc/krb5*
+-rw-r--r--. 1 root root 669 3月   6 18:26 /etc/krb5.conf
+-rw-r--r--. 1 root root 669 3月   6 18:28 /etc/krb5.conf.bak
 
 [root@desktop0 ~]# wget  http://classroom.example.com/pub/keytabs/desktop0.keytab   -O  /etc/krb5.keytab
 
@@ -2041,7 +2052,20 @@ MariaDB [mysql]> show grants  for Raikon@localhost;
 MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') as
     -> query from mysql.user;
 
+/************************ 在数据库(内部) 中 使用 source  导入 users.sql 文件
 
+登录并选择数据库（需要 提前 创建 好 空 数据库 Contacts ）
+进入到 数据库 Contacts 
+然后执行   source   /sql文件绝对路径;
+
+MariaDB [Contacts]> source  /root/users.sql; #导入 users.sql 文件
+
+Query OK, 0 rows affected (0.00 sec)
+.............
+Records: 5  Duplicates: 0  Warnings: 0
+..............
+
+***************/
 
 ---------------------------------- 在另外一个终端 导入 数据库 Contacts  -----------------
 
