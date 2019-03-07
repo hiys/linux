@@ -1,4 +1,4 @@
-linux 识别 硬件的 命名方式  IDE hd    SCSI  sd  /dev/sda/  /dev/sdb
+﻿linux 识别 硬件的 命名方式  IDE hd    SCSI  sd  /dev/sda/  /dev/sdb
 devfs 静态
 udev 动态
 [root@VM1 ~]# ifconfig |awk '/inet /{print $2}'
@@ -117,7 +117,8 @@ vdb           252:16   0   10G  0 disk
 [root@VM1 ~]# mkfs.ext4 /dev/sda1   #格式化ext4文件系统类型
 
 [root@VM1 ~]# blkid /dev/sda1
-/dev/sda1: UUID="1ed3343d-7893-4bf4-8800-865459704ddd" TYPE="ext4" PARTLABEL="primary" PARTUUID="37fcd398-6827-4562-a856-7746a508f695" 
+/dev/sda1: UUID="1ed3343d-7893-4bf4-8800-865459704ddd" TYPE="ext4"
+  PARTLABEL="primary" PARTUUID="37fcd398-6827-4562-a856-7746a508f695" 
 
 [root@VM1 ~]# blkid /dev/sda
 /dev/sda: PTTYPE="gpt" 

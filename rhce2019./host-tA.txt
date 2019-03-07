@@ -229,6 +229,74 @@ where  tab1.fd1='xxx'
   and  t2.fd2='www';
 
 
+==============================================
+rpm  -a 显示出文件状态 
+     -q 查询已已安装的软件信息
+
+[root@room9pc27 ~]# rpm -aq  |grep  yum   #查看原有的yum 
+yum-plugin-fastestmirror-1.1.31-42.el7.noarch
+PackageKit-yum-1.1.5-1.el7.centos.x86_64
+yum-metadata-parser-1.1.4-10.el7.x86_64
+yum-3.4.3-154.el7.centos.noarch
+yum-langpacks-0.4.2-7.el7.noarch
+yum-rhn-plugin-2.0.1-10.el7.noarch
+yum-utils-1.1.31-42.el7.noarch
+
+[root@room9pc27 ~]# rpm -aq  |wc -l
+1516
+
+# rpm -e 
+-e：卸载指定包名
+
+-V：对RPM包进行验证
+
+4.安装参数 
+--force 即使覆盖属于其它包的文件也强迫安装 
+--force 忽略软件包及文件的冲突 
+--nodeps 如果该RPM包的安装依赖其它包，即使其它包没装，也强迫安装
+--nodeps 不检查依赖性关系 
+--prefix 将软件包安装到由 指定的路径下 
+#　rpm　–Uhv　　xanim-27064-1.i386.rpm 
+ -U参数是
+告诉RPM先删除原先的版本，
+再安装新的版本。
+所以不管以前是否安装过这个软件包，
+用户 都可以使用rpm　–Uhv命令来安装软件。
+
+
+rpm -ivh是安装rpm包
+
+rpm -e --nodeps  是卸载包，
+       --nodeps 表示不含依赖
+
+安装程序：    rpm -ivh <软件包的绝对路径>   #i为install；v，verbose；h，hash
+
+rpm 常用命令
+1.安装一个包 
+# rpm -ivh 
+使用 -i 参数安装RPM 包。
+使用这个参数 i 安装内核 RPM。
+这种情况下，为了防止新的内核无法启动，您需要暂时保留原内核
+注意 -v 参数会列出详细的安装信息，
+-h 参数会显示安装进度,以"#"号显示安装进度
+[root@server0 ~]# rpm   -ivh   kernel-3.10.0-123.1.2.el7.x86_64.rpm
+
+2.升级一个包 
+# rpm -Uvh   #RPM包有升级机制（Upgrade）, 使用-U 参数
+1. 使用-U 进行升级新的rpm包的version一定要大于现有的version号，否则不能升级
+-U 用来升级 RPM 包，但是如果这个 RPM 包不在 RPM 数据库，则它会安装该包
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

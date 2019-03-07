@@ -1,0 +1,388 @@
+
+
+[root@room9pc27 ~]# yum -y install  vsftpd
+...........
+[root@room9pc27 ~]# rpm  -q  vsftpd
+vsftpd-3.0.2-22.el7.x86_64
+
+FTP是仅基于TCP的服务，不支持UDP。 
+与众不同的是FTP使用2个端口，
+21（命令端口）和20（数据端口）。
+
+FTP协议有两种工作方式：
+PORT方式(主动式)
+和PASV方式(被动式)，
+
+(一) FTP主动模式
+    客户端从一个任意的非特权端口N（N>1024）
+连接到FTP服务器的命令端口，也就是21端口。
+然后客户端开始 监听端口N+1，
+并发送FTP命令“port N+1”到FTP服务器。
+接着服务器会从它自己的数据端口（20）
+连接到客户端指定的数据端口（N+1）。
+
+针对FTP服务器前面的防火墙来说，
+必须允许以下通讯才能支持主动方式FTP：
+1. 任何大于1024的端口到FTP服务器的21端口。（客户端初始化的连接）
+2. FTP服务器的21端口（命令端口）到大于1024的端口。 （服务器响应客户端的控制端口）
+3. FTP服务器的20端口（数据端口）到大于1024的端口。（服务器端初始化数据连接到客户端的数据端口）
+4. 大于1024端口到FTP服务器的20端口（客户端发送ACK响应到服务器的数据端口）
+
+[root@room9pc27 ~]# ls -l  /etc/vsftpd/vsftpd.conf 
+lrwxrwxrwx 1 root root 35 3月  19 2018 /etc/vsftpd/vsftpd.conf -> /var/lib/libvirt/images/vsftpd.conf
+[root@room9pc27 ~]# ll   /var/lib/libvirt/images/vsftpd.conf 
+-rw------- 1 root root 4644 1月  10 2018 /var/lib/libvirt/images/vsftpd.conf
+
+开启主动模式：
+pasv_enable=no
+若设置为NO，则使用PORT模式。
+若设置为YES，则使用PASV工作模式(被动式)；
+默认值为YES，即使用PASV工作模式(被动式)。
+
+主动模式下：
+SecureFX工具去连接ftp，客户没有允许开放端口，
+服务器没法与客户端相连接，
+关闭客户端防火墙
+
+(二) FTP被动模式
+在被动方式FTP中，
+命令连接和数据连接都由客户端发起，
+这样就可以解决
+从服务器到客户端的数据端口的入方向连接
+被防火墙过滤掉的问题。
+
+当开启一个 FTP连接时，
+客户端打开两个任意的非特权本地端口（N > 1024和N+1）。
+第一个端口连接服务器的21端口，
+但与主动方式的FTP不同，
+客户端不会
+提交PORT命令并允许服务器来回连它的数据端口，
+而是提交 PASV命令。
+这样做的结果是服务器会开启一个任意的非特权端口（P > 1024），
+并发送PORT P命令给客户端。
+然后客户端发起
+从本地端口N+1到服务器的端口P的连接
+用来传送数据。
+
+对于服务器端的防火墙来说，
+必须允许下面的通讯才能支持被动方式的FTP:
+1. 从任何大于1024的端口到服务器的21端口 （客户端初始化的连接）
+2. 服务器的21端口到任何大于1024的端口 （服务器响应到客户端的控制端口的连接）
+3. 从任何大于1024端口到服务器的大于1024端口 （客户端初始化数据连接到服务器指定的任意端口）
+4. 服务器的大于1024端口到远程的大于1024的端口（服务器发送ACK响应和数据到客户端的数据端口）
+
+主动FTP对FTP服务器的管理有利，但对客户端的管理不利。
+
+ftp默认的端口为21
+
+FTP的匿名登录一般有三种：
+
+1、 用户名：anonymous 密码：Email或者为空
+
+2、 用户名：FTP 密码：FTP或者为空
+
+3、 用户名：USER 密码：pass
+anonymous  adj. 匿名的;无名的;假名的;没有特色的
+
+[root@room9pc27 ~]# grep  -n  anonymous_enable  /var/lib/libvirt/images/vsftpd.conf
+12:anonymous_enable=YES   #允许匿名用户和本地用户登陆。
+
+[root@room9pc27 ~]# grep  -En  "anonymous_enable|local_enable|write_enable"  /etc/vsftpd/vsftpd.conf 
+12:anonymous_enable=YES #允许匿名用户和本地用户登陆。
+15:local_enable=YES    #匿名用户使用的登陆名为ftp或anonymous，口令为空；
+匿名用户不能离开匿名用户家目录/var/ftp,且只能下载不能上传。
+
+18:write_enable=YES   #本地用户的登录名为本地用户名，口令为此本地用户的口令；
+本地用户可以在自己家目录中进行读写操作；
+本地用户可以离开自家目录切换至
+有权限访问的其他目录，
+并在权限允许的情况下进行上传/下载。
+
+31:anon_mkdir_write_enable=YES  #如果设为YES，则允许匿名登入者有新增目录的权限，
+只有在write_enable=YES时，此项才有效。
+当然，匿名用户必须要有对上层目录的写入权。
+默认值为NO。
+
+32:anon_other_write_enable=YES   #如果设为YES，
+则允许匿名登入者更多于上传或者建立目录之外的权限，譬如删除或者重命名。
+（如果anon_upload_enable=NO，
+则匿名用户不能上传文件，
+但可以删除或者重命名已经存在的文件；
+如果anon_mkdir_write_enable=NO，
+则匿名用户不能上传或者新建文件夹，
+但可以删除或者重命名已经存在的文件夹。）
+默认值为NO。
+
+#写在文件/etc/vsftpd.ftpusers中的本地用户禁止登陆。
+
+[root@room9pc27 ~]# getsebool -a |grep ftp
+getsebool:  SELinux is disabled
+
+[root@room9pc27 ~]# systemctl is-enabled  vsftpd
+enabled
+[root@room9pc27 ~]# netstat  -npult |grep vsftpd
+tcp   0   0 0.0.0.0:21    0.0.0.0:*     LISTEN      990/vsftpd 
+
+[root@room9pc27 ~]#   ls  /etc/yum.repos.d/
+NSD-2018-1-12.tar.gz  repo  rhel7.repo
+
+[root@room9pc27 ~]# cat  /etc/yum.repos.d/rhel7.repo 
+[rhel7]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://127.0.0.1/rhel7
+enabled=1
+gpgcheck=0
+
+[root@room9pc27 ~]# ls  /var/ftp/rhel7/
+addons            GPL       media.repo               RPM-GPG-KEY-redhat-release
+EFI               images    Packages                 TRANS.TBL
+EULA              isolinux  repodata
+extra_files.json  LiveOS    RPM-GPG-KEY-redhat-beta
+
+[root@room9pc27 ~]# tail -1  /etc/fstab 
+/var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso  /var/ftp/rhel7 iso9660 defaults  0  0
+[root@room9pc27 ~]# du  -sh  /var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso
+
+3.8G	/var/lib/libvirt/images/iso/rhel-server-7.4-x86_64-dvd.iso
+
+[root@room9pc27 ~]# yum clean all >/dev/null && yum repolist |tail -3
+源标识                   源名称                              状态
+rhel7        rhel-server-7.4-x86_64-dvd.iso     4,986
+repolist: 4,986
+
+[root@room9pc27 ~]# ls  /etc/libvirt/qemu/networks/autostart/
+private1.xml  private2.xml  public1.xml  public2.xml  rhce.xml  vbr1.xml  vbr.xml
+
+[root@room9pc27 ~]# virsh  net-list  --all
+ 名称                    状态     自动开始     持久
+----------------------------------------------------------
+ default              不活跃  否           是
+ private1             活动     是           是
+ private2             活动     是           是
+ public1              活动     是           是
+ public2              活动     是           是
+ rhce                 活动     是           是
+ vbr                  活动     是           是
+ vbr1                 活动     是           是
+
+[root@room9pc27 ~]# virsh  net-list
+ 名称                    状态     自动开始     持久
+----------------------------------------------------------
+ private1             活动     是           是
+ private2             活动     是           是
+ public1              活动     是           是
+ public2              活动     是           是
+ rhce                 活动     是           是
+ vbr                  活动     是           是
+ vbr1                 活动     是           是
+
+[root@room9pc27 ~]# cat  /etc/libvirt/qemu/networks/default.xml
+<!--
+.................
+[root@room9pc27 ~]# virsh net-dumpxml  default
+<network>
+  <name>default</name>
+  <uuid>5bd0383d-d2db-4189-a9da-469810561abf</uuid>
+  <forward mode='nat'/>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <mac address='52:54:00:c8:58:d3'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+    </dhcp>
+  </ip>
+</network>
+
+[root@room9pc27 ~]#  ifconfig vbr |head -2;ifconfig vbr1 |head -2
+vbr: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.254  netmask 255.255.255.0  broadcast 192.168.0.255
+vbr1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.254  netmask 255.255.255.0  broadcast 192.168.1.255
+
+虚拟网桥（Virtual Bridge）
+
+1.bridged(桥接模式)
+​  虚拟出来的操作系统就像是局域网中的一台独立的主机，
+它可以访问网内任何一台机器。
+同时，由于这个虚拟系统是局域网中的一个独立的主机系统，
+那么就可以手工配置它的TCP/IP配置信息，
+以实现通过局域网的网关或路由器访问互联网。
+
+2 NAT(网络地址转换模式)
+​  让虚拟系统借助NAT(网络地址转换)功能，
+通过宿主机器所在的网络来访问公网。
+也就是说，使用NAT模式可以实现在虚拟系统里访问互联网。
+
+#  cat >> /var/ftp/openstack.repo <<EOF
+[$i]
+name=$i
+baseurl=ftp://192.168.1.254/openstack/$i
+enabled=1
+gpgcheck=0
+EOF
+
+[root@room9pc27 ~]# ifconfig  private1
+private1: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 192.168.4.254  netmask 255.255.255.0  broadcast 192.168.4.255
+..................
+private1,vbr,vbr1 是一个桥接器，
+接收所有到网络
+192.168.4.*
+ <range start='192.168.0.100' end='192.168.0.200'/>
+ <range start='192.168.1.100' end='192.168.1.200'/>
+的内容
+
+[root@room9pc27 ~]# brctl  show
+bridge name   bridge id           STP enabled    interfaces
+private1      8000.525400377811   yes            private1-nic
+.........................
+vbr           8000.52540060e696   yes            vbr-nic
+vbr1          8000.52540092c94d   yes            vbr1-nic
+................
+
+修改/etc/sysctl.conf中参数，允许ip转发：
+net.ipv4.ip_forward=1
+
+
+[root@V10 ~]# brctl  show
+bridge name   bridge id          STP enabled  interfaces
+virbr0        8000.52540062a090  yes          virbr0-nic
+[root@V10 ~]# ifconfig  virbr0
+virbr0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 192.168.122.1  netmask 255.255.255.0  broadcast 192.168.122.255
+        ether 52:54:00:62:a0:90  txqueuelen 1000  (Ethernet)
+....................
+生成树协议（Spanning-Tree Protocol，以下简称STP）
+是一个用于在局域网中消除环路的协议。
+运行该协议的交换机通过彼此交互信息而发现网络中的环路，
+并适当对某些端口进行阻塞以消除环路
+
+网桥：比较早期的网络中，称交换机为网桥。
+在某些场景中网桥和交换机会交替使用。
+
+网桥ID：BID—网桥的优先级+网桥MAC。
+根桥:BID（网桥ID）最小的网桥定为根桥。
+在没有配置优先级的网络中，
+根桥将由MAC地址最小的网桥担任。
+如果网络中配置了各个交换机的优先级，则由优先级最小的交换机作为根桥。
+
+几个相关定时器
+
+Hello Timer：
+STP交换机发送BPDU的时间间隔。
+当网络拓扑稳定之后，
+该计时器的修改只有在根桥修改才有效。
+
+Forwarding Delay Timer：
+指一个端口Listening 和Learning的各自时间，默认为15秒，
+即Listening状态持续15秒，
+随后Learning状态再持续15秒。
+这两个状态下的端口会处于Blocking状态，
+这是STP用于避免临时环路的关键。
+
+TC 位在 max_age + forward_delay 秒（默认情况下为 20+15=35 秒）内
+由根网桥设置
+
+什么时候认为是拓扑发生了变化
+1.网桥至少有一个指定端口，
+并且某端口从其他（Blocking、Listening、Learning）状态
+转到Forwading状态。
+2.某端口由Forwading、Learning状态转到Blocking状态。
+
+
+[root@V10 ~]# ifconfig |grep -A1 flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.10  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.10  netmask 255.255.255.0  broadcast 192.168.1.255
+--
+eth2: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.2.10  netmask 255.255.255.0  broadcast 192.168.2.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+--
+virbr0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 192.168.122.1  netmask 255.255.255.0  broadcast 192.168.122.255
+
+[root@V10 ~]# cat  /etc/yum.repos.d/local.repo 
+[rhel7]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+
+[root@V10 ~]# yum clean  all >/dev/null && yum repolist |tail -3
+Repodata is over 2 weeks old. Install yum-cron? Or run: yum makecache fast
+回购数据已超过2周。安装yum cron？或者运行：yum makecache
+源标识                   源名称                                            状态
+rhel7                    rhel-server-7.4-x86_64-dvd.iso                    4,986
+repolist: 4,986
+
+
+Devfs
+    linux kernel 2.4版本后引入devfs,
+devfs 相比与静态的/dev文件主要有两点改进：
+   ●允许使用自定的设备名称来注册设备节点，同时它兼容老的设备号，
+例如我们注册一个设备节点/dev/mydev
+   ●所有的设备都由内核在系统启动时期创建并注册到/dev目录下，
+这就意味这/dev不在被成百个“无用”的设备节点充斥。
+
+➣Udev
+    Devfs解决静态/dev管理的很多问题，但是它任然存在一定缺陷，
+基于此，在linux kernel 2.6.x版本后，
+Linux引入了udev.
+从而对devfs进行改进。
+udev是一个对/dev下设备节点进行动态管理的用户空间程序，
+她通过自身的守护进程
+和自定义的一些列规则
+来处理设备的
+加载，移除和热插拔等活动。
+
+➤sysfs
+    sysfs是Linux2.6引入的一种虚拟文件系统，
+挂载于/sys目录下，
+[root@V10 ~]# ls  /sys/
+block  class  devices   fs          kernel  power
+bus    dev    firmware  hypervisor  module
+[root@V10 ~]# ls  /sys/dev/
+block  char
+[root@V10 ~]# ls  /sys/devices/
+breakpoint   pci0000:00  pnp0      system      virtual
+LNXSYSTM:00  platform    software  tracepoint
+
+这个文件系统把 实际链接到系统上的设备，
+总线及其对应的驱动程序组织成分级的文件。
+从而将设备的层次结构映射到用户空间中，
+用户空间可以通过修改sysfs 中文件属性来修改设备属性值，
+从而与内核设备交互。
+
+➤udev和sysfs 的关系
+    sysfs是对devfs改进，udev也是对devfs的改进。
+两者之间的区别与联系为：
+实际上用户的工具udev就是利用sysfs提供的信息来实现的：
+udev会根据sysfs里面的设备信息创建/dev目录下的相应设备节点。
+
+﻿linux 识别 硬件的 命名方式  IDE hd    SCSI  sd  /dev/sda/  /dev/sdb
+devfs 静态
+udev 动态
+
+
+/home/work 192.168.0.*（rw,sync,root_squash）  
+/home  192.168.1.105 (rw,sync)  
+
+sync：文件同时写入硬盘和内存； 
+no_root_squash：NFS客户端连接服务端时如果使用的是root的话，
+那么对服务端分享的目录来说，也拥有root权限。
+显然开启这项是不安全的。  
+root_squash：NFS客户端连接服务端时如果使用的是root的话，那么对服务端分享的目录来说，拥有匿名用户权限，通常他将使用nobody或nfsnobody身份；  
+
+
+
+
+
+
+
+
+
