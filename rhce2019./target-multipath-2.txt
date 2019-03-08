@@ -628,7 +628,7 @@ drwxr-xr-x. 2 root root 6 5月  16 2017 /etc/multipath
 [root@V12 ~]# mpathconf  --user_friendly_names  --help
 --user_friendly_names must be either 'y' or 'n'
 
-----------------------  #不设置用户友好名称 #生成配置文件 ---------------
+----------------------  #不设置用户友好名称 #生成配置文件 /etc/multipath.conf ---------------
 
 [root@V12 ~]# mpathconf  --user_friendly_names  n  #不设置用户友好名称 #生成配置文件
 
@@ -706,7 +706,147 @@ vda           252:0    0   20G  0 disk
 [root@V12 ~]# systemctl  restart  multipathd 
 [root@V12 ~]# echo $?
 0
+------------- 必须把sda sdb 还原成最原始的没有任何分区的模式,多路径才会生效 ---------------------------------
 
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part /var/www/html
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# umount  /dev/sda1
+[root@V12 ~]# vim  /etc/fstab 
+[root@V12 ~]# tail  -1  /etc/fstab
+#UUID=e1ba9a2a-2b1d-47da-b8e6-61c587f99f99  /var/www/html  ext4  _netdev  0  0
+
+[root@V12 ~]# fdisk    /dev/sda
+WARNING: fdisk GPT support is currently new, and therefore in an experimental phase. Use at your own discretion.
+欢迎使用 fdisk (util-linux 2.23.2)。
+
+更改将停留在内存中，直到您决定将更改写入磁盘。
+使用写入命令前请三思。
+
+
+命令(输入 m 获取帮助)：d
+分区号 (1,2，默认 2)：2
+分区 2 已删除
+
+命令(输入 m 获取帮助)：d
+已选择分区 1
+分区 1 已删除
+
+命令(输入 m 获取帮助)：p
+
+磁盘 /dev/sda：10.7 GB, 10737418240 字节，20971520 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+磁盘标签类型：gpt
+Disk identifier: 66C8C381-E974-457B-8FDF-02ADD30F4945
+
+
+#         Start          End    Size  Type            Name
+
+命令(输入 m 获取帮助)：w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+正在同步磁盘。
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# partprobe   /dev/sd{a,b}
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# iscsiadm  --mode node --targetname  iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -u
+Logging out of session [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260]
+Logout of [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# ls   /etc/multipath
+multipath/      multipath.conf  
+
+[root@V12 ~]# vim   /etc/multipath.conf 
+
+[root@V12 ~]# egrep  -nv  "^#|^$"  /etc/multipath.conf 
+23:defaults {
+24:	user_friendly_names no
+25:	find_multipaths yes
+26:}
+94:blacklist {
+95:}
+96:multipaths {
+97:  multipath {
+98:    wwid  "360014058d4f7e99ba55492d8d5f2be1d"
+99:    alias  mpatha
+100:  }
+101:  multipath {
+102:    wwid  "3600140561f538d26e3244d49be031414"
+103:    alias  mpatha
+104:  }
+105:}
+[root@V12 ~]# iscsiadm  --mode node --targetname  iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -l
+
+Logging in to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] (multiple)
+Login to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+
+[root@V12 ~]# /usr/lib/udev/scsi_id  --whitelisted  --device=/dev/sda
+360014058d4f7e99ba55492d8d5f2be1d
+
+[root@V12 ~]# /usr/lib/udev/scsi_id  --whitelisted  --device=/dev/sdb
+3600140561f538d26e3244d49be031414
+
+[root@V12 ~]# systemctl  restart  multipathd  && systemctl is-enabled  multipathd
+enabled
+
+[root@V12 ~]# multipath -rr
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# ls  /dev/mapper/
+control  rhel-root  rhel-swap
+
+[root@V12 ~]# 
 
 
 
@@ -925,9 +1065,99 @@ ELinks: Host not found
 [root@V13 ~]# elinks  -dump   V12.example.com
    192.168.0.12 V12
 
+------------ 必须把sda sdb 还原成最原始的没有任何分区的模式,多路径才会生效 ------------------------------
 
 
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part 
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part /var/www/html
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
 
+[root@V13 ~]# umount  /dev/sdb1
+
+[root@V13 ~]# vim   /etc/fstab 
+[root@V13 ~]# tail  -1  /etc/fstab
+#UUID=83a412af-dbb2-4c08-bb68-e945897951c7  /var/www/html  ext4  _netdev  0 0
+
+[root@V13 ~]# fdisk   /dev/sdb
+WARNING: fdisk GPT support is currently new, and therefore in an experimental phase. Use at your own discretion.
+欢迎使用 fdisk (util-linux 2.23.2)。
+
+更改将停留在内存中，直到您决定将更改写入磁盘。
+使用写入命令前请三思。
+
+
+命令(输入 m 获取帮助)：d
+已选择分区 1
+分区 1 已删除
+
+命令(输入 m 获取帮助)：p
+
+磁盘 /dev/sdb：9663 MB, 9663676416 字节，18874368 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+磁盘标签类型：gpt
+Disk identifier: 61C66EF4-2FC2-4851-9C9C-81A6F1B0A1E6
+
+
+#         Start          End    Size  Type            Name
+
+命令(输入 m 获取帮助)：w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+正在同步磁盘。
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part 
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# partprobe   /dev/sd{a,b}
+[root@V13 ~]# echo  $?
+0
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V13 ~]# 
+[root@V13 ~]# iscsiadm  --mode node --targetname  iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -u
+
+Logging out of session [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260]
+Logout of [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V13 ~]# 
 
 
 
