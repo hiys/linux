@@ -1,0 +1,601 @@
+
+/*************
+export LANG=en_US.UTF-8
+echo  1 |passwd  --stdin  root
+
+# systemctl  stop   NetworkManager
+# yum  -y   remove  NetworkManager-*  firewalld-*  python-firewall 
+# sed  -i  "7c SELINUX=disabled"  /etc/selinux/config
+# systemctl   restart  network
+*****/
+
+部署LVS-nat集群
+集群对外公网IP地址为192.168.0.11
+调度器内网IP地址为192.168.1.11
+真实Web服务器地址分别为192.168.1.12 、 192.168.1.13,192.168.1.12 
+使用加权轮询调度算法,真实服务器权重分别为1和2
+
+web1的权重为1,
+web2的权重为2
+
+client  V10  192.168.0.10
+proxy   V11  192.168.0.11  192.168.1.11
+web1    V12  192.168.1.12
+web2    V13  192.168.1.13
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.0.10
+..........
+[root@V10 ~]# vim  /etc/yum.repos.d/local.repo 
+[root@V10 ~]# cat  /etc/yum.repos.d/local.repo
+[rhel7]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+
+[root@V10 ~]# yum clean  all >/dev/null &&  yum repolist  |tail  -3
+源标识                   源名称                                            状态
+rhel7                    rhel-server-7.4-x86_64-dvd.iso                    4,986
+repolist: 4,986
+[root@V10 ~]# cat   /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.0.10  V10
+192.168.0.11  V11
+192.168.1.11  V11
+192.168.1.12  V12
+192.168.1.13  V13
+192.168.1.14  V14
+192.168.1.15  V15
+192.168.1.16  V16
+192.168.1.17  V17
+192.168.1.18  V18
+192.168.1.19  V19
+[root@V10 ~]# ifdown   eth1
+[root@V10 ~]# ifdown   eth2
+[root@V10 ~]# ifconfig eth0 |grep  "inet "
+        inet 192.168.0.10  netmask 255.255.255.0  broadcast 192.168.0.255
+
+[root@V10 ~]# ifconfig |awk '/inet /{print  $2}'
+192.168.0.10
+127.0.0.1
+192.168.122.1
+[root@V10 ~]# route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+169.254.0.0     0.0.0.0         255.255.0.0     U     1002   0        0 eth0
+192.168.0.0     0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 virbr0
+[root@V10 ~]# cat  /etc/resolv.conf 
+
+search localdomain
+
+[root@V10 ~]# yum  -y install  elinks |tail  -3
+  js.x86_64 1:1.8.5-19.el7         nss_compat_ossl.x86_64 0:0.9.6-8.el7        
+
+完毕！
+
+[root@V10 ~]# elinks  -dump  192.168.0.11
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.11
+   web2 V13 192.168.1.13
+[root@V10 ~]# elinks  -dump  192.168.0.11
+   web2 V13 192.168.1.13
+
+[root@V10 ~]# elinks  -dump  192.168.0.11
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.11
+   web2 V13 192.168.1.13
+[root@V10 ~]# elinks  -dump  192.168.0.11
+   web2 V13 192.168.1.13
+/***********
+[root@V11 ~]# ipvsadm  -Ln
+..........
+  -> RemoteAddress:Port     Forward Weight ActiveConn InActConn
+   ->       远程地址：端口                 权重   
+TCP  192.168.0.11:80   wrr        
+  -> 192.168.1.12:80        Masq    1      0    0         
+  -> 192.168.1.13:80        Masq    2      0    0   
+[root@V11 ~]# ipvsadm  -A  -t  192.168.0.11:80  -s  wrr
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.11:80 -r 192.168.1.12:80  -w  1 -m
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.11:80 -r 192.168.1.13:80  -w  2 -m
+****************/
+
+部署LVS-NAT集群
+
+client  V10  192.168.0.10
+proxy   V11  192.168.0.11  192.168.1.11
+web1    V12  192.168.1.12
+web2    V13  192.168.1.13
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.0.11
+............
+
+[root@V11 ~]# hostname
+V11
+[root@V11 ~]# ifconfig |awk '/inet /{print  $2}'
+192.168.0.11
+192.168.1.11
+192.168.2.11
+127.0.0.1
+192.168.122.1
+[root@V11 ~]# route   -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+169.254.0.0     0.0.0.0         255.255.0.0     U     1002   0        0 eth0
+169.254.0.0     0.0.0.0         255.255.0.0     U     1003   0        0 eth1
+169.254.0.0     0.0.0.0         255.255.0.0     U     1004   0        0 eth2
+192.168.0.0     0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.1.0     0.0.0.0         255.255.255.0   U     0      0        0 eth1
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 eth2
+192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 virbr0
+
+[root@V11 ~]#  vim  /etc/yum.repos.d/local.repo 
+[root@V11 ~]# cat  /etc/yum.repos.d/local.repo
+[rhel7]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+
+[root@V11 ~]# yum clean  all >/dev/null &&  yum repolist  |tail  -4
+This system is not registered with an entitlement server. You can use subscription-manager to register.
+源标识                   源名称                                            状态
+rhel7                    rhel-server-7.4-x86_64-dvd.iso                    4,986
+repolist: 4,986
+
+[root@V11 ~]# vim  /etc/hosts
+[root@V11 ~]# cat  /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.0.10  V10
+192.168.0.11  V11
+192.168.1.11  V11
+192.168.1.12  V12
+192.168.1.13  V13
+192.168.1.14  V14
+192.168.1.15  V15
+192.168.1.16  V16
+192.168.1.17  V17
+192.168.1.18  V18
+192.168.1.19  V19
+[root@V11 ~]# for  ip  in 192.168.0.1{0..9};
+do scp  -o StrictHostKeyChecking=no   /etc/hosts  root@${ip}:/etc/ ;
+done
+
+部署LVS-NAT模式调度器
+----------------------  确认调度器的路由转发功能 -----------------
+[root@V11 ~]# cat  /proc/sys/net/ipv4/ip_forward
+1
+[root@V11 ~]# vim  /etc/sysctl.conf 
+[root@V11 ~]# tail  -1   /etc/sysctl.conf
+net.ipv4.ip_forward=1
+[root@V11 ~]# sysctl  -p  /etc/sysctl.conf
+net.ipv4.ip_forward = 1
+
+[root@V11 ~]# sysctl -a |grep  net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+net.ipv4.ip_forward_use_pmtu = 0
+.............
+
+[root@V11 ~]# yum  -y install  ipvsadm |tail  -3
+  ipvsadm.x86_64 0:1.27-7.el7                                                   
+
+完毕！
+[root@V11 ~]# rpm -qa  |grep ipvsadm
+ipvsadm-1.27-7.el7.x86_64
+
+[root@V11 ~]# man  ipvsadm
+
+[root@V11 ~]# type  ipvsadm
+ipvsadm 是 /usr/sbin/ipvsadm
+
+[root@V11 ~]# ipvsadm  -L
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+
+/**************
+ -A  --add-service 在内核的虚拟服务器表中添加一条新的虚拟服务器记录。
+                      也就是增加一台新的虚拟服务器。
+-t –tcp-service service-address 说明虚拟服务器提供的是tcp 的服务
+-s –scheduler scheduler 使用的调度算法
+
+  -s  wrr  加权轮叫（Weight RR）
+　 调度器通过“加权轮叫”调度算法
+1）创建LVS虚拟集群服务器(算法为加权轮询:wrr)
+
+[root@V11 ~]# ipvsadm  -A  -t  192.168.0.11:80  -s  wrr
+
+2)添加真实服务器
+-a –add-server 在内核虚拟服务器表的一条记录里添加一条新的真实服务器
+
+-r –real-server server-address 真实的服务器[Real-Server:port]
+
+-w –weight weight 真实服务器的权值
+
+-m   --masquerading 指定LVS 的工作模式为NAT 模式
+-g  --gatewaying 指定LVS 的工作模式为直接路由模式（也是LVS 默认的模式）
+     使用-g选项,将模式改为DR模式
+
+-n   --numeric  输出IP 地址和端口的数字形式
+--------------------------------------------添加realserver-------------
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.11:80 -r 192.168.1.12:80  -w  1 -m
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.11:80 -r 192.168.1.13:80  -w  2 -m
+
+---  -L|-l  --list 显示内核虚拟服务器表 查看LVS状态, 查看规则列表---
+
+[root@V11 ~]# ipvsadm  -Ln
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.0.11:80 wrr
+  -> 192.168.1.12:80              Masq    1      0          0         
+  -> 192.168.1.13:80              Masq    2      0          0 
+        
+[root@V11 ~]# vim  /etc/sysconfig/ipvsadm-config
+[root@V11 ~]# grep  -Env  "^#|^$"  /etc/sysconfig/ipvsadm-config
+6:IPVS_MODULES_UNLOAD="yes"
+12:IPVS_SAVE_ON_STOP="yes"      #  在 ...停止时保存
+18:IPVS_SAVE_ON_RESTART="yes"   #  IPVS_重新启动时保存
+23:IPVS_STATUS_NUMERIC="yes"
+
+-------------------  保存规则  /etc/sysconfig/ipvsadm (默认保存规则的文件) --------
+
+[root@V11 ~]# ipvsadm-save  -n  > /etc/sysconfig/ipvsadm
+
+[root@V11 ~]# systemctl  restart   ipvsadm  && systemctl  enable  ipvsadm
+
+Created symlink from /etc/systemd/system/multi-user.target.wants/ipvsadm.service to /usr/lib/systemd/system/ipvsadm.service.
+
+---------------------------  每隔 2 秒 动态 动态 监视 lvs 连接访问量 -------------
+
+[root@V11 ~]# watch  -n 2  ipvsadm  -Ln  --stats
+.............
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.11:80                    15	 90	  60     6990     8345
+  -> 192.168.1.12:80                     5	 30	  20     2330     2785
+  -> 192.168.1.13:80                    10	 60	  40     4660     5560
+
+^C
+
+/*************    -Z --zero 虚拟服务表计数器清零（清空当前的连接数量等）
+
+[root@V11 ~]#  ipvsadm  -Z   # （清空当前的连接数量等）
+
+Every 2.0s: ipvsadm -Ln --stats                                    Tue Mar 12 20:14:30 2019
+
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.11:80                     0        0        0        0        0
+  -> 192.168.1.12:80                     0        0        0        0        0
+  -> 192.168.1.13:80                     0        0        0        0        0
+
+^C
+
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.1.12
+..........
+[root@V12 ~]# hostname
+V12
+[root@V12 ~]# cat  /etc/hostname 
+V12
+[root@V12 ~]# vim  /etc/yum.repos.d/local.repo 
+[root@V12 ~]# cat  /etc/yum.repos.d/local.repo
+[rhel7.4]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.1.254/rhel7
+enabled=1
+gpgcheck=0
+[root@V12 ~]# for  ip  in 192.168.0.1{3..9};
+do scp  -o StrictHostKeyChecking=no  /etc/yum.repos.d/local.repo  root@${ip}:/etc/yum.repos.d/;
+done
+[root@V12 ~]# yum clean  all >/dev/null &&  yum repolist  |tail  -3
+源标识                    源名称                                           状态
+rhel7.4                   rhel-server-7.4-x86_64-dvd.iso                   4,986
+repolist: 4,986
+
+[root@V12 ~]# cat  /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.0.10  V10
+192.168.0.11  V11
+192.168.1.11  V11
+192.168.1.12  V12
+192.168.1.13  V13
+192.168.1.14  V14
+192.168.1.15  V15
+192.168.1.16  V16
+192.168.1.17  V17
+192.168.1.18  V18
+192.168.1.19  V19
+
+[root@V12 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-eth1
+[root@V12 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth1
+NAME="eth1"
+DEVICE="eth1"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.1.12"
+NETMASK="255.255.255.0"
+#GATEWAY="192.168.0.254"
+GATEWAY=192.168.1.11
+
+[root@V12 ~]# systemctl  restart  network  && systemctl is-enabled  network
+
+network.service is not a native service, redirecting to /sbin/chkconfig.
+Executing /sbin/chkconfig network --level=5
+enabled
+
+[root@V12 ~]# ifdown   eth0
+[root@V12 ~]# ifdown   eth2
+[root@V12 ~]# route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.1.11    0.0.0.0         UG    0      0        0 eth1
+169.254.0.0     0.0.0.0         255.255.0.0     U     1003   0        0 eth1
+192.168.1.0     0.0.0.0         255.255.255.0   U     0      0        0 eth1
+192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 virbr0
+
+[root@V12 ~]#  ifconfig |awk '/inet /{print  $2}'
+192.168.1.12
+127.0.0.1
+192.168.122.1
+
+[root@V12 ~]# service   network  status 
+已配置设备：
+lo eth0 eth1 eth2
+当前活跃设备：
+lo eth1 virbr0
+[root@V12 ~]# yum  -y install  elinks  httpd |tail -2
+
+完毕！
+[root@V12 ~]# vim  /etc/httpd/conf/httpd.conf 
+[root@V12 ~]# grep  -n  "^ServerName" /etc/httpd/conf/httpd.conf
+96:ServerName  V12:80
+
+[root@V12 ~]# echo   "web1  V12  192.168.1.12" > /var/www/html/index.html
+
+[root@V12 ~]# systemctl  restart httpd 
+[root@V12 ~]# systemctl  enable   httpd
+[root@V12 ~]# elinks  -dump   http://V12
+   web1 V12 192.168.1.12
+
+
+部署LVS-NAT集群
+
+client  V10  192.168.0.10
+proxy   V11  192.168.0.11  192.168.1.11
+web1    V12  192.168.1.12
+web2    V13  192.168.1.13
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.1.13
+.............
+[root@V13 ~]#  cat  /etc/yum.repos.d/local.repo
+[rhel7.4]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.1.254/rhel7
+enabled=1
+gpgcheck=0
+[root@V13 ~]# cat  /etc/hosts
+hosts        hosts.allow  hosts.deny   
+[root@V13 ~]# cat  /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.0.10  V10
+192.168.0.11  V11
+192.168.1.11  V11
+192.168.1.12  V12
+192.168.1.13  V13
+192.168.1.14  V14
+192.168.1.15  V15
+192.168.1.16  V16
+192.168.1.17  V17
+192.168.1.18  V18
+192.168.1.19  V19
+
+/************* 临时 删除 网关
+ ~]# route del default gw 192.168.1.11
+******** 临时 添加 网关
+~]# route add default gw 192.168.1.11
+**********/
+
+[root@V13 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-eth1
+[root@V13 ~]# tail  -4  /etc/sysconfig/network-scripts/ifcfg-eth1
+IPADDR="192.168.1.13"
+NETMASK="255.255.255.0"
+#GATEWAY="192.168.0.254"
+GATEWAY="192.168.1.11"
+
+[root@V13 ~]# systemctl  restart  network  && systemctl is-enabled  network
+............
+[root@V13 ~]# ifdown   eth0
+[root@V13 ~]# ifdown   eth2
+
+[root@V13 ~]# ip  route  show
+
+default via 192.168.1.11 dev eth1 
+
+169.254.0.0/16 dev eth1 scope link metric 1003 
+192.168.1.0/24 dev eth1 proto kernel scope link src 192.168.1.13 
+192.168.122.0/24 dev virbr0 proto kernel scope link src 192.168.122.1 
+
+[root@V13 ~]# ifconfig |awk '/inet /{print  $2}'
+192.168.1.13
+127.0.0.1
+192.168.122.1
+[root@V13 ~]# yum  -y install  elinks  httpd |tail -2
+
+完毕！
+[root@V13 ~]# service  network   status 
+已配置设备：
+lo eth0 eth1 eth2
+当前活跃设备：
+lo eth1 virbr0
+[root@V13 ~]#  echo   "web2   V13  192.168.1.13" > /var/www/html/index.html
+
+[root@V13 ~]# systemctl  restart httpd  && systemctl  enable  httpd
+
+[root@V13 ~]# elinks  -dump    http://V13
+   web2 V13 192.168.1.13
+
+[root@V13 ~]# 
+watch命令重复执行某一个命令
+watch[参数][命令]
+
+命令参数：
+-n或--interval  watch缺省每2秒运行一下程序，
+    可以用-n或-interval来指定间隔的时间。
+
+-d或--differences  用-d或--differences 选项
+           watch 会高亮显示变化的区域。
+ 而-d=cumulative选项会把变动过的地方(不管最近的那次有没有变动)都高亮显示出来
+
+------------  每隔 3 秒 动态 高亮显示 内存 的变化情况
+[root@V13 ~]# watch  -n 3  -d  "free -k"
+Every 3.0s: free  -k                         Tue Mar 12 19:39:26 2019
+
+              total     used        free	 shared  buff/cache   available
+Mem:        1478976    157|452|     876668        9084      444856     1121116
+Swap:       2097148           0     2097148
+
+[root@V13 ~]# type  watch
+watch 已被哈希 (/usr/bin/watch)
+
+=================================
+
+[root@V10 ~]# vim  /etc/yum.repos.d/local.repo 
+
+[root@V10 ~]# cat  /etc/yum.repos.d/local.repo
+[rhel7]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+
+[root@V10 ~]# yum clean  all >/dev/null && yum repolist   |tail  -3  
+源标识                         源名称                                                 状态
+rhel7                          rhel-server-7.4-x86_64-dvd.iso                         4,986
+repolist: 4,986
+
+[root@V10 ~]# 
+
+====================== DR模式的优缺点 =======================
+可扩展性强，LD 不会成为业务增长的瓶颈
+
+net.ipv4.ip_forward = 0
+
+net.ipv4.ip_forward 不需要打开，因为LB和real server在同一个网段
+缺点：
+  节点不能跨网段，即real server和ld必须在一个物理网段中,一定程度上可能会使用多个公网IP
+ realserver上须有一块网卡不接受arp广播
+
+    LB(Load Balancer) :负载均衡器，也就是装有LVS（ipvsadm）的server
+
+    VIP(Virtual IP):虚拟IP，也就是给远程客户端（网民）提供服务的外部IP，比如，提供80服务，域名是www.a.com,则www.a.com 对应的A记录就是VIP
+
+    LD(Load Balancer Director):同LB，负载均衡调度器
+
+    real server:即后端提供真是服务的server，
+比如你提供的是80服务，那你机器可能就是装着Apache这中web服务器
+
+    DIP(Director IP)：在NAT模式中是后端realserver的gateway，
+在DR和Tune中如果使用heartbeat或者keepalived，用来探测使用
+
+    RIP(Real Server IP):后端realserver的IP
+
+CIP是客户端的IP地址;
+VIP是对客户端提供服务的IP地址;
+RIP是后端服务器的真实IP地址;
+DIP是调度器与后端服务器通信的IP地址(VIP必须配置在虚拟接口)
+DR(直接路由)
+
+这里我们以及后面的例子我们都会假设这么一个场景，我们使用LVS为我们的web集群提供负载均衡功能：
+
+  eth0   ---  VIP： 192.168.0.11
+  eth0:1 ---  DIP:  192.168.0.21/32
+
+  eth0  --- RIP1: 192.168.0.12
+  lo:1  --- DIP:  192.168.0.21/32
+
+  eth0  ---  RIP2: 192.168.0.13
+  lo:1  --- DIP:  192.168.0.21/32
+
+         eth0   eth0:1 
+的关系对应于物理网卡、子网卡
+子网卡：
+      子网卡在这里并不是实际上的网络接口设备，
+但是可以作为网络接口在系统中出现，
+如eth0:1 、 eth1:2这种网络接口。
+它们必须要依赖于物理网卡，
+虽然可以与物理网卡的网络接口同时在系统中存在
+并使用不同的IP地址，
+而且也拥有它们自己的网络接口配置文件。
+但是当所依赖的物理网卡
+不启用时（Down状态）这些子网卡也将一同不能工作。
+
+分ip存储文件格式为ifcfg-eth0:X
+           X为任意正整数(包括0)
+具体作用是实现单网卡多ip 
+
+
+
+
+
+
+
+ARP缓存表是可以查看的，也可以添加和修改。
+在命令提示符下，输入“arp -a”就可以查看ARP缓存表中的内容了
+
+用“arp -d”命令可以删除ARP表中某一行的内容
+
+用“arp -s”可以手动在ARP表中指定IP地址与MAC地址的对应。
+
+[root@V11 ~]# ls  /etc/sysconfig/ipvsadm*
+/etc/sysconfig/ipvsadm  /etc/sysconfig/ipvsadm-config
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+-A -t 192.168.0.11:80 -s wrr
+-a -t 192.168.0.11:80 -r 192.168.1.12:80 -m -w 1
+-a -t 192.168.0.11:80 -r 192.168.1.13:80 -m -w 2
+
+/************
+-C  --clear 清除内核虚拟服务器表中的所有记录。
+-R, --restore   从stdin还原Linux虚拟服务器规则。
+             从stdin读取的每一行将被视为单独调用ipvsadm的命令行选项。
+             从stdin读取的行可以选择以“ipvsadm”开头。
+             此选项有助于避免在构建扩展路由表时执行大量或ipvsadm命令。
+-R –restore 恢复虚拟服务器规则
+-S, --save   将Linux虚拟服务器规则以 -R_--restore可以读取的格式  保存虚拟服务器规则，
+                 输出为-R 选项可读的格式
+-g  --gatewaying 指定LVS 的工作模式为直接路由模式（也是LVS 默认的模式）
+                     使用-g选项,将模式改为DR模式
+****/
+
+[root@V11 ~]# ipvsadm  -C  #删除
+[root@V11 ~]# ipvsadm  -S  > /etc/sysconfig/ipvsadm
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+
+
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.1.14
+............
+
+
+https://www.cnblogs.com/leezhxing/p/4613500.html
+
+https://www.cnblogs.com/Csir/p/6754077.html
+
+
+
+
+

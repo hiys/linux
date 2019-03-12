@@ -1,0 +1,917 @@
+
+
+[root@V10 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+vdb           252:16   0   10G  0 disk 
+vdc           252:32   0    9G  0 disk 
+[root@V10 ~]# free -m
+              total        used        free      shared  buff/cache   available
+Mem:           1536         138        1196           8         201        1220
+Swap:          2047           0        2047
+[root@V10 ~]# ifconfig |awk '/inet /{print $2}'
+192.168.0.10
+192.168.1.10
+192.168.2.10
+127.0.0.1
+192.168.122.1
+/********* systemctl  stop   NetworkManager
+yum  -y   remove  NetworkManager-*  firewalld-*  python-firewall 
+***********/
+
+[root@V10 ~]# systemctl  is-active  NetworkManager
+inactive
+[root@V10 ~]# getenforce  
+Disabled
+[root@V10 ~]# grep  -n disabled  /etc/selinux/config 
+6:#     disabled - No SELinux policy is loaded.
+7:SELINUX=disabled
+
+[root@V10 ~]# yum  -y install  targetcli |tail -3
+  python-urwid.x86_64 0:1.1.1-3.el7 
+
+完毕！
+[root@V10 ~]# rpm  -q  targetcli 
+targetcli-2.1.fb46-1.el7.noarch
+
+[root@V10 ~]# ls  /etc/target/
+backup
+[root@V10 ~]# ls  /etc/target/backup/
+
+[root@V10 ~]# targetcli
+
+targetcli shell version 2.1.fb46
+Copyright 2011-2013 by Datera, Inc and others.
+For help on commands, type 'help'.
+
+/> exit
+Global pref auto_save_on_exit=true
+Last 10 configs saved in /etc/target/backup.
+Configuration saved to /etc/target/saveconfig.json
+
+[root@V10 ~]# ls  /etc/target/
+backup  saveconfig.json
+[root@V10 ~]# cat  /etc/target/saveconfig.json 
+{
+  "fabric_modules": [], 
+  "storage_objects": [], 
+  "targets": []
+}
+[root@V10 ~]# ls  /etc/target/backup/
+[root@V10 ~]# hostname
+V10
+
+[root@V10 ~]# lsblk   /dev/vd{b,c}
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vdb  252:16   0  10G  0 disk 
+vdc  252:32   0   9G  0 disk 
+
+[root@V10 ~]# targetcli  
+..........
+/> ls
+......
+/> backstores/block create  name=diskb   dev=/dev/vdb   #创建后端存储diskb
+
+/> backstores/block create  name=diskc   dev=/dev/vdc  #创建后端存储diskc
+
+
+/> iscsi/ create  iqn.2018-10.cn.tedu:server10  #创建正确的磁盘名 iqn对象
+
+
+-----------------------   # 设置客户端的iqn 授权客户机访问 client12  client13 -------------
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/acls  create  iqn.2018-10.cn.tedu.client12
+Created Node ACL for iqn.2018-10.cn.tedu.client12
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/acls  create  iqn.2018-10.cn.tedu.client13
+Created Node ACL for iqn.2018-10.cn.tedu.client13
+
+
+----- #将iqn对象iqn.2018-10.cn.tedu:server10 与 后端存储/block/diskb  /block/diskc 绑定 ------
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/luns  create   /backstores/block/diskb
+Created LUN 0.
+Created LUN 0->0 mapping in node ACL iqn.2018-10.cn.tedu.client13
+Created LUN 0->0 mapping in node ACL iqn.2018-10.cn.tedu.client12
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/luns  create   /backstores/block/diskc
+
+Created LUN 1.
+Created LUN 1->1 mapping in node ACL iqn.2018-10.cn.tedu.client13
+Created LUN 1->1 mapping in node ACL iqn.2018-10.cn.tedu.client12
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/portals  delete  0.0.0.0  3260 
+Deleted network portal 0.0.0.0:3260
+
+-------------------------  #开启本地监听的IP地址与端口 --------------------
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/portals  create  192.168.0.10 
+
+Using default IP port 3260
+Created network portal 192.168.0.10:3260.
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/portals create 192.168.1.10  3260
+
+Using default IP port 3260
+Created network portal 192.168.1.10:3260.
+
+/> saveconfig 
+Last 10 configs saved in /etc/target/backup.
+Configuration saved to /etc/target/saveconfig.json
+
+/> exit
+Global pref auto_save_on_exit=true
+Last 10 configs saved in /etc/target/backup.
+Configuration saved to /etc/target/saveconfig.json
+
+[root@V10 ~]# targetcli  ls
+o- / .................................................................... [...]
+  o- backstores ......................................................... [...]
+  | o- block ............................................. [Storage Objects: 2]
+  | | o- diskb ...................... [/dev/vdb (10.0GiB) write-thru activated]
+  | | | o- alua .............................................. [ALUA Groups: 1]
+  | | |   o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | | o- diskc ....................... [/dev/vdc (9.0GiB) write-thru activated]
+  | |   o- alua .............................................. [ALUA Groups: 1]
+  | |     o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | o- fileio ............................................ [Storage Objects: 0]
+  | o- pscsi ............................................. [Storage Objects: 0]
+  | o- ramdisk ........................................... [Storage Objects: 0]
+  o- iscsi ....................................................... [Targets: 1]
+  | o- iqn.2018-10.cn.tedu:server10 ................................. [TPGs: 1]
+  |   o- tpg1 .......................................... [no-gen-acls, no-auth]
+  |     o- acls ..................................................... [ACLs: 2]
+  |     | o- iqn.2018-10.cn.tedu.client12 .................... [Mapped LUNs: 2]
+  |     | | o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     | | o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     | o- iqn.2018-10.cn.tedu.client13 .................... [Mapped LUNs: 2]
+  |     |   o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     |   o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     o- luns ..................................................... [LUNs: 2]
+  |     | o- lun0 ................. [block/diskb (/dev/vdb) (default_tg_pt_gp)]
+  |     | o- lun1 ................. [block/diskc (/dev/vdc) (default_tg_pt_gp)]
+  |     o- portals ............................................... [Portals: 2]
+  |       o- 192.168.0.10:3260 ........................................... [OK]
+  |       o- 192.168.1.10:3260 ........................................... [OK]
+  o- loopback .................................................... [Targets: 0]
+
+[root@V10 ~]# cat  /etc/target/saveconfig.json 
+{
+  "fabric_modules": [], 
+  "storage_objects": [
+    {
+      "alua_tpgs": [
+        {
+.....................
+          "trans_delay_msecs": 0
+        }
+      ], 
+      "attributes": {
+        "block_size": 512, 
+................
+      }, 
+      "dev": "/dev/vdc", 
+      "name": "diskc", 
+      "plugin": "block", 
+      "readonly": false, 
+      "write_back": false, 
+      "wwn": "61f538d2-6e32-44d4-9be0-31414a6bcd62"
+    }, 
+    {
+      "alua_tpgs": [
+        {
+.....................
+          "trans_delay_msecs": 0
+        }
+      ], 
+      "attributes": {
+        "block_size": 512, 
+...................
+      }, 
+      "dev": "/dev/vdb", 
+      "name": "diskb", 
+      "plugin": "block", 
+      "readonly": false, 
+      "write_back": false, 
+      "wwn": "8d4f7e99-ba55-492d-8d5f-2be1d4a4b8ca"
+    }
+  ], 
+  "targets": [
+    {
+      "fabric": "iscsi", 
+      "tpgs": [
+        {
+          "attributes": {
+            "authentication": 0, 
+.....................
+          }, 
+          "enable": true, 
+          "luns": [
+            {
+              "alias": "4f27d223bd", 
+              "alua_tg_pt_gp_name": "default_tg_pt_gp", 
+              "index": 1, 
+              "storage_object": "/backstores/block/diskc"
+            }, 
+            {
+              "alias": "7d7e2b0e15", 
+              "alua_tg_pt_gp_name": "default_tg_pt_gp", 
+              "index": 0, 
+              "storage_object": "/backstores/block/diskb"
+            }
+          ], 
+          "node_acls": [
+            {
+              "attributes": {
+                "dataout_timeout": 3, 
+..........................
+              }, 
+              "mapped_luns": [
+                {
+                  "alias": "f75d03259d", 
+..........................
+                }, 
+                {
+                  "alias": "0603cf31fd", 
+......................
+                }
+              ], 
+              "node_wwn": "iqn.2018-10.cn.tedu.client13"  #iqn 授权客户机
+            }, 
+            {
+              "attributes": {
+                "dataout_timeout": 3, 
+..........................
+              }, 
+              "mapped_luns": [
+                {
+                  "alias": "83268b054b", 
+                  "index": 1, 
+                  "tpg_lun": 1, 
+                  "write_protect": false
+                }, 
+                {
+                  "alias": "6907a1f888", 
+                  "index": 0, 
+                  "tpg_lun": 0, 
+                  "write_protect": false
+                }
+              ], 
+              "node_wwn": "iqn.2018-10.cn.tedu.client12"  #iqn 授权客户机
+            }
+          ], 
+          "parameters": {
+.............................
+            "TargetAlias": "LIO Target"
+          }, 
+          "portals": [
+            {
+              "ip_address": "192.168.1.10", 
+              "iser": false, 
+              "offload": false, 
+              "port": 3260
+            }, 
+            {
+              "ip_address": "192.168.0.10", 
+              "iser": false, 
+              "offload": false, 
+              "port": 3260
+            }
+          ], 
+          "tag": 1
+        }
+      ], 
+      "wwn": "iqn.2018-10.cn.tedu:server10"  # 磁盘名 iqn对象
+    }
+  ]
+}
+[root@V10 ~]# hostname
+V10
+[root@V10 ~]# systemctl  start  target  && systemctl  enable  target
+Created symlink from 
+/etc/systemd/system/multi-user.target.wants/target.service to /usr/lib/systemd/system/target.service.
+
+[root@V10 ~]# ss  -npult |grep  3260
+tcp    LISTEN     0   256    192.168.0.10:3260   *:* 
+tcp    LISTEN     0   256    192.168.1.10:3260    *:* 
+
+[root@V10 ~]# reboot
+
+[root@room9pc27 ~]# ssh  -o  StrictHostKeyChecking=no  192.168.0.10
+root@192.168.0.10's password: 1
+Last login: Thu Mar  7 13:54:53 2019 from 192.168.0.254
+[root@V10 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+vdb           252:16   0   10G  0 disk 
+vdc           252:32   0    9G  0 disk 
+[root@V10 ~]# targetcli  ls
+o- / .................................................................... [...]
+  o- backstores ......................................................... [...]
+  | o- block ............................................. [Storage Objects: 2]
+  | | o- diskb ...................... [/dev/vdb (10.0GiB) write-thru activated]
+  | | | o- alua .............................................. [ALUA Groups: 1]
+  | | |   o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | | o- diskc ....................... [/dev/vdc (9.0GiB) write-thru activated]
+  | |   o- alua .............................................. [ALUA Groups: 1]
+  | |     o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | o- fileio ............................................ [Storage Objects: 0]
+  | o- pscsi ............................................. [Storage Objects: 0]
+  | o- ramdisk ........................................... [Storage Objects: 0]
+  o- iscsi ....................................................... [Targets: 1]
+  | o- iqn.2018-10.cn.tedu:server10 ................................. [TPGs: 1]
+  |   o- tpg1 .......................................... [no-gen-acls, no-auth]
+  |     o- acls ..................................................... [ACLs: 2]
+  |     | o- iqn.2018-10.cn.tedu.client12 .................... [Mapped LUNs: 2]
+  |     | | o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     | | o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     | o- iqn.2018-10.cn.tedu.client13 .................... [Mapped LUNs: 2]
+  |     |   o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     |   o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     o- luns ..................................................... [LUNs: 2]
+  |     | o- lun0 ................. [block/diskb (/dev/vdb) (default_tg_pt_gp)]
+  |     | o- lun1 ................. [block/diskc (/dev/vdc) (default_tg_pt_gp)]
+  |     o- portals ............................................... [Portals: 2]
+  |       o- 192.168.0.10:3260 ........................................... [OK]
+  |       o- 192.168.1.10:3260 ........................................... [OK]
+  o- loopback .................................................... [Targets: 0]
+[root@V10 ~]# 
+[root@V10 ~]# targetcli 
+targetcli shell version 2.1.fb46
+Copyright 2011-2013 by Datera, Inc and others.
+For help on commands, type 'help'.
+
+/> ls
+o- / .................................................................... [...]
+  o- backstores ......................................................... [...]
+  | o- block ............................................. [Storage Objects: 2]
+  | | o- diskb ...................... [/dev/vdb (10.0GiB) write-thru activated]
+  | | | o- alua .............................................. [ALUA Groups: 1]
+  | | |   o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | | o- diskc ....................... [/dev/vdc (9.0GiB) write-thru activated]
+  | |   o- alua .............................................. [ALUA Groups: 1]
+  | |     o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | o- fileio ............................................ [Storage Objects: 0]
+  | o- pscsi ............................................. [Storage Objects: 0]
+  | o- ramdisk ........................................... [Storage Objects: 0]
+  o- iscsi ....................................................... [Targets: 1]
+  | o- iqn.2018-10.cn.tedu:server10 ................................. [TPGs: 1]
+  |   o- tpg1 .......................................... [no-gen-acls, no-auth]
+  |     o- acls ..................................................... [ACLs: 2]
+  |     | o- iqn.2018-10.cn.tedu.client12 .................... [Mapped LUNs: 2]
+  |     | | o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     | | o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     | o- iqn.2018-10.cn.tedu.client13 .................... [Mapped LUNs: 2]
+  |     |   o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     |   o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     o- luns ..................................................... [LUNs: 2]
+  |     | o- lun0 ................. [block/diskb (/dev/vdb) (default_tg_pt_gp)]
+  |     | o- lun1 ................. [block/diskc (/dev/vdc) (default_tg_pt_gp)]
+  |     o- portals ............................................... [Portals: 2]
+  |       o- 192.168.0.10:3260 ........................................... [OK]
+  |       o- 192.168.1.10:3260 ........................................... [OK]
+  o- loopback .................................................... [Targets: 0]
+
+------------------------------------------- 删除 一个本地 ip  192.168.1.10 监听端口 ------------
+
+/> iscsi/iqn.2018-10.cn.tedu:server10/tpg1/portals  delete  192.168.1.10  3260
+
+Deleted network portal 192.168.1.10:3260
+
+/> saveconfig 
+Last 10 configs saved in /etc/target/backup.
+Configuration saved to /etc/target/saveconfig.json
+
+/> exit
+..............
+[root@V10 ~]# systemctl  restart  target  #重启 服务
+
+[root@V10 ~]# targetcli  ls
+o- / .................................................................... [...]
+  o- backstores ......................................................... [...]
+  | o- block ............................................. [Storage Objects: 2]
+  | | o- diskb ...................... [/dev/vdb (10.0GiB) write-thru activated]
+  | | | o- alua .............................................. [ALUA Groups: 1]
+  | | |   o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | | o- diskc ....................... [/dev/vdc (9.0GiB) write-thru activated]
+  | |   o- alua .............................................. [ALUA Groups: 1]
+  | |     o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | o- fileio ............................................ [Storage Objects: 0]
+  | o- pscsi ............................................. [Storage Objects: 0]
+  | o- ramdisk ........................................... [Storage Objects: 0]
+  o- iscsi ....................................................... [Targets: 1]
+  | o- iqn.2018-10.cn.tedu:server10 ................................. [TPGs: 1]
+  |   o- tpg1 .......................................... [no-gen-acls, no-auth]
+  |     o- acls ..................................................... [ACLs: 2]
+  |     | o- iqn.2018-10.cn.tedu.client12 .................... [Mapped LUNs: 2]
+  |     | | o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     | | o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     | o- iqn.2018-10.cn.tedu.client13 .................... [Mapped LUNs: 2]
+  |     |   o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     |   o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     o- luns ..................................................... [LUNs: 2]
+  |     | o- lun0 ................. [block/diskb (/dev/vdb) (default_tg_pt_gp)]
+  |     | o- lun1 ................. [block/diskc (/dev/vdc) (default_tg_pt_gp)]
+  |     o- portals ............................................... [Portals: 1]
+  |       o- 192.168.0.10:3260 ........................................... [OK]
+  o- loopback .................................................... [Targets: 0]
+
+[root@V10 ~]# cat  /etc/target/saveconfig.json 
+{
+  "fabric_modules": [], 
+  "storage_objects": [
+    {
+      "alua_tpgs": [
+        {
+......................
+        }
+      ], 
+      "attributes": {
+........................
+      }, 
+      "dev": "/dev/vdb", 
+      "name": "diskb", 
+      "plugin": "block", 
+      "readonly": false, 
+      "write_back": false, 
+      "wwn": "8d4f7e99-ba55-492d-8d5f-2be1d4a4b8ca"
+    }, 
+    {
+      "alua_tpgs": [
+        {
+.............................
+        }
+      ], 
+      "attributes": {
+........................
+      }, 
+      "dev": "/dev/vdc", 
+      "name": "diskc", 
+      "plugin": "block", 
+      "readonly": false, 
+      "write_back": false, 
+      "wwn": "61f538d2-6e32-44d4-9be0-31414a6bcd62"
+    }
+  ], 
+  "targets": [
+    {
+      "fabric": "iscsi", 
+      "tpgs": [
+        {
+          "attributes": {
+..........................
+          }, 
+          "enable": true, 
+          "luns": [
+            {
+              "alias": "7d7e2b0e15", 
+              "alua_tg_pt_gp_name": "default_tg_pt_gp", 
+              "index": 0, 
+              "storage_object": "/backstores/block/diskb"
+            }, 
+            {
+              "alias": "4f27d223bd", 
+              "alua_tg_pt_gp_name": "default_tg_pt_gp", 
+              "index": 1, 
+              "storage_object": "/backstores/block/diskc"
+            }
+          ], 
+          "node_acls": [
+            {
+              "attributes": {
+....................
+              }, 
+              "mapped_luns": [
+                {
+                  "alias": "6907a1f888", 
+                  "index": 0, 
+                  "tpg_lun": 0, 
+                  "write_protect": false
+                }, 
+                {
+                  "alias": "83268b054b", 
+                  "index": 1, 
+                  "tpg_lun": 1, 
+                  "write_protect": false
+                }
+              ], 
+              "node_wwn": "iqn.2018-10.cn.tedu.client12"
+            }, 
+            {
+              "attributes": {
+..........................
+              }, 
+              "mapped_luns": [
+                {
+                  "alias": "0603cf31fd", 
+                  "index": 0, 
+                  "tpg_lun": 0, 
+                  "write_protect": false
+                }, 
+                {
+                  "alias": "f75d03259d", 
+                  "index": 1, 
+                  "tpg_lun": 1, 
+                  "write_protect": false
+                }
+              ], 
+              "node_wwn": "iqn.2018-10.cn.tedu.client13"
+            }
+          ], 
+          "parameters": {
+............................
+          }, 
+          "portals": [
+            {
+              "ip_address": "192.168.0.10", 
+              "iser": false, 
+              "offload": false, 
+              "port": 3260
+            }
+          ], 
+          "tag": 1
+        }
+      ], 
+      "wwn": "iqn.2018-10.cn.tedu:server10"
+    }
+  ]
+}
+[root@V10 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@V12 ~]# ifconfig |awk '/inet /{print $2}'
+192.168.0.12
+192.168.1.12
+192.168.2.12
+127.0.0.1
+192.168.122.1
+[root@V12 ~]# hostname
+V12
+
+[root@V12 ~]# rpm  -qa |grep  iscsi-initiator-utils
+iscsi-initiator-utils-6.2.0.874-4.el7.x86_64
+iscsi-initiator-utils-iscsiuio-6.2.0.874-4.el7.x86_64
+
+[root@V12 ~]# yum  -y install  iscsi-initiator-utils.i686  |tail -3
+  zlib.i686 0:1.2.7-17.el7                                                      
+
+完毕！
+[root@V12 ~]# rpm  -qa |grep  iscsi-initiator-utils
+iscsi-initiator-utils-6.2.0.874-4.el7.i686
+iscsi-initiator-utils-6.2.0.874-4.el7.x86_64
+iscsi-initiator-utils-iscsiuio-6.2.0.874-4.el7.x86_64
+
+[root@V12 ~]# vim  /etc/iscsi/initiatorname.iscsi 
+
+[root@V12 ~]# cat   /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2018-10.cn.tedu.client12
+
+[root@V12 ~]# systemctl  daemon-reload 
+
+----------------------------------------------    #刷新标识 iqn   ---------------
+
+[root@V12 ~]# systemctl  restart  iscsid  && systemctl  enable  iscsid
+
+[root@V12 ~]# man  iscsiadm
+[root@V12 ~]# iscsiadm --mode discoverydb --type sendtargets \
+> --portal  192.168.0.10  --discover      #发现磁盘
+
+192.168.1.10:3260,1 iqn.2018-10.cn.tedu:server10
+192.168.0.10:3260,1 iqn.2018-10.cn.tedu:server10
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 \
+> --portal  192.168.0.10:3260  --login     #连接磁盘
+
+Logging in to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] (multiple)
+Login to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+
+[root@V10 ~]#  lsblk  /dev/vd{b,c}
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vdb  252:16   0  10G  0 disk 
+vdc  252:32   0   9G  0 disk 
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# ls  /var/lib/iscsi/
+ifaces  isns  nodes  send_targets  slp  static
+
+[root@V12 ~]# ls  /var/lib/iscsi/nodes/
+iqn.2018-10.cn.tedu:server10
+[root@V12 ~]# ls  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/
+192.168.0.10,3260,1  192.168.1.10,3260,1
+
+[root@V12 ~]# vim  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default 
+[root@V12 ~]# grep  -n  automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V12 ~]# systemctl  restart iscsi   && systemctl enable  iscsi
+[root@V12 ~]# systemctl is-enabled  iscsi iscsid
+enabled
+enabled
+[root@V12 ~]# sync ;reboot -f
+
+[root@room9pc27 ~]# ssh  -o StrictHostKeyChecking=no  192.168.0.12
+
+[root@V12 ~]# grep  -n  automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V10 ~]#  lsblk  /dev/vd{b,c}
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vdb  252:16   0  10G  0 disk 
+vdc  252:32   0   9G  0 disk 
+
+--------------------- 注意实际上只有 10G + 9G这 2 块服务端的磁盘 --------------
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0   10G  0 disk 
+sdc             8:32   0    9G  0 disk 
+sdd             8:48   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  --logout
+
+Logging out of session [sid: 2, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260]
+Logout of [sid: 2, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sdb             8:16   0   10G  0 disk 
+sdd             8:48   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.1.10:3260  --logout
+
+Logging out of session [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.1.10,3260]
+Logout of [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.1.10,3260] successful.
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]#  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@V13 ~]# ifconfig |awk '/inet /{print $2}'
+192.168.0.13
+192.168.1.13
+192.168.2.13
+127.0.0.1
+192.168.122.1
+[root@V13 ~]# hostname
+V13
+
+[root@V13 ~]#  yum  -y install  iscsi-initiator-utils.i686  |tail -3
+  zlib.i686 0:1.2.7-17.el7                                                      
+
+完毕！
+[root@V13 ~]# rpm  -qa |grep  iscsi-initiator-utils
+iscsi-initiator-utils-6.2.0.874-4.el7.i686
+iscsi-initiator-utils-6.2.0.874-4.el7.x86_64
+iscsi-initiator-utils-iscsiuio-6.2.0.874-4.el7.x86_64
+
+[root@V13 ~]# vim  /etc/iscsi/initiatorname.iscsi 
+
+[root@V13 ~]# cat  /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2018-10.cn.tedu.client13
+
+[root@V13 ~]# systemctl  daemon-reload 
+
+-----------------------------------------    #刷新标识 iqn   ---------------
+
+[root@V13 ~]# systemctl  restart iscsid  && systemctl  enable iscsid.service
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# man  iscsiadm
+
+[root@V13 ~]# iscsiadm --mode discoverydb --type sendtargets  \
+> --portal 192.168.1.10  --discover
+
+192.168.1.10:3260,1 iqn.2018-10.cn.tedu:server10
+192.168.0.10:3260,1 iqn.2018-10.cn.tedu:server10
+
+[root@V13 ~]# iscsiadm   --mode node  \
+> --targetname  iqn.2018-10.cn.tedu:server10  \
+> --portal  192.168.1.10:3260  --login
+
+Logging in to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.1.10,3260] (multiple)
+Login to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.1.10,3260] successful.
+--------------------- 注意实际上只有 10G + 9G这 2 块服务端的磁盘 --------------
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# ls  /var/lib/iscsi/nodes/
+iqn.2018-10.cn.tedu:server10
+[root@V13 ~]# ls  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/
+192.168.0.10,3260,1  192.168.1.10,3260,1
+[root@V13 ~]# vim /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.1.10\,3260\,1/default 
+
+[root@V13 ~]# grep  -n automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.1.10\,3260\,1/default
+
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V13 ~]# systemctl  restart iscsi   && systemctl enable  iscsi
+
+[root@V13 ~]# systemctl is-enabled  iscsi iscsid
+enabled
+enabled
+[root@V13 ~]# sync ;reboot -f
+Rebooting.
+..........
+[root@room9pc27 ~]# ssh    192.168.0.13
+...............
+[root@V13 ~]# grep  -n automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.1.10\,3260\,1/default
+
+51:node.conn[0].startup = automatic
+
+[root@V10 ~]#  lsblk  /dev/vd{b,c}
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vdb  252:16   0  10G  0 disk 
+vdc  252:32   0   9G  0 disk 
+------------------------ 注意实际上只有 10G + 9G这 2 块服务端的磁盘 --------------
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0   10G  0 disk 
+sdc             8:32   0    9G  0 disk 
+sdd             8:48   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# vim  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.1.10\,3260\,1/default
+[root@V13 ~]# grep  -n automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.1.10\,3260\,1/default
+
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V13 ~]# sync; reboot -f
+Rebooting.
+.............
+
+[root@room9pc27 ~]# ssh    192.168.0.13
+.............
+[root@V10 ~]#  lsblk  /dev/vd{b,c}
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+vdb  252:16   0  10G  0 disk 
+vdc  252:32   0   9G  0 disk 
+--------------------- 注意实际上只有 10G + 9G这 2 块服务端的磁盘 --------------
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0   10G  0 disk 
+sdc             8:32   0    9G  0 disk 
+sdd             8:48   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# grep  -n automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.1.10\,3260\,1/default
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V13 ~]# iscsiadm   --mode node   \
+> --targetname  iqn.2018-10.cn.tedu:server10  \
+>  --portal  192.168.1.10:3260  --logout
+
+Logging out of session [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.1.10,3260]
+Logout of [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.1.10,3260] successful.
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sdb             8:16   0   10G  0 disk 
+sdc             8:32   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# iscsiadm   --mode node   --targetname  iqn.2018-10.cn.tedu:server10   --portal  192.168.0.10:3260  --logout
+
+Logging out of session [sid: 2, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260]
+Logout of [sid: 2, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

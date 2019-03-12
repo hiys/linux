@@ -1,0 +1,1181 @@
+
+-----------------------------------------------------   #重启 服务 --------------------
+
+[root@V10 ~]# systemctl  restart target  && systemctl is-enabled  target
+enabled
+
+[root@V10 ~]# targetcli  ls
+o- / .................................................................... [...]
+  o- backstores ......................................................... [...]
+  | o- block ............................................. [Storage Objects: 2]
+  | | o- diskb ...................... [/dev/vdb (10.0GiB) write-thru activated]
+  | | | o- alua .............................................. [ALUA Groups: 1]
+  | | |   o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | | o- diskc ....................... [/dev/vdc (9.0GiB) write-thru activated]
+  | |   o- alua .............................................. [ALUA Groups: 1]
+  | |     o- default_tg_pt_gp .................. [ALUA state: Active/optimized]
+  | o- fileio ............................................ [Storage Objects: 0]
+  | o- pscsi ............................................. [Storage Objects: 0]
+  | o- ramdisk ........................................... [Storage Objects: 0]
+  o- iscsi ....................................................... [Targets: 1]
+  | o- iqn.2018-10.cn.tedu:server10 ................................. [TPGs: 1]
+  |   o- tpg1 .......................................... [no-gen-acls, no-auth]
+  |     o- acls ..................................................... [ACLs: 2]
+  |     | o- iqn.2018-10.cn.tedu.client12 .................... [Mapped LUNs: 2]
+  |     | | o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     | | o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     | o- iqn.2018-10.cn.tedu.client13 .................... [Mapped LUNs: 2]
+  |     |   o- mapped_lun0 ............................ [lun0 block/diskb (rw)]
+  |     |   o- mapped_lun1 ............................ [lun1 block/diskc (rw)]
+  |     o- luns ..................................................... [LUNs: 2]
+  |     | o- lun0 ................. [block/diskb (/dev/vdb) (default_tg_pt_gp)]
+  |     | o- lun1 ................. [block/diskc (/dev/vdc) (default_tg_pt_gp)]
+  |     o- portals ............................................... [Portals: 1]
+  |       o- 192.168.0.10:3260 ........................................... [OK]
+  o- loopback .................................................... [Targets: 0]
+
+[root@V10 ~]# cat  /etc/target/saveconfig.json 
+{
+  "fabric_modules": [], 
+  "storage_objects": [
+    {
+........................
+      }, 
+      "dev": "/dev/vdb", 
+      "name": "diskb", 
+      "plugin": "block", 
+      "readonly": false, 
+      "write_back": false, 
+      "wwn": "8d4f7e99-ba55-492d-8d5f-2be1d4a4b8ca"
+    }, 
+........................
+      }, 
+      "dev": "/dev/vdc", 
+      "name": "diskc", 
+      "plugin": "block", 
+      "readonly": false, 
+      "write_back": false, 
+      "wwn": "61f538d2-6e32-44d4-9be0-31414a6bcd62"
+    }
+  ], 
+  "targets": [
+    {
+      "fabric": "iscsi", 
+      "tpgs": [
+        {
+          "attributes": {
+..........................
+          }, 
+          "enable": true, 
+          "luns": [
+            {
+              "alias": "7d7e2b0e15", 
+              "alua_tg_pt_gp_name": "default_tg_pt_gp", 
+              "index": 0, 
+              "storage_object": "/backstores/block/diskb"
+            }, 
+            {
+              "alias": "4f27d223bd", 
+              "alua_tg_pt_gp_name": "default_tg_pt_gp", 
+              "index": 1, 
+              "storage_object": "/backstores/block/diskc"
+            }
+          ], 
+          "node_acls": [
+            {
+              "attributes": {
+....................
+              }, 
+              "mapped_luns": [
+                {
+                  "alias": "6907a1f888", 
+                  "index": 0, 
+                  "tpg_lun": 0, 
+                  "write_protect": false
+                }, 
+                {
+                  "alias": "83268b054b", 
+                  "index": 1, 
+                  "tpg_lun": 1, 
+                  "write_protect": false
+                }
+              ], 
+              "node_wwn": "iqn.2018-10.cn.tedu.client12"
+            }, 
+            {
+              "attributes": {
+..........................
+              }, 
+              "mapped_luns": [
+                {
+                  "alias": "0603cf31fd", 
+                  "index": 0, 
+                  "tpg_lun": 0, 
+                  "write_protect": false
+                }, 
+                {
+                  "alias": "f75d03259d", 
+                  "index": 1, 
+                  "tpg_lun": 1, 
+                  "write_protect": false
+                }
+              ], 
+              "node_wwn": "iqn.2018-10.cn.tedu.client13"
+            }
+          ], 
+          "parameters": {
+............................
+          }, 
+          "portals": [
+            {
+              "ip_address": "192.168.0.10", 
+              "iser": false, 
+              "offload": false, 
+              "port": 3260
+            }
+          ], 
+          "tag": 1
+        }
+      ], 
+      "wwn": "iqn.2018-10.cn.tedu:server10"
+    }
+  ]
+}
+[root@V10 ~]# tail  -6  /etc/target/saveconfig.json 
+        }
+      ], 
+      "wwn": "iqn.2018-10.cn.tedu:server10"
+    }
+  ]
+}
+[root@V10 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@V12 ~]# cat   /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2018-10.cn.tedu.client12
+
+[root@V12 ~]# systemctl  restart  iscsid
+
+[root@V12 ~]# iscsiadm  --mode discoverydb --type sendtargets  \
+> --portal 192.168.0.10  --discover
+
+192.168.0.10:3260,1 iqn.2018-10.cn.tedu:server10
+
+[root@V12 ~]# iscsiadm --mode node --targetname  iqn.2018-10.cn.tedu:server10  \
+> --portal 192.168.0.10:3260  --login
+
+[root@V12 ~]#  ls  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/
+192.168.0.10,3260,1
+
+[root@V12 ~]# vim  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default 
+
+[root@V12 ~]# grep  -n  automatic  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V12 ~]# systemctl  restart  iscsi  && systemctl is-enabled  iscsi  iscsid
+enabled
+enabled
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# sync  && reboot -f
+Rebooting.
+.............
+[root@room9pc27 ~]# ssh    192.168.0.12
+root@192.168.0.12's password: 
+Last login: Thu Mar  7 15:43:13 2019 from 192.168.0.254
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# grep  -n  automatic /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+
+51:node.conn[0].startup = automatic
+
+
+[root@V12 ~]# grep  -n  startup  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+4:node.startup = onboot
+51:node.conn[0].startup = automatic
+
+[root@V12 ~]# blkid  /dev/sda  
+                 
+----------  指定分区模式,只能使用一次,每次启用都会格式化整个磁盘为gpt ------------
+
+[root@V12 ~]# parted  /dev/sda  mklabel  gpt   #划分GPT分区模式
+
+信息: You may need to update /etc/fstab.
+
+[root@V12 ~]# parted  /dev/sda  mkpart primary  1  1000  
+  
+信息: You may need to update /etc/fstab.
+
+[root@V12 ~]# lsblk   /dev/sda
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+└─sda1   8:1    0  953M  0 part 
+
+[root@V12 ~]# blkid  /dev/sda
+/dev/sda: PTTYPE="gpt" 
+
+[root@V12 ~]# blkid  /dev/sda1
+/dev/sda1: PARTLABEL="primary" PARTUUID="9973ab14-d57c-48e7-82b8-f4bb96f12da8" 
+
+---------------------   #格式化ext4文件系统类型 --------------
+
+[root@V12 ~]# mkfs.ext4  /dev/sda1
+mke2fs 1.42.9 (28-Dec-2013)
+文件系统标签=
+OS type: Linux
+..........
+[root@V12 ~]# blkid  /dev/sda1
+/dev/sda1: UUID="e1ba9a2a-2b1d-47da-b8e6-61c587f99f99" TYPE="ext4" PARTLABEL="primary" PARTUUID="9973ab14-d57c-48e7-82b8-f4bb96f12da8" 
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+└─sda1          8:1    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# yum -y install  httpd elinks |tail -3
+  mailcap.noarch 0:2.1.41-2.el7         nss_compat_ossl.x86_64 0:0.9.6-8.el7    
+
+完毕！
+
+[root@V12 ~]# vim  /etc/fstab 
+
+[root@V12 ~]# tail  -1  /etc/fstab
+UUID=e1ba9a2a-2b1d-47da-b8e6-61c587f99f99  /var/www/html  ext4  _netdev  0  0
+
+[root@V12 ~]# blkid   /dev/sda1
+
+/dev/sda1: UUID="e1ba9a2a-2b1d-47da-b8e6-61c587f99f99" TYPE="ext4" PARTLABEL="primary" PARTUUID="9973ab14-d57c-48e7-82b8-f4bb96f12da8" 
+
+[root@V12 ~]# mount  -a
+
+[root@V12 ~]# echo  "192.168.0.12 V12" > /var/www/html/index.html
+
+[root@V12 ~]# ls  /var/www/html/
+index.html  lost+found
+
+
+[root@V12 ~]# vim            /etc/httpd/conf/httpd.conf
+[root@V12 ~]# grep  -n  ServerName  /etc/httpd/conf/httpd.conf 
+89:# ServerName gives the name and port that the server uses to identify itself.
+95:ServerName  V12.example.com
+
+[root@V12 ~]# vim  /etc/hosts
+[root@V12 ~]# tail  -1  /etc/hosts
+192.168.0.12  V12.example.com
+
+[root@V12 ~]# systemctl  start  httpd  &&  systemctl  enable  httpd
+
+[root@V12 ~]# elinks  -dump  http://V12.example.com
+   192.168.0.12 V12
+[root@V12 ~]# hostname
+V12
+
+[root@V12 ~]# lsblk   /dev/sd{a,b}
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+└─sda1   8:1    0  953M  0 part /var/www/html
+sdb      8:16   0    9G  0 disk 
+
+[root@V12 ~]# mount |grep sda
+/dev/sda1 on /var/www/html type ext4 (rw,relatime,data=ordered,_netdev)
+
+[root@V12 ~]# umount   /dev/sda1    #卸载
+
+[root@V12 ~]# lsblk   /dev/sd{a,b}
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+└─sda1   8:1    0  953M  0 part 
+sdb      8:16   0    9G  0 disk 
+
+[root@V12 ~]#  man  udev.conf
+
+[root@V12 ~]# ls  /etc/udev/
+hwdb.bin  rules.d  udev.conf
+
+[root@V12 ~]# ls  /etc/udev/rules.d/
+70-persistent-ipoib.rules
+
+[root@V12 ~]# tail  -1  /etc/udev/rules.d/70-persistent-ipoib.rules
+# ACTION=="add", SUBSYSTEM=="net", DRIVERS=="?*", ATTR{type}=="32", ATTR{address}=="?*00:02:c9:03:00:31:78:f2", NAME="mlx4_ib3"
+
+-----------  加载USB设备的同时实时查看设备的相关属性,可以使用monitor指令 -------
+
+[root@V12 ~]# udevadm  monitor  --property   #动态查看设备属性
+monitor will print the received events for:
+UDEV - the event which udev sends out after rule processing
+KERNEL - the kernel uevent
+
+^C
+
+------------------------------  单独查看某个磁盘分区的属性信息 ---------------------
+
+[root@V12 ~]# udevadm info --query=property --path=/block/sda  #查看设备属性
+
+DEVLINKS=/dev/disk/by-id/scsi-360014058d4f7e99ba55492d8d5f2be1d /dev/disk/by-id/wwn-0x60014058d4f7e99ba55492d8d5f2be1d /dev/disk/by-path/ip-192.168.0.10:3260-iscsi-iqn.2018-10.cn.tedu:server10-lun-0
+DEVNAME=/dev/sda
+DEVPATH=/devices/platform/host2/session1/target2:0:0/2:0:0:0/block/sda
+DEVTYPE=disk
+ID_BUS=scsi
+ID_MODEL=diskb
+
+ID_MODEL_ENC=diskb\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+ID_PART_TABLE_TYPE=gpt
+ID_PATH=ip-192.168.0.10:3260-iscsi-iqn.2018-10.cn.tedu:server10-lun-0
+ID_PATH_TAG=ip-192_168_0_10_3260-iscsi-iqn_2018-10_cn_tedu_server10-lun-0
+ID_REVISION=4.0
+ID_SCSI=1
+ID_SCSI_SERIAL=8d4f7e99-ba55-492d-8d5f-2be1d4a4b8ca
+ID_SERIAL=360014058d4f7e99ba55492d8d5f2be1d
+ID_SERIAL_SHORT=60014058d4f7e99ba55492d8d5f2be1d
+ID_TARGET_PORT=0
+ID_TYPE=disk
+ID_VENDOR=LIO-ORG
+ID_VENDOR_ENC=LIO-ORG\x20
+ID_WWN=0x60014058d4f7e99b
+ID_WWN_VENDOR_EXTENSION=0xa55492d8d5f2be1d
+ID_WWN_WITH_EXTENSION=0x60014058d4f7e99ba55492d8d5f2be1d
+MAJOR=8
+MINOR=0
+
+MPATH_SBIN_PATH=/sbin
+
+SUBSYSTEM=block
+TAGS=:systemd:
+USEC_INITIALIZED=248681
+
+[root@V12 ~]#  lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+└─sda1          8:1    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# udevadm info  --query=path  --name=/dev/sda   #获取路径
+/devices/platform/host2/session1/target2:0:0/2:0:0:0/block/sda
+
+[root@V12 ~]# udevadm info  -q  path -n /dev/sda   #获取路径
+
+/devices/platform/host2/session1/target2:0:0/2:0:0:0/block/sda
+
+------------------------------------    #获取详细信息 ---------------------------
+
+[root@V12 ~]#  udevadm info  -q  all  -p  \
+> /devices/platform/host2/session1/target2:0:0/2:0:0:0/block/sda  \
+> -a
+
+/***********   #获取详细信息
+[root@V12 ~]# udevadm info --query=all --attribute-walk --path=/block/sda
+............
+    KERNEL=="sda"
+    SUBSYSTEM=="block"
+    DRIVER==""
+    ATTR{ro}=="0"
+    ATTR{size}=="20971520"
+..............
+*********/
+udevadm信息从devpath指定的设备开始，然后
+在父设备链上行走。它为每个设备打印
+找到udev规则密钥格式的所有可能属性。
+要匹配的规则，可以由设备的属性组成
+以及单个父设备的属性。
+  looking at device '/devices/platform/host2/session1/target2:0:0/2:0:0:0/block/sda':
+    KERNEL=="sda"
+    SUBSYSTEM=="block"
+    DRIVER==""
+    ATTR{ro}=="0"
+    ATTR{size}=="20971520"
+    ATTR{stat}=="     508        0    31886      574       95     4243    65048     1533        0     1070     2106"
+.............
+  looking at parent device '/devices/platform/host2/session1/target2:0:0/2:0:0:0':
+    KERNELS=="2:0:0:0"
+    SUBSYSTEMS=="scsi"
+    DRIVERS=="sd"
+    ATTRS{rev}=="4.0 "
+    ATTRS{type}=="0"
+    ATTRS{scsi_level}=="6"
+    ATTRS{model}=="diskb           "
+    ATTRS{state}=="running"
+.............
+    ATTRS{vendor}=="LIO-ORG "
+...........
+  looking at parent device '/devices/platform':
+    KERNELS=="platform"
+    SUBSYSTEMS==""
+    DRIVERS==""
+
+/***************************
+
+udev规则文件，
+常见指令操作符
+== 表示匹配
+!=     不匹配
+=      指定赋予的值
++=   添加新值
+:=    指定值,且不允许被替换
+NAME="udisk"  定义设备名称
+SYMLINK+="data1"  定义设备的别名
+MODE="0600"    定义设备的权限
+ACTION=="add"   添加或删除设备的操作
+
+---------------------------------   #编写 udev规则文件 --------------------
+
+[root@V12 ~]# vim   /etc/udev/rules.d/v12-iscsidisk.rules  #udev规则文件
+
+[root@V12 ~]# cat  /etc/udev/rules.d/v12-iscsidisk.rules
+
+SUBSYSTEM=="block", ATTR{size}=="20971520", ATTRS{model}=="diskb           ", ATTRS{vendor}=="LIO-ORG ", SYMLINK+="alias-iscsi/vdb"
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  --logout
+
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  --login
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+└─sda1          8:1    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+-------------------------  #编写的udev规则文件v12-iscsidisk.rules 的规则生效了 ------------
+
+[root@V12 ~]# ll  /dev/alias-iscsi/vdb    #注意权限变化
+lrwxrwxrwx 1 root root 6 3月   7 19:26 /dev/alias-iscsi/vdb -> ../sda
+
+[root@V12 ~]# ls   /dev/sd*
+/dev/sda  /dev/sda1  /dev/sdb  /dev/sdb1
+
+[root@V12 ~]# lsblk   /dev/sd{a,b}
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+└─sda1   8:1    0  953M  0 part 
+sdb      8:16   0    9G  0 disk 
+└─sdb1   8:17   0  857M  0 part 
+
+/******~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  --logout
+*****/
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -u
+
+Logging out............ successful.
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+/*********  udev规则文件，常见指令操作符
+SYMLINK+="data1"  定义设备的别名
+MODE="0600"    定义设备的权限
+***/
+[root@V12 ~]# vim   /etc/udev/rules.d/v12-iscsidisk.rules
+
+[root@V12 ~]# cat  /etc/udev/rules.d/v12-iscsidisk.rules
+
+SUBSYSTEM=="block", ATTR{size}=="20971520", ATTRS{model}=="diskb           ", ATTRS{vendor}=="LIO-ORG ", SYMLINK+="alias-iscsi/vdb", MODE="4750"
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -l
+................
+
+[root@V12 ~]# ll  /dev/alias-iscsi/vdb  #权限未变化,待今后研究
+lrwxrwxrwx 1 root root 6 3月   7 20:02 /dev/alias-iscsi/vdb -> ../sda
+
+[root@V10 ~]# ls  -l  /dev/vdb
+brw-rw---- 1 root disk 252, 16 3月   7 14:51 /dev/vdb
+
+[root@V12 ~]# lsblk    /dev/alias-iscsi/vdb  #别名生效了
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+└─sda1   8:1    0  953M  0 part 
+
+[root@V12 ~]# lsblk    /dev/sda
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+└─sda1   8:1    0  953M  0 part 
+
+[root@V12 ~]# parted  /dev/alias-iscsi/vdb  mkpart  primary  1000  2000
+信息: You may need to update /etc/fstab.
+
+[root@V12 ~]# lsblk   /dev/alias-iscsi/vdb   
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+├─sda1   8:1    0  953M  0 part 
+└─sda2   8:2    0  953M  0 part 
+
+[root@V12 ~]# lsblk   /dev/sda
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+├─sda1   8:1    0  953M  0 part 
+└─sda2   8:2    0  953M  0 part 
+
+[root@V12 ~]# mkfs.xfs   /dev/sda2
+
+meta-data=/dev/sda2              isize=512    agcount=4, agsize=60992 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=0, sparse=0
+data     =                       bsize=4096   blocks=243968, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0 ftype=1
+log      =internal log           bsize=4096   blocks=855, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+
+[root@V12 ~]# echo $?
+0
+[root@V12 ~]# blkid   /dev/sda2
+/dev/sda2: UUID="c2284e96-e0c8-4cd1-b124-6461ff7509a7" TYPE="xfs" PARTLABEL="primary" PARTUUID="b8b83539-cfd0-47a3-abb1-8924ada20be9" 
+
+[root@V12 ~]# blkid   /dev/sda1
+/dev/sda1: UUID="e1ba9a2a-2b1d-47da-b8e6-61c587f99f99" TYPE="ext4" PARTLABEL="primary" PARTUUID="9973ab14-d57c-48e7-82b8-f4bb96f12da8" 
+
+[root@V12 ~]# tail  -1  /etc/fstab 
+UUID=e1ba9a2a-2b1d-47da-b8e6-61c587f99f99  /var/www/html  ext4  _netdev  0  0
+
+[root@V12 ~]# mount -a
+
+[root@V12 ~]# tail -1  /etc/hosts
+192.168.0.12  V12.example.com
+
+[root@V12 ~]# elinks  -dump   V12.example.com
+   192.168.0.12 V12
+
+[root@V12 ~]# cat  /var/www/html/index.html 
+192.168.0.12 V12
+
+[root@V12 ~]# umount  /dev/sda1
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -u   #退出远程磁盘
+
+----------------------------------------  #规则文件后缀名改了.bak,不再生效 --------------
+[root@V12 ~]# mv   /etc/udev/rules.d/v12-iscsidisk.rules   /etc/udev/rules.d/v12-iscsidisk.rules.bak
+[root@V12 ~]# ls   /etc/udev/rules.d/
+70-persistent-ipoib.rules  v12-iscsidisk.rules.bak
+
+[============配置Multipath多路径====安装多路径软件包===============
+
+[root@V12 ~]# iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -l   # 登陆磁盘
+
+[root@V12 ~]# ll  /dev/alias-iscsi/vdb  #规则文件后缀名改了.bak,不再生效
+ls: 无法访问/dev/alias-iscsi/vdb: 没有那个文件或目录
+
+[root@V12 ~]# yum  -y install  device-mapper-multipath  |tail -2
+软件包 device-mapper-multipath-0.4.9-111.el7.x86_64 已安装并且是最新版本
+无须任何处理
+
+[root@V12 ~]# rpm  -qa  |grep  device-mapper-multipath
+device-mapper-multipath-libs-0.4.9-111.el7.x86_64
+device-mapper-multipath-0.4.9-111.el7.x86_64
+
+[root@V12 ~]# ls   /etc/multipat*
+[root@V12 ~]# ls  -ld /etc/multip*
+drwxr-xr-x. 2 root root 6 5月  16 2017 /etc/multipath
+
+------------- 设置用户友好名称（默认Y） ------------
+[root@V12 ~]# mpathconf  --user_friendly_names  --help
+--user_friendly_names must be either 'y' or 'n'
+
+----------------------  #不设置用户友好名称 #生成配置文件 /etc/multipath.conf ---------------
+
+[root@V12 ~]# mpathconf  --user_friendly_names  n  #不设置用户友好名称 #生成配置文件
+
+[root@V12 ~]# ls  /etc/multipat*
+/etc/multipath.conf
+
+/etc/multipath:
+[root@V12 ~]# ls  /etc/multipath/
+[root@V12 ~]# ll  /etc/multipath.conf 
+-rw------- 1 root root 2414 3月   7 20:55 /etc/multipath.conf
+
+[root@V12 ~]# rpm  -ql   device-mapper-multipath
+/etc/multipath
+/usr/lib/systemd/system/multipathd.service
+/usr/lib/udev/rules.d/11-dm-mpath.rules
+/usr/lib/udev/rules.d/62-multipath.rules
+/usr/sbin/mpathconf
+.............
+[root@V12 ~]# ls  /usr/lib/udev/
+accelerometer     hwdb.d         scsi_id                 udev-kvm-check
+ata_id            mtd_probe      tascam_fpga             usb_modeswitch
+cdrom_id          mtp-probe      tascam_fw               v4l_id
+check-ptp-camera  rename_device  udev-add-printer
+collect           rules.d        udev-configure-printer
+
+[root@V12 ~]# ll  /usr/lib/udev/scsi_id 
+-rwxr-xr-x. 1 root root 50144 6月  27 2017 /usr/lib/udev/scsi_id
+
+[root@V12 ~]# file  /usr/lib/udev/scsi_id
+/usr/lib/udev/scsi_id: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.32, BuildID[sha1]=83a39a487e3b5a9884cdfc9f2e79a2309417d0c5, stripped
+
+---------------- 注意是 两个不同的网段,使用同一磁盘,出现不同名称,
+本实验 只有一个 网段192.168.0.10 ,从理论上,本实验不可能成功 -----------
+
+------------------------------- 取得一块磁盘wwid的方法 -------------------
+[root@V12 ~]# /usr/lib/udev/scsi_id  --whitelisted  --device=/dev/sda
+360014058d4f7e99ba55492d8d5f2be1d
+
+[root@V12 ~]# /usr/lib/udev/scsi_id  --whitelisted  --device=/dev/sdb
+3600140561f538d26e3244d49be031414
+
+[root@V12 ~]# vim   /etc/multipath.conf 
+[root@V12 ~]# egrep  -nv  "^#|^$"  /etc/multipath.conf
+23:defaults {
+24:	user_friendly_names no
+25:	find_multipaths yes
+26:}
+94:blacklist {
+95:}
+96:multipaths {
+97:  multipath {
+98:    wwid  "360014058d4f7e99ba55492d8d5f2be1d"
+99:    alias  mpatha
+100:  }
+101:  multipath {
+102:    wwid  "3600140561f538d26e3244d49be031414"
+103:    alias  mpatha
+104:  }
+105:}
+[root@V12 ~]# systemctl  start  multipathd  && systemctl  enable  multipathd
+[root@V12 ~]#  multipath  -rr   #进行配置的重新载入
+[root@V12 ~]# echo $?
+0
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part 
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# systemctl  restart  multipathd 
+[root@V12 ~]# echo $?
+0
+------------- 必须把sda sdb 还原成最原始的没有任何分区的模式,多路径才会生效 ---------------------------------
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part /var/www/html
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# umount  /dev/sda1
+[root@V12 ~]# vim  /etc/fstab 
+[root@V12 ~]# tail  -1  /etc/fstab
+#UUID=e1ba9a2a-2b1d-47da-b8e6-61c587f99f99  /var/www/html  ext4  _netdev  0  0
+
+[root@V12 ~]# fdisk    /dev/sda
+WARNING: fdisk GPT support is currently new, and therefore in an experimental phase. Use at your own discretion.
+欢迎使用 fdisk (util-linux 2.23.2)。
+
+更改将停留在内存中，直到您决定将更改写入磁盘。
+使用写入命令前请三思。
+
+
+命令(输入 m 获取帮助)：d
+分区号 (1,2，默认 2)：2
+分区 2 已删除
+
+命令(输入 m 获取帮助)：d
+已选择分区 1
+分区 1 已删除
+
+命令(输入 m 获取帮助)：p
+
+磁盘 /dev/sda：10.7 GB, 10737418240 字节，20971520 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+磁盘标签类型：gpt
+Disk identifier: 66C8C381-E974-457B-8FDF-02ADD30F4945
+
+
+#         Start          End    Size  Type            Name
+
+命令(输入 m 获取帮助)：w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+正在同步磁盘。
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V12 ~]# partprobe   /dev/sd{a,b}
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# iscsiadm  --mode node --targetname  iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -u
+Logging out of session [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260]
+Logout of [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# ls   /etc/multipath
+multipath/      multipath.conf  
+
+[root@V12 ~]# vim   /etc/multipath.conf 
+
+[root@V12 ~]# egrep  -nv  "^#|^$"  /etc/multipath.conf 
+23:defaults {
+24:	user_friendly_names no
+25:	find_multipaths yes
+26:}
+94:blacklist {
+95:}
+96:multipaths {
+97:  multipath {
+98:    wwid  "360014058d4f7e99ba55492d8d5f2be1d"
+99:    alias  mpatha
+100:  }
+101:  multipath {
+102:    wwid  "3600140561f538d26e3244d49be031414"
+103:    alias  mpatha
+104:  }
+105:}
+[root@V12 ~]# iscsiadm  --mode node --targetname  iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -l
+
+Logging in to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] (multiple)
+Login to [iface: default, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+
+[root@V12 ~]# /usr/lib/udev/scsi_id  --whitelisted  --device=/dev/sda
+360014058d4f7e99ba55492d8d5f2be1d
+
+[root@V12 ~]# /usr/lib/udev/scsi_id  --whitelisted  --device=/dev/sdb
+3600140561f538d26e3244d49be031414
+
+[root@V12 ~]# systemctl  restart  multipathd  && systemctl is-enabled  multipathd
+enabled
+
+[root@V12 ~]# multipath -rr
+
+[root@V12 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V12 ~]# ls  /dev/mapper/
+control  rhel-root  rhel-swap
+
+[root@V12 ~]# 
+
+
+
+
+
+
+
+
+
+
+[root@V13 ~]#  cat   /etc/iscsi/initiatorname.iscsi
+
+InitiatorName=iqn.2018-10.cn.tedu.client13
+
+[root@V13 ~]# ls  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/
+192.168.0.10,3260,1  192.168.1.10,3260,1
+
+[root@V13 ~]# rm  -rf   /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/
+
+[root@V13 ~]# ls  /var/lib/iscsi/nodes/
+
+[root@V13 ~]# iscsiadm --mode discoverydb --type sendtargets  --portal  192.168.0.10  --discover
+
+192.168.0.10:3260,1 iqn.2018-10.cn.tedu:server10
+
+[root@V13 ~]# ls  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/
+192.168.0.10,3260,1
+
+[root@V13 ~]# iscsiadm  --mode  node   --targetname   iqn.2018-10.cn.tedu:server10  --portal  192.168.0.10:3260  --login
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# vim  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default 
+
+[root@V13 ~]# grep  -n  automatic  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+
+4:node.startup = automatic
+51:node.conn[0].startup = automatic
+
+[root@V13 ~]# systemctl  restart  iscsi  && systemctl is-enabled  iscsi  iscsid
+enabled
+enabled
+[root@V13 ~]# sync ;reboot  -f
+Rebooting.
+..........
+
+[root@room9pc27 ~]# ssh    192.168.0.13
+..........
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# grep  -n  automatic  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+
+51:node.conn[0].startup = automatic
+
+[root@V13 ~]# grep  -n  startup  /var/lib/iscsi/nodes/iqn.2018-10.cn.tedu\:server10/192.168.0.10\,3260\,1/default
+
+4:node.startup = onboot
+51:node.conn[0].startup = automatic
+
+[root@V13 ~]# blkid  /dev/sdb
+
+[root@V13 ~]# parted   /dev/sdb  mklabel  gpt  #划分GPT分区模式,parted
+信息: You may need to update /etc/fstab.
+
+[root@V13 ~]# parted  /dev/sdb  mkpart primary  1  900 
+                
+信息: You may need to update /etc/fstab.
+
+[root@V13 ~]# lsblk  /dev/sdb                                             
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sdb      8:16   0    9G  0 disk 
+└─sdb1   8:17   0  857M  0 part 
+
+[root@V13 ~]# blkid  /dev/sdb
+/dev/sdb: PTTYPE="gpt" 
+
+[root@V13 ~]# blkid  /dev/sdb1
+/dev/sdb1: PARTLABEL="primary" PARTUUID="dd820712-eb72-4f62-b025-d5507f1a6c13" 
+
+[root@V13 ~]# mkfs.ext4  /dev/sdb1
+
+mke2fs 1.42.9 (28-Dec-2013)
+文件系统标签=
+OS type: Linux
+.....................
+
+[root@V13 ~]# blkid  /dev/sdb1
+/dev/sdb1: UUID="83a412af-dbb2-4c08-bb68-e945897951c7" TYPE="ext4" PARTLABEL="primary" PARTUUID="dd820712-eb72-4f62-b025-d5507f1a6c13" 
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# yum -y install  httpd elinks |tail -3
+  mailcap.noarch 0:2.1.41-2.el7         nss_compat_ossl.x86_64 0:0.9.6-8.el7    
+
+完毕！
+[root@V13 ~]#  systemctl  start  httpd  &&  systemctl  enable  httpd
+
+[root@V13 ~]# vim      /etc/hosts
+[root@V13 ~]# tail  -1  /etc/hosts
+
+192.168.0.13   V13.example.com
+
+[root@V13 ~]# blkid  /dev/sdb1 
+/dev/sdb1: UUID="83a412af-dbb2-4c08-bb68-e945897951c7" TYPE="ext4" PARTLABEL="primary" PARTUUID="dd820712-eb72-4f62-b025-d5507f1a6c13" 
+
+[root@V13 ~]# vim      /etc/fstab 
+[root@V13 ~]# tail  -1  /etc/fstab
+
+UUID=83a412af-dbb2-4c08-bb68-e945897951c7  /var/www/html  ext4  _netdev  0 0
+
+[root@V13 ~]# mount  -a
+
+[root@V13 ~]# ls  /var/www/html/
+lost+found
+[root@V13 ~]# echo  "192.168.0.13   V13.example.com" > /var/www/html/index.html
+
+[root@V13 ~]# elinks   -dump    V13.example.com
+   192.168.0.13 V13.example.com
+
+[root@V13 ~]# lsblk   /dev/sd{a,b}
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   10G  0 disk 
+sdb      8:16   0    9G  0 disk 
+└─sdb1   8:17   0  857M  0 part /var/www/html
+
+[root@V13 ~]# mount |grep sdb1
+/dev/sdb1 on /var/www/html type ext4 (rw,relatime,data=ordered,_netdev)
+
+[root@V13 ~]# umount  /var/www/html/   #卸载
+
+[root@V13 ~]#  iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  --logout
+
+Logging out of session ........... successful.
+
+[root@V13 ~]#  iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  --login
+
+Logging in ............successful.
+
+[root@V13 ~]# lsblk
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+└─sda1          8:1    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# tail  -1  /etc/fstab 
+UUID=83a412af-dbb2-4c08-bb68-e945897951c7  /var/www/html  ext4  _netdev  0 0
+
+
+[root@V13 ~]#  iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  -u
+
+Logging out of ........... successful.
+
+[root@V13 ~]#  iscsiadm --mode node --targetname iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260  -l
+
+Logging in to..............successful.
+
+[root@V13 ~]# lsblk
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part 
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# elinks  -dump   V12.example.com
+ELinks: Host not found
+
+[root@V13 ~]# vim   /etc/hosts
+[root@V13 ~]# tail  -2  /etc/hosts
+
+192.168.0.12   V12.example.com
+192.168.0.13   V13.example.com
+
+[root@V13 ~]# elinks  -dump   V12.example.com
+   192.168.0.12 V12
+
+------------ 必须把sda sdb 还原成最原始的没有任何分区的模式,多路径才会生效 ------------------------------
+
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part 
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+└─sdb1          8:17   0  857M  0 part /var/www/html
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# umount  /dev/sdb1
+
+[root@V13 ~]# vim   /etc/fstab 
+[root@V13 ~]# tail  -1  /etc/fstab
+#UUID=83a412af-dbb2-4c08-bb68-e945897951c7  /var/www/html  ext4  _netdev  0 0
+
+[root@V13 ~]# fdisk   /dev/sdb
+WARNING: fdisk GPT support is currently new, and therefore in an experimental phase. Use at your own discretion.
+欢迎使用 fdisk (util-linux 2.23.2)。
+
+更改将停留在内存中，直到您决定将更改写入磁盘。
+使用写入命令前请三思。
+
+
+命令(输入 m 获取帮助)：d
+已选择分区 1
+分区 1 已删除
+
+命令(输入 m 获取帮助)：p
+
+磁盘 /dev/sdb：9663 MB, 9663676416 字节，18874368 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 512 字节
+I/O 大小(最小/最佳)：512 字节 / 512 字节
+磁盘标签类型：gpt
+Disk identifier: 61C66EF4-2FC2-4851-9C9C-81A6F1B0A1E6
+
+
+#         Start          End    Size  Type            Name
+
+命令(输入 m 获取帮助)：w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+正在同步磁盘。
+
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+├─sda1          8:1    0  953M  0 part 
+└─sda2          8:2    0  953M  0 part 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+
+[root@V13 ~]# partprobe   /dev/sd{a,b}
+[root@V13 ~]# echo  $?
+0
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda             8:0    0   10G  0 disk 
+sdb             8:16   0    9G  0 disk 
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V13 ~]# 
+[root@V13 ~]# iscsiadm  --mode node --targetname  iqn.2018-10.cn.tedu:server10 --portal  192.168.0.10:3260   -u
+
+Logging out of session [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260]
+Logout of [sid: 1, target: iqn.2018-10.cn.tedu:server10, portal: 192.168.0.10,3260] successful.
+[root@V13 ~]# lsblk 
+NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sr0            11:0    1 1024M  0 rom  
+vda           252:0    0   20G  0 disk 
+├─vda1        252:1    0    1G  0 part /boot
+└─vda2        252:2    0   19G  0 part 
+  ├─rhel-root 253:0    0   17G  0 lvm  /
+  └─rhel-swap 253:1    0    2G  0 lvm  [SWAP]
+[root@V13 ~]# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
