@@ -18,6 +18,9 @@ gpgcheck=0
 git-1.8.3.1-11.el7.x86_64
 [root@room9pc01 ~]# mkdir /linux
 [root@room9pc01 ~]# cd /linux
+# git  init
+初始化空的 Git 版本库于  ......
+
 1.打开需要下载文件的页面
 2.点击右上角的raw键，这个是原生态的文件，同时地址栏的地址也是该文件的url。
 [root@room9pc01 linux]# wget https://raw.githubusercontent.com/hiys/linux/master/6OPerationx/SubveRPM.txt
