@@ -1,0 +1,303 @@
+
+
+host 命令
+用途
+把一个主机名解析到一个网际地址或把一个网际地址解析到一个主机名
+host  -t Type  指定要查询的记录类型。有效类型为:
+  host  -t      A     主机的网际地址 
+  host  -t  CNAME     别名的规范名称 
+
+[root@room9pc27 ~]# host  -t  A  www.baidu.com
+www.baidu.com is an alias for www.a.shifen.com.
+www.a.shifen.com has address 14.215.177.38
+www.a.shifen.com has address 14.215.177.39
+
+[root@room9pc27 ~]# host   www.baidu.com
+www.baidu.com is an alias for www.a.shifen.com.
+www.a.shifen.com has address 14.215.177.39
+www.a.shifen.com has address 14.215.177.38
+
+[root@server0 ~]# host  -t  A   classroom.example.com
+classroom.example.com has address 172.25.254.254
+
+[root@server0 ~]# host  classroom.example.com
+classroom.example.com has address 172.25.254.254
+
+[root@server0 ~]# host  -t  A   smtp0.example.com
+smtp0.example.com is an alias for desktop0.example.com.
+desktop0.example.com has address 172.25.0.10
+
+[root@server0 ~]# host  -t  CNAME   smtp0.example.com
+smtp0.example.com is an alias for desktop0.example.com.
+
+[root@room9pc27 ~]# host  -t  CNAME  www.baidu.com
+www.baidu.com is an alias for www.a.shifen.com.
+
+[root@server0 ~]# host    desktop0.example.com
+desktop0.example.com has address 172.25.0.10
+desktop0.example.com mail is handled by 10 smtp0.example.com.
+
+[root@server0 ~]# host   172.25.254.254
+254.254.25.172.in-addr.arpa domain name pointer classroom.example.com.
+
+[root@server0 ~]# host   172.25.0.10
+10.0.25.172.in-addr.arpa domain name pointer desktop0.example.com.
+
+[root@server0 ~]# host   172.25.0.11
+11.0.25.172.in-addr.arpa domain name pointer server0.example.com.
+
+[root@server0 ~]# nslookup   server0.example.com
+Server:		172.25.254.254
+Address:	172.25.254.254#53
+
+Name:	server0.example.com
+Address: 172.25.0.11
+
+[root@server0 ~]# nslookup   classroom.example.com
+Server:		172.25.254.254
+Address:	172.25.254.254#53
+
+Name:	classroom.example.com
+Address: 172.25.254.254
+
+[root@server0 ~]# 
+
+
+vim批量注释和反注释快捷键
+
+[root@server0 ~]# cat  /root/visual.txt
+# Use public servers from the pool.ntp.org project.
+# Please consider joining the pool (http://www.pool.ntp.org/join.html).
+server 0.rhel.pool.ntp.org iburst
+server 1.rhel.pool.ntp.org iburst
+server 2.rhel.pool.ntp.org iburst
+server 3.rhel.pool.ntp.org iburst
+
+# Ignore stratum in source selection.
+stratumweight 0
+
+
+[root@server0 ~]# vim   /root/visual.txt
+
+第一种方法
+
+批量插入字符快捷键：
+
+1   先 将光标定位在
+将要编辑的行
+所在的字符位置,
+2  Ctrl+v 进入visual block(可视块)模式，
+按 j （向下选取列）
+或者 k （向上选取列），
+3  再按Shift + i (大写的英文字母 I ),显示插入,
+进入编辑模式
+4  然后输入你想要插入的字符（任意字符），
+5  再按两次Esc 退出就可以实现批量插入字符，
+不仅仅实现批量注释而已。
+
+批量删除字符快捷键：
+1   先 将光标定位在
+将要编辑的行
+所在的字符位置,
+2 Ctrl+v 进入visual block(可视块)模式，
+按 j （向下选取列）
+或者 k （向上选取列），
+3  直接（不用进入编辑模式）
+4  按 x 或者 d 就可以直接删去，
+5  再按Esc退出。
+
+第二种方法
+
+批量插入字符快捷键：
+命令行模式下，
+输入 
+" : 首行号，尾行号 s /^/字符/g "
+实现批量插入字符。
+如 输入:2,7s/^/#/g，在2到7行首插入#
+
+
+批量删除字符快捷键：
+命令行模式下，输入 
+" : 首行号，尾行号 s /^字符//g "
+实现批量删除字符。
+如 输入:2,7s/^#//g，在2到7行首删除#
+
+
+
+[root@server0 ~]# vim   /root/visual.txt
+  1 # Use public servers from the pool.ntp.org project.
+  2 # Please consider joining the pool (http://www.pool.ntp.org/join.html).
+  3 server 0.rhel.pool.ntp.org iburst
+  4 server 1.rhel.pool.ntp.org iburst
+  5 server 2.rhel.pool.ntp.org iburst
+  6 server 3.rhel.pool.ntp.org iburst
+  7 
+  8 # Ignore stratum in source selection.
+  9 stratumweight 0
+ 10 
+~                                                                          
+:3,6 s/^/#/g
+
+[root@server0 ~]# vim   /root/visual.txt
+  1 # Use public servers from the pool.ntp.org project.
+  2 # Please consider joining the pool (http://www.pool.ntp.org/join.html).
+  3 #server 0.rhel.pool.ntp.org iburst
+  4 #server 1.rhel.pool.ntp.org iburst
+  5 #server 2.rhel.pool.ntp.org iburst
+  6 #server 3.rhel.pool.ntp.org iburst
+  7  
+  8 # Ignore stratum in source selection.
+  9 stratumweight 0
+ 10  
+~                                                                          
+4 次替换，共 4 行      
+
+
+[root@server0 ~]# vim   /root/visual.txt
+  1 # Use public servers from the pool.ntp.org project.
+  2 # Please consider joining the pool (http://www.pool.ntp.org/join.html).
+  3 #server 0.rhel.pool.ntp.org iburst
+  4 #server 1.rhel.pool.ntp.org iburst
+  5 #server 2.rhel.pool.ntp.org iburst
+  6 #server 3.rhel.pool.ntp.org iburst
+  7  
+  8 # Ignore stratum in source selection.
+  9 stratumweight 0
+ 10  
+~                                                                          
+:1,8 s/^#//g
+
+[root@server0 ~]# vim   /root/visual.txt
+  1  Use public servers from the pool.ntp.org project.
+  2  Please consider joining the pool (http://www.pool.ntp.org/join.html).
+  3 server 0.rhel.pool.ntp.org iburst
+  4 server 1.rhel.pool.ntp.org iburst
+  5 server 2.rhel.pool.ntp.org iburst
+  6 server 3.rhel.pool.ntp.org iburst
+  7 
+  8  Ignore stratum in source selection.
+  9 stratumweight 0
+ 10 
+~                                                                          
+7 次替换，共 7 行        
+
+----------------------------- 查看所有的授权用户的信息 (包含用户名 主机ip )-----------------------------------
+
+MariaDB [mysql]> select distinct concat('username:''',user,'''@''',host,''';') as
+    -> query from mysql.user;
+
+/************************ 在数据库(内部) 中 使用 source  导入 users.sql 文件
+
+登录并选择数据库（需要 提前 创建 好 空 数据库 Contacts ）
+进入到 数据库 Contacts 
+然后执行   source   /sql文件绝对路径;
+
+MariaDB [Contacts]> source  /root/users.sql; #导入 users.sql 文件
+
+Query OK, 0 rows affected (0.00 sec)
+.............
+Records: 5  Duplicates: 0  Warnings: 0
+..............
+
+***************/
+
+---------------------------------- 在另外一个终端 导入 数据库 Contacts  -----------------
+
+[root@server0 ~]# wget  http://classroom.example.com/pub/materials/users.sql
+...............
+[root@server0 ~]# ll  users.sql 
+-rw-r--r--. 1 root root 2634 11月 27 18:38 users.sql
+
+==========----------------------     导入数据库Contacts
+[root@server0 ~]# mysql  -uroot  -patenorth  Contacts  < users.sql 
+
+
+=============== 三表或多表 查询 左连接 ===============
+
+select tab1.fd1, tab1.fd2, 
+         t2.fd1,   t2.fd2, 
+         t3.fd1,   t3.fd2
+from  tab1
+ 
+left  join t2 
+  on  tab1.fd1=t2.fd1
+
+left  join t3 
+  on  t2.fd2=t3.fd2
+
+where  tab1.fd1='xxx'
+  and  t2.fd2='www';
+
+
+==============================================
+rpm  -a 显示出文件状态 
+     -q 查询已已安装的软件信息
+
+[root@room9pc27 ~]# rpm -aq  |grep  yum   #查看原有的yum 
+yum-plugin-fastestmirror-1.1.31-42.el7.noarch
+PackageKit-yum-1.1.5-1.el7.centos.x86_64
+yum-metadata-parser-1.1.4-10.el7.x86_64
+yum-3.4.3-154.el7.centos.noarch
+yum-langpacks-0.4.2-7.el7.noarch
+yum-rhn-plugin-2.0.1-10.el7.noarch
+yum-utils-1.1.31-42.el7.noarch
+
+[root@room9pc27 ~]# rpm -aq  |wc -l
+1516
+
+# rpm -e 
+-e：卸载指定包名
+
+-V：对RPM包进行验证
+
+4.安装参数 
+--force 即使覆盖属于其它包的文件也强迫安装 
+--force 忽略软件包及文件的冲突 
+--nodeps 如果该RPM包的安装依赖其它包，即使其它包没装，也强迫安装
+--nodeps 不检查依赖性关系 
+--prefix 将软件包安装到由 指定的路径下 
+#　rpm　–Uhv　　xanim-27064-1.i386.rpm 
+ -U参数是
+告诉RPM先删除原先的版本，
+再安装新的版本。
+所以不管以前是否安装过这个软件包，
+用户 都可以使用rpm　–Uhv命令来安装软件。
+
+
+rpm -ivh是安装rpm包
+
+rpm -e --nodeps  是卸载包，
+       --nodeps 表示不含依赖
+
+安装程序：    rpm -ivh <软件包的绝对路径>   #i为install；v，verbose；h，hash
+
+rpm 常用命令
+1.安装一个包 
+# rpm -ivh 
+使用 -i 参数安装RPM 包。
+使用这个参数 i 安装内核 RPM。
+这种情况下，为了防止新的内核无法启动，您需要暂时保留原内核
+注意 -v 参数会列出详细的安装信息，
+-h 参数会显示安装进度,以"#"号显示安装进度
+[root@server0 ~]# rpm   -ivh   kernel-3.10.0-123.1.2.el7.x86_64.rpm
+
+2.升级一个包 
+# rpm -Uvh   #RPM包有升级机制（Upgrade）, 使用-U 参数
+1. 使用-U 进行升级新的rpm包的version一定要大于现有的version号，否则不能升级
+-U 用来升级 RPM 包，但是如果这个 RPM 包不在 RPM 数据库，则它会安装该包
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
