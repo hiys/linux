@@ -1,0 +1,543 @@
+
+
+
+/*************
+export LANG=en_US.UTF-8
+echo  1 |passwd  --stdin  root
+
+# systemctl  stop   NetworkManager
+# yum  -y   remove  NetworkManager-*  firewalld-*  python-firewall 
+# sed  -i  "7c SELINUX=disabled"  /etc/selinux/config
+# systemctl   restart  network
+*****/
+ 
+cip,dip,vip  全部是公网, 运营收费额较高
+
+DIP是调度器与后端服务器通信的IP地址(VIP必须配置在虚拟接口)
+DR(直接路由)
+
+  eth0   --- CIP:  192.168.0.10
+
+  eth0   --- DIP:  192.168.0.11
+ 服务器VIP eth0:0 --- VIP:  192.168.0.21/24
+
+  eth0   --- DIP:  192.168.0.15
+ 服务器VIP eth0:0 --- VIP:  192.168.0.21/24
+
+  eth0   --- RIP1: 192.168.0.12
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP2: 192.168.0.13
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP3: 192.168.0.14
+  lo:0   --- VIP:  192.168.0.21/32
+
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.0.15
+............
+[root@V15 ~]# vim  /etc/yum.repos.d/local.repo 
+[root@V15 ~]# cat  /etc/yum.repos.d/local.repo
+[rhel7.4]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+[root@V15 ~]# yum clean  all >/dev/null && yum repolist |tail -3
+源标识                    源名称                                           状态
+rhel7.4                   rhel-server-7.4-x86_64-dvd.iso                   4,986
+repolist: 4,986
+[root@V15 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+[root@V15 ~]# yum  -y  install  keepalived   nmap |tail  -3
+..........
+[root@V15 ~]# rpm  -qa |egrep "keepalived|nmap"
+keepalived-1.3.5-1.el7.x86_64
+nmap-6.40-7.el7.x86_64
+nmap-ncat-6.40-7.el7.x86_64
+
+/*************  配置proxy2主机的网络参数(不配置VIP,由keepalived自动配置) **********
+
+[root@V15 ~]#  cp   /etc/sysconfig/network-scripts/ifcfg-eth0  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+[root@V15 ~]# vim /etc/sysconfig/network-scripts/ifcfg-eth0:0
+[root@V15 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+NAME="eth0:0"
+DEVICE="eth0:0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.21"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+[root@V15 ~]# mv   /etc/sysconfig/network-scripts/ifcfg-eth0:0  ./
+
+[root@V15 ~]# systemctl  restart  network
+
+[root@V15 ~]# ifconfig  eth1  down
+[root@V15 ~]# ifdown    eth2
+[root@V15 ~]# ifconfig  |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.15  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+--
+......
+[root@V15 ~]# yum  -y install  ipvsadm |tail -2
+
+完毕！
+[root@V15 ~]# vim  /etc/sysconfig/ipvsadm-config 
+[root@V15 ~]# egrep  -nv "^#|^$"  /etc/sysconfig/ipvsadm-config
+6:IPVS_MODULES_UNLOAD="yes"
+12:IPVS_SAVE_ON_STOP="yes"
+18:IPVS_SAVE_ON_RESTART="yes"
+23:IPVS_STATUS_NUMERIC="yes"
+
+[root@V15 ~]# touch  /etc/sysconfig/ipvsadm
+[root@V15 ~]# ll /etc/sysconfig/ipvsadm
+-rw-r--r-- 1 root root 0 3月  13 20:43 /etc/sysconfig/ipvsadm
+
+[root@V15 ~]# systemctl  start   ipvsadm  && systemctl  enable  ipvsadm
+
+[root@V15 ~]# cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+
+[root@V15 ~]# systemctl  enable  keepalived.service 
+
+Created symlink from /etc/systemd/system/multi-user.target.wants/keepalived.service to /usr/lib/systemd/system/keepalived.service.
+
+[root@V11 ~]# vim   /etc/keepalived/keepalived.conf
+
+ 12    router_id LVS_V11    # 设置路由ID号,表示该台服务的ID
+ 14 #   vrrp_strict      #这里如果不注释,会报错
+
+ 19 vrrp_instance VI_1 {    # vrrp 实例
+ 20     state MASTER      #master状态 主服务器为MASTER
+ 21     interface eth0        //定义网络接口
+ 22     virtual_router_id 51   # master和backup的id一致,主辅VRID号必须一致
+ 23     priority 150        # 服务器优先级150
+
+ 25     authentication {
+ 26         auth_type PASS
+ 27         auth_pass 1111   #主辅服务器密码必须一致
+ 28     }
+ 29     virtual_ipaddress {
+ 30         192.168.0.21     # 配置VIP
+ 31       #  192.168.200.17
+ 32       #  192.168.200.18
+
+
+https://www.cnblogs.com/liaojiafa/p/6087276.html
+用genhash来获取web服务 url的校验码：
+
+[root@localhost ~]# genhash -s 192.168.45.128 -p 80 -u /
+MD5SUM = e3eb0a1df437f3f97a64aca5952c8ea0         # 把这个校验码放在keepalived的配置文件即可。
+real_server 192.168.1.6 80 {
+        weight 1
+        HTTP_GET {
+            url {
+              path /
+              digest e3eb0a1df437f3f97a64aca5952c8ea0
+            }
+
+
+
+
+
+
+
+[root@V11 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+[root@V11 ~]# yum  -y  install  keepalived |tail  -3
+  net-snmp-agent-libs.x86_64 1:5.7.2-28.el7                                     
+
+完毕！
+[root@V11 ~]# yum  -y  install  nmap |tail  -3
+  nmap.x86_64 2:6.40-7.el7                                                      
+
+完毕！
+[root@V11 ~]#  rpm  -qa |egrep "keepalived|nmap"
+nmap-6.40-7.el7.x86_64
+keepalived-1.3.5-1.el7.x86_64
+nmap-ncat-6.40-7.el7.x86_64
+
+------------- 需要先安装yum install libnl* popt* -y ----
+[root@V11 ~]# rpm  -qa |egrep  "libnl|popt"
+libnl3-3.2.28-4.el7.x86_64
+popt-1.13-16.el7.x86_64
+libnl3-cli-3.2.28-4.el7.x86_64
+libnl-1.1.4-3.el7.x86_64
+
+[root@V11 ~]# rpm  -q  ipvsadm 
+ipvsadm-1.27-7.el7.x86_64
+[root@V11 ~]# man      ipvsadm
+
+[root@V11 ~]# grep  -Env  "^#|^$"   /etc/sysconfig/ipvsadm-config 
+6:IPVS_MODULES_UNLOAD="yes"     # 模块卸载
+12:IPVS_SAVE_ON_STOP="yes"      #  在 ...停止时保存
+18:IPVS_SAVE_ON_RESTART="yes"   #  IPVS_重新启动时保存
+23:IPVS_STATUS_NUMERIC="yes"    #  数字状态
+
+
+[root@V11 ~]# ls  /etc/sysconfig/ipvsadm*
+/etc/sysconfig/ipvsadm  /etc/sysconfig/ipvsadm-config
+
+[root@V11 ~]# ipvsadm   -Z
+
+[root@V11 ~]# ipvsadm   -Ln  --stats
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.21:80                     0        0        0        0        0
+  -> 192.168.0.12:80                     0        0        0        0        0
+  -> 192.168.0.13:80                     0        0        0        0        0
+  -> 192.168.0.14:80                     0        0        0        0        0
+
+[root@V11 ~]# ipvsadm  -C
+
+[root@V11 ~]# ipvsadm-save  -n >  /etc/sysconfig/ipvsadm
+
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+
+[root@V11 ~]# ipvsadm   -Ln 
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+
+
+/****************   配置proxy1主机的网络参数(不配置VIP,由keepalvied自动配置)   **************
+
+[root@V11 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-eth0  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+----------------------------  永久配置 vip  eth0:0 ------------------
+---------------------------  配置 vip  eth0:0  192.168.0.21 -----------------
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+[root@V11 ~]# vim   /etc/sysconfig/network-scripts/ifcfg-eth0:0
+[root@V11 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+NAME="eth0:0"
+DEVICE="eth0:0"  #网络虚拟接口eth0:0 
+ONBOOT=yes       #启动的时候激活 
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no" #设置 禁止系统 报告 ipv4,ipv6绑定激活 错误
+BOOTPROTO="static"     #使用静态ip地址 
+IPADDR="192.168.0.21"
+NETMASK="255.255.255.0"  #子网掩码 
+GATEWAY="192.168.0.254"
+
+[root@V11 ~]# ls   /etc/sysconfig/network-scripts/ifcfg-eth0*
+/etc/sysconfig/network-scripts/ifcfg-eth0  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+
+[root@V11 ~]# mv   /etc/sysconfig/network-scripts/ifcfg-eth0:0  ./
+
+[root@V11 ~]# ls   /etc/sysconfig/network-scripts/ifcfg-eth0*
+/etc/sysconfig/network-scripts/ifcfg-eth0
+
+[root@V11 ~]# systemctl  restart  network
+
+[root@V11 ~]#  ifconfig  eth1  down
+[root@V11 ~]#  ifconfig  eth2  down
+
+[root@V11 ~]# ifconfig  |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.11  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+
+
+[root@V11 ~]# cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+
+[root@V11 ~]# systemctl  enable  keepalived
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@V11 ~]# ipvsadm  --set  800 100 260   #设置tcp tcpfin udp超时时间
+
+[root@V11 ~]# ipvsadm  -l  --timeout    #查看 超时时间
+Timeout (tcp tcpfin udp): 800 100 260
+
+创建LVS虚拟集群服务器(算法为加权轮询:wrr)
+
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+[root@V11 ~]# ipvsadm  -A  -t  192.168.0.21:80 -s  wrr
+
+---------------------------  添加realserver  eth0:0 --- VIP:  192.168.0.21/24  ------
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.12:80  -g -w 2
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.13:80  -g
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.14:80  -g
+
+[root@V11 ~]# ipvsadm  -ln  --stats
+
+
+
+
+
+
+
+
+
+
+[root@V12 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+DR模式下要求 real server 的 arp_ignore参数要求配置为1
+  net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+
+[root@V12 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-lo{,:0}
+[root@V12 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-lo:0
+[root@V12 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo:0
+DEVICE=lo:0
+IPADDR=192.168.0.21
+NETMASK=255.255.255.255
+NETWORK=192.168.0.21
+BROADCAST=192.168.0.21
+ONBOOT=yes
+NAME=lo:0
+
+[root@V12 ~]# systemctl  restart   network
+
+[root@V12 ~]# ifdown  eth1
+[root@V12 ~]# ifdown  eth2
+
+[root@V12 ~]# ifconfig  lo:0  |head  -2
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 192.168.0.21  netmask 255.255.255.255
+
+[root@V12 ~]# ifconfig  eth0  |grep  'inet '
+        inet 192.168.0.12  netmask 255.255.255.0  broadcast 192.168.0.255
+
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/all/arp_ignore 
+0
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/all/arp_announce 
+0
+   
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/lo/arp_ignore 
+0
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/lo/arp_announce 
+0
+
+[root@V12 ~]# sysctl  -a |egrep  "(lo|all).arp(_ignore|_announce)"
+net.ipv4.conf.all.arp_announce = 0
+net.ipv4.conf.all.arp_ignore = 0
+net.ipv4.conf.lo.arp_announce = 0
+net.ipv4.conf.lo.arp_ignore = 0
+
+[root@V12 ~]# vim  /etc/sysctl.conf 
+[root@V12 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V12 ~]# sysctl  -p   /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+ net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+--------------------------------------------------------------------
+将内核参数设置为 2  
+  net.ipv4.conf.lo.arp_announce = 2
+  net.ipv4.conf.all.arp_announce = 2
+IP包 目的地址CIP(192.168.0.10) 根据 路由表 查询 
+判断需要从eth0 网卡发出,
+该arp请求的 源MAC自然是eth0 网卡的MAC地址,
+ lo:0 网卡发起arp请求时，源IP地址会选择 lo:0 网卡自身的VIP地址(192.168.0.21)
+源IP 就 是 所出去接口 lo:0 的 VIP
+
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/{all,lo}/arp_ignore
+1
+1
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/{all,lo}/arp_announce
+2
+2
+[root@V12 ~]# systemctl  restart httpd 
+[root@V12 ~]# systemctl  enable   httpd
+[root@V12 ~]# elinks  -dump   http://V12
+   web1 V12 192.168.1.12
+
+
+
+
+
+
+
+
+
+[root@V13 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V13 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-lo{,:0}
+[root@V13 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-lo:0
+[root@V13 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo:0
+DEVICE=lo:0
+IPADDR=192.168.0.21
+NETMASK=255.255.255.255
+NETWORK=192.168.0.21
+BROADCAST=192.168.0.21
+ONBOOT=yes
+NAME=lo:0
+
+[root@V13 ~]# systemctl  restart  network
+[root@V13 ~]# ifdown  eth1
+[root@V13 ~]# ifdown  eth2
+
+[root@V13 ~]# vim  /etc/sysctl.conf 
+
+[root@V13 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+#当有arp广播问谁是192.168.0.21时,
+本机忽略该ARP广播,不做任何回应
+#本机不要向外宣告自己的lo回环地址是192.168.0.21
+ net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+[root@V13 ~]# sysctl  -p  /etc/sysctl.conf
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V13 ~]#  elinks  -dump  192.168.0.13
+   web2 V13 192.168.1.13
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@V14 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+[root@V14 ~]# ifdown  eth1
+[root@V14 ~]# ifdown  eth2
+
+[root@V14 ~]# ll  /etc/rc.local 
+lrwxrwxrwx. 1 root root 13 1月  30 2018 /etc/rc.local -> rc.d/rc.local
+
+[root@V14 ~]# vim  /etc/rc.local
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V14 ~]# tail  -2  /etc/rc.local
+
+LANG="en_US.UTF-8"
+ifconfig  lo:0  192.168.0.21/32  up
+
+[root@V14 ~]# . /etc/rc.local
+[root@V14 ~]# ifconfig  eth0 |grep 'inet ';ifconfig  lo:0 |grep 'inet '
+        inet 192.168.0.14  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet 192.168.0.21  netmask 0.0.0.0
+
+[root@V14 ~]# vim  /etc/sysctl.conf 
+
+[root@V14 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V14 ~]# sysctl  -p
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V14 ~]# rpm -q  httpd elinks
+httpd-2.4.6-67.el7.x86_64
+elinks-0.12-0.36.pre6.el7.x86_64
+
+[root@V14 ~]# systemctl  restart  httpd  && systemctl  enable  httpd
+.............
+[root@V14 ~]# echo  "V14  192.168.0.14" > /var/www/html/index.html
+
+[root@V14 ~]# elinks  -dump  192.168.0.14
+   V14 192.168.0.14
+
+
+
+
+
+
+
+
+[root@V10 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+
+
+
+
+
+
+
+
+
+
+
+
+
+

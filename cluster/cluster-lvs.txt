@@ -165,7 +165,7 @@ ipvsadm  -L|-l –list 显示内核虚拟服务器表
              从stdin读取的每一行将被视为单独调用ipvsadm的命令行选项。
              从stdin读取的行可以选择以“ipvsadm”开头。
              此选项有助于避免在构建扩展路由表时执行大量或ipvsadm命令。
--R –restore 恢复虚拟服务器规则
+-R  --restore 恢复虚拟服务器规则
 
 -S, --save   将Linux虚拟服务器规则以 -R_--restore可以读取的格式  保存虚拟服务器规则，
                  输出为-R 选项可读的格式

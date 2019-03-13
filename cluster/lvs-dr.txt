@@ -1,0 +1,1017 @@
+
+
+/*************
+export LANG=en_US.UTF-8
+echo  1 |passwd  --stdin  root
+
+# systemctl  stop   NetworkManager
+# yum  -y   remove  NetworkManager-*  firewalld-*  python-firewall 
+# sed  -i  "7c SELINUX=disabled"  /etc/selinux/config
+# systemctl   restart  network
+*****/
+ 
+cip,dip,vip  全部是公网, 运营收费额较高
+
+DIP是调度器与后端服务器通信的IP地址(VIP必须配置在虚拟接口)
+DR(直接路由)
+
+  eth0   --- CIP:  192.168.0.10
+
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+  eth0   --- RIP1: 192.168.0.12
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP2: 192.168.0.13
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP3: 192.168.0.14
+  lo:0   --- VIP:  192.168.0.21/32
+
+
+给单网卡配置多ip的 临时方法  
+#ifconfig eth0:0 192.168.0.1 netmask 255.255.255.0 up 
+#ifconfig eth0:1 192.168.0.2 netmask 255.255.255.0 up 
+
+关闭一个ip 
+#ifconfig eth*[:x] down(*代表的是网卡编号，x代表虚拟接口号0－255)
+
+
+
+[root@V10 ~]# ifdown  eth1
+[root@V10 ~]# ifdown  eth2
+[root@V10 ~]# ifconfig |awk '/inet /{print $2}'
+192.168.0.10
+127.0.0.1
+......
+[root@V10 ~]# service  network  status 
+已配置设备：
+lo eth0 eth1 eth2
+当前活跃设备：
+lo eth0 virbr0
+[root@V10 ~]# cat  /etc/yum.repos.d/local.repo 
+[rhel7]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+
+[root@V10 ~]# yum clean  all >/dev/null && yum repolist  |tail -3
+源标识                   源名称                                            状态
+rhel7                    rhel-server-7.4-x86_64-dvd.iso                    4,986
+repolist: 4,986
+[root@V10 ~]# route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+/**************
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+-A -t 192.168.0.21:80 -s wrr
+-a -t 192.168.0.21:80 -r 192.168.0.12:80 -g -w 2
+-a -t 192.168.0.21:80 -r 192.168.0.13:80 -g -w 1
+-a -t 192.168.0.21:80 -r 192.168.0.14:80 -g -w 1
+*********/
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web2 V13 192.168.1.13
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web2 V13 192.168.1.13
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+ 
+
+[root@V10 ~]# 
+
+
+
+
+
+
+
+
+[root@room9pc01 ~]# ssh  -X  192.168.0.11
+.......
+------------- 需要先安装yum install libnl* popt* -y ----
+[root@V11 ~]# rpm  -qa |egrep  "libnl|popt"
+libnl3-3.2.28-4.el7.x86_64
+popt-1.13-16.el7.x86_64
+libnl3-cli-3.2.28-4.el7.x86_64
+libnl-1.1.4-3.el7.x86_64
+
+[root@V11 ~]# rpm  -q  ipvsadm 
+ipvsadm-1.27-7.el7.x86_64
+[root@V11 ~]# man      ipvsadm
+
+[root@V11 ~]# ipvsadm  -Ln
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+
+[root@V11 ~]# ls  /etc/sysconfig/ipvsadm*
+/etc/sysconfig/ipvsadm  /etc/sysconfig/ipvsadm-config
+
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+
+[root@V11 ~]# grep  -Env  "^#|^$"   /etc/sysconfig/ipvsadm-config 
+6:IPVS_MODULES_UNLOAD="yes"     # 模块卸载
+12:IPVS_SAVE_ON_STOP="yes"      #  在 ...停止时保存
+18:IPVS_SAVE_ON_RESTART="yes"   #  IPVS_重新启动时保存
+23:IPVS_STATUS_NUMERIC="yes"    #  数字状态
+
+/************
+TCP(Transmission Control Protocol)传输控制协议
+ TCP是主机对主机层的传输控制协议，提供可靠的连接服务，采用三次握手确认建立一个连接：
+ 位码即tcp标志位，有6种标示：
+SYN(synchronous建立联机,建立连接) 
+ACK(acknowledgement 确认,响应) 
+PSH(push传送,DATA数据传输) 
+
+FIN(finish结束,关闭连接) 
+
+RST(reset重置,连接重置) 
+URG(urgent紧急)
+Sequence number(顺序号码) 
+Acknowledge number(确认号码)
+其中，ACK是可能与SYN，FIN等同时使用的，
+ 比如SYN和ACK可能同时为1，
+ 它表示的就是建立连接之后的响应，
+ 如果只是单个的一个SYN，它表示的只是建立连接
+
+一般地，当出现FIN包或RST包时，
+我们便认为客户端与服务器端断开了连接；
+而当出现SYN和SYN＋ACK包时，
+我们认为客户端与服务器建立了一个连接。
+ PSH为1的情况，一般只出现在 DATA内容不为0的包中，
+也就是说PSH为1表示的是有真正的TCP数据包内容被传递。
+
+--persistent   -p [timeout]         persistent service //持久服务
+持久服务超时时间设置参数，针对一些需要保持状态的应用，
+例如一些http应用、ftp、ssl等。 
+在参数的时间范围内
+同一用户（client IP）的多次访问会
+被ipvs分配到同一台realserver上
+
+--set tcp tcpfin udp     set connection timeout values //链接的超时时间
+针对链接的超时时间。
+以tcp为例，一个tcp连接建立后会传输N个报文， 
+当两个报文相继到达的时间差
+在超时时间内
+就会被转发到同一台realserver上进行处理， 
+若时间差大于
+超时时间
+就会根据调度算法
+重新选择realserver，连接就有可能出现异常。 
+ipvs是根据client IP  和 client port来识别是不是同一个链接发的报文。
+
+ 区别：
+ persistent 是提供对有持久服务需要的支撑，
+ 是在超时时间内将同一个client IP的链接分发到同一个realserver上，比较宏观一些；
+ set 是针对一次链接两个相继到达报文的超时时间定义， 
+这个值在单一一次链接内有效，比较微观一些。
+
+【使用ipvsadm -l --timeout】
+第一个为tcp超时时间，第二个为tcpfin超时时间，第三个为udp超时时间
+[root@V11 ~]# ipvsadm  -l  --timeout
+Timeout (tcp tcpfin udp): 900 120 300
+
+
+/**********************
+-D  --delete-service 删除内核虚拟服务器表中的一条虚拟服务器记录
+-C  --clear   清除内核虚拟服务器表中的所有记录
+-Z  --zero    虚拟服务表计数器清零（清空当前的连接数量等）
+-R  --restore 恢复虚拟服务器规则
+
+---------   -R  载入保存在文件中的规则 ----------------------
+@V11 ~]# ipvsadm  -R  < /etc/sysconfig/ipvsadm-save
+
+修改集群服务器设置(修改调度器算法,将加权轮询修改为轮询)
+ @proxy ~] # ipvsadm -E -t 192.168.0.11:80 -s  rr
+
+ -E  --edit-service 编辑内核虚拟服务器表中的一条虚拟服务器记录
+ -A  --add-service 在内核的虚拟服务器表中添加一条新的虚拟服务器记录。
+                      也就是增加一台新的虚拟服务器。
+-t  --tcp-service service-address 说明虚拟服务器提供的是tcp 的服务
+-s  --scheduler scheduler 使用的调度算法
+
+ --persistent -p [timeout]持久服务,指定会话保持时间
+                       持久稳固的服务。
+这个选项的意思是来自同一个客户的多次请求，
+将被同一台真实的服务器处理.timeout的默认值为300秒  
+
+  --netmask -M netmask持久粒度掩码  
+
+[root@V11 ~]# ipvsadm  --set  800 100 260   #设置tcp tcpfin udp超时时间
+
+[root@V11 ~]# ipvsadm  -l  --timeout    #查看 超时时间
+Timeout (tcp tcpfin udp): 800 100 260
+
+
+关闭一个ip 
+#ifconfig eth*[:x] down(*代表的是网卡编号，x代表虚拟接口号0－255)
+
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+[root@V11 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-eth0  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+
+----------------------------  永久配置 vip  eth0:0 ------------------
+---------------------------  配置 vip  eth0:0  192.168.0.21 -----------------
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+
+[root@V11 ~]# vim   /etc/sysconfig/network-scripts/ifcfg-eth0:0
+
+[root@V11 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-eth0:0
+NAME="eth0:0"
+DEVICE="eth0:0"  #网络虚拟接口eth0:0 
+ONBOOT=yes       #启动的时候激活 
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no" #设置 禁止系统 报告 ipv4,ipv6绑定激活 错误
+BOOTPROTO="static"     #使用静态ip地址 
+IPADDR="192.168.0.21"
+NETMASK="255.255.255.0"  #子网掩码 
+GATEWAY="192.168.0.254"
+
+[root@V11 ~]# systemctl  restart  network
+
+[root@V11 ~]#  ifconfig  eth1  down
+[root@V11 ~]#  ifconfig  eth2  down
+
+[root@V11 ~]# ifconfig  |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.11  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+eth0:0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.21  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+
+
+[root@V11 ~]# ipvsadm  --set  800 100 260   #设置tcp tcpfin udp超时时间
+
+[root@V11 ~]# ipvsadm  -l  --timeout    #查看 超时时间
+Timeout (tcp tcpfin udp): 800 100 260
+
+
+创建LVS虚拟集群服务器(算法为加权轮询:wrr)
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+/**********  这里写错了ip,不能是 eth0,只能是eth0:0
+
+[root@V11 ~]# ipvsadm -A  -t  192.168.0.11:80  -s  wrr
+
+[root@V11 ~]# ipvsadm  -Ln
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.0.11:80 wrr
+
+/********
+-D  --delete-service 删除内核虚拟服务器表中的一条虚拟服务器记录
+***/
+
+[root@V11 ~]# ipvsadm  -D  -t  192.168.0.11:80
+
+[root@V11 ~]# ipvsadm  -Ln
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+
+
+----------------- 正确 -----------------------
+
+创建LVS虚拟集群服务器(算法为加权轮询:wrr)
+
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+[root@V11 ~]# ipvsadm  -A  -t  192.168.0.21:80 -s  wrr
+
+
+-a –add-server 在内核虚拟服务器表的一条记录里添加一条新的真实服务器
+
+-r –real-server server-address 真实的服务器[Real-Server:port]
+
+-w –weight weight 真实服务器的权值
+
+-m   --masquerading 指定LVS 的工作模式为NAT 模式
+    --masquerading -m伪装（NAT）  指定LVS的工作模式为NAT模式
+
+-g   --gatewaying 指定LVS 的工作模式为直接路由模式（也是LVS 默认的模式）
+                      使用-g选项,将模式改为DR模式
+--gatewaying  -g 网关（直接路由）（默认）  
+  指LVS的工作模式为直接路由模式（也称LVS默认的模式 ) 
+
+  --ipip  -i  ipip encapsulation（tunneling）  
+  指定LVS的工作模式为隧道模式  
+
+
+
+-n   --numeric  输出IP 地址和端口的数字形式
+
+-e  --edit-server 编辑一条虚拟服务器记录中的某条真实服务器记录
+
+添加真实服务器
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+(-g参数设置LVS工作模式为DR模式,-w设置权重)
+
+---------------------------  添加realserver  eth0:0 --- VIP:  192.168.0.21/24  ------
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.12:80  -g
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.13:80  -g
+
+[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.14:80  -g
+
+[root@V11 ~]# ipvsadm  -ln
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.0.21:80 wrr
+  -> 192.168.0.12:80              Route   1      0          0         
+  -> 192.168.0.13:80              Route   1      0          0         
+  -> 192.168.0.14:80              Route   1      0          0   
+
+----------  -e  修改 192.168.0.12:80 权重 -w  为  2 ---------------
+
+[root@V11 ~]# ipvsadm  -e  -t   192.168.0.21:80  -r 192.168.0.12:80  -g  -w  2
+
+[root@V11 ~]# ipvsadm  -ln
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.0.21:80 wrr
+  -> 192.168.0.12:80              Route   2      0          0         
+  -> 192.168.0.13:80              Route   1      0          0         
+  -> 192.168.0.14:80              Route   1      0          0   
+      
+[root@V11 ~]# ipvsadm  -ln  --stats
+
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.21:80                     0        0        0        0        0
+  -> 192.168.0.12:80                     0        0        0        0        0
+  -> 192.168.0.13:80                     0        0        0        0        0
+  -> 192.168.0.14:80                     0        0        0        0        0
+
+[root@V11 ~]# systemctl  restart  ipvsadm
+[root@V11 ~]# systemctl   is-enabled   ipvsadm
+enabled
+--------------   /etc/sysconfig/ipvsadm (默认保存规则的文件) -------------
+
+[root@V11 ~]# ipvsadm-save   -n  > /etc/sysconfig/ipvsadm #保存规则
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+-A -t 192.168.0.21:80 -s wrr
+-a -t 192.168.0.21:80 -r 192.168.0.12:80 -g -w 2
+-a -t 192.168.0.21:80 -r 192.168.0.13:80 -g -w 1
+-a -t 192.168.0.21:80 -r 192.168.0.14:80 -g -w 1
+
+
+[root@V11 ~]# ipvsadm  -ln  --stats
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.21:80                    36      216        0    16776        0
+  -> 192.168.0.12:80                    18      108        0     8388        0
+  -> 192.168.0.13:80                     9       54        0     4194        0
+  -> 192.168.0.14:80                     9       54        0     4194        0
+
+[root@V11 ~]# ipvsadm  -Z   # 虚拟服务表计数器清零（清空当前的连接数量等）
+
+[root@V11 ~]# ipvsadm  -ln  --stats
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.21:80                     0        0        0        0        0
+  -> 192.168.0.12:80                     0        0        0        0        0
+  -> 192.168.0.13:80                     0        0        0        0        0
+  -> 192.168.0.14:80                     0        0        0        0        0
+
+
+[root@V11 ~]# yum  list |grep iptable
+iptables.x86_64                         1.4.21-18.el7              @anaconda/7.4
+iptables.i686                           1.4.21-18.el7              rhel7        
+iptables-devel.i686                     1.4.21-18.el7              rhel7        
+iptables-devel.x86_64                   1.4.21-18.el7              rhel7        
+iptables-services.x86_64                1.4.21-18.el7              rhel7  
+      
+[root@V11 ~]# rpm  -qa |grep iptable
+
+iptables-1.4.21-18.el7.x86_64
+
+[root@V11 ~]# service  iptables  status
+
+Redirecting to /bin/systemctl status iptables.service
+Unit iptables.service could not be found.
+
+
+DR模式小结：
+
+　　1、通过在调度器LB上修改数据包的目的MAC地址实现转发，端口不改变。
+意味着发送到RS上时的端口还是原来的端口，
+如果在RS上安装了Tomcat，
+那么Tomcat的端口也应该是和前面的端口一致，
+注意源地址仍然是CIP，目的地址仍然是VIP地址。
+
+　　2、请求的报文经过调度器，
+而RS响应处理后的报文无需经过调度器LB，
+因此并发访问量大时使用效率很高（和NAT模式比）
+
+　　3、因为DR模式是通过MAC地址改写机制实现转发，
+因此所有RS节点和调度器LB只能在一个局域网里面
+
+　　4、RS主机需要绑定VIP地址在LO接口上，
+并且需要配置ARP抑制。
+
+　　5、RS节点的默认网关不需要配置成LB，
+而是直接配置为上级路由的网关，
+能让RS直接出网就可以。
+
+　　6、由于DR模式的调度器仅做MAC地址的改写，
+所以调度器LB就不能改写目标端口，
+那么RS服务器就得使用和VIP相同的端口
+提供服务。
+
+DIP是调度器与后端服务器通信的IP地址(VIP必须配置在虚拟接口)
+DR(直接路由)
+
+DR模式与arp
+DR模式使用的是 更改 目的 的 mac地址
+
+一般来说客户端是不会和我们的服务器在同一个网段的，
+那么请求就会经过我们的服务器所在网段的路由设备上，
+在同一网段中，
+两个主机通信靠的是二层的物理地址 而不是Ip地址，
+所以当请求包到达这路由设备上之后，
+若路由设备的arp表中没有VIP对应的MAC，就会广播一个arp请求，
+
+在这里我们将LVS调度器 eth0:0 和real server lo:0上都配置了VIP，
+那么按照理论他们都会响应这个arp请求，
+
+那路由器的arp表就会乱了。
+所以，我们就需要只让LVS 调度器 eth0:0 上响应VIP的arp请求，
+而real server lo:0不响应；
+
+修改 real server  内核参数：
+  net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip 不回答arp请求
+
+
+ ip_forward不需要打开，因为LB和real server在同一个网段
+/****** 部署LVS-NAT模式调度器
+----------------------  确认调度器的路由转发功能 -----------------
+[root@V11 ~]# cat   /proc/sys/net/ipv4/ip_forward
+1
+*******/
+
+ 一般( eth0:0 )VIP 所在的网卡eth0 还配置一个DIP，
+这是因为如果是用了keepalived等工具
+做HA或者Load Balance,
+则在健康检查时需要用到DIP(eth0)
+
+DR模式下要求 real server 的 arp_ignore参数要求配置为1
+  net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+
+LVS的负载均衡能力 才会 生效
+
+
+
+
+DIP是调度器与后端服务器通信的IP地址(VIP必须配置在虚拟接口)
+DR(直接路由)
+gateway  192.168.0.254
+
+  eth0   --- CIP:  192.168.0.10
+
+  eth0   --- DIP:  192.168.0.11
+  eth0:0 --- VIP:  192.168.0.21/24
+
+  eth0   --- RIP1: 192.168.0.12
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP2: 192.168.0.13
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP3: 192.168.0.14
+  lo:0   --- VIP:  192.168.0.21/32
+
+[root@room9pc01 ~]# ssh  -X  192.168.0.12
+.............
+
+给单网卡配置多ip的 临时方法  
+#ifconfig eth0:0 192.168.0.1 netmask 255.255.255.0 up 
+#ifconfig eth0:1 192.168.0.2 netmask 255.255.255.0 up 
+
+[root@V12 ~]# ifdown  eth1
+[root@V12 ~]# ifdown  eth2
+
+[root@V12 ~]# ifconfig  lo:0   192.168.0.21/32  up  #临时配置vip 
+
+[root@V12 ~]# ifconfig  |grep  -A1 flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.12  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+--
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 192.168.0.21  netmask 0.0.0.0
+--
+.............
+[root@V12 ~]# ifconfig  lo:0  down  #关闭子网卡
+
+[root@V12 ~]# ifconfig  |grep  -A1 flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.12  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+--
+.......... 
+[root@V12 ~]# ll /etc/rc.local
+lrwxrwxrwx. 1 root root 13 1月  30 2018 /etc/rc.local -> rc.d/rc.local
+[root@V12 ~]# ll /etc/rc.d/rc.local
+-rwxr-xr-x. 1 root root 529 3月  13 13:46 /etc/rc.d/rc.local
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+DR模式下要求 real server 的 arp_ignore参数要求配置为1
+  net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+
+[root@V12 ~]# vim  /etc/rc.local 
+[root@V12 ~]# tail   -2  /etc/rc.local
+LANG="en_US.UTF-8"
+ifconfig  lo:0   192.168.0.21/32  up
+
+[root@V12 ~]# .  /etc/rc.local
+
+[root@V12 ~]# ifconfig  lo:0 |head  -2
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 192.168.0.21  netmask 0.0.0.0
+
+[root@V12 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo 
+DEVICE=lo
+IPADDR=127.0.0.1
+NETMASK=255.0.0.0
+NETWORK=127.0.0.0
+# If you're having problems with gated making 127.0.0.0/8 a martian,
+# you can change this to something else (255.255.255.255, for example)
+BROADCAST=127.255.255.255
+ONBOOT=yes
+NAME=loopback
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V12 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-lo{,:0}
+[root@V12 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-lo:0
+[root@V12 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo:0
+DEVICE=lo:0
+IPADDR=192.168.0.21
+NETMASK=255.255.255.255
+NETWORK=192.168.0.21
+BROADCAST=192.168.0.21
+ONBOOT=yes
+NAME=lo:0
+[root@V12 ~]# ifconfig  lo:0  down
+
+[root@V12 ~]# ifconfig  lo:0  |head  -2
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        loop  txqueuelen 1  (Local Loopback)
+
+[root@V12 ~]# systemctl  restart   network
+
+[root@V12 ~]# ifdown  eth1
+[root@V12 ~]# ifdown  eth2
+
+[root@V12 ~]# ifconfig  lo:0  |head  -2
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 192.168.0.21  netmask 255.255.255.255
+
+[root@V12 ~]# ifconfig  eth0  |grep  'inet '
+        inet 192.168.0.12  netmask 255.255.255.0  broadcast 192.168.0.255
+
+
+[root@V12 ~]# ls  /proc/sys/net/ipv4/conf/
+all  default  eth0  eth1  eth2  lo  virbr0  virbr0-nic
+
+[root@V12 ~]# ls  /proc/sys/net/ipv4/conf/all/ |wc  -l
+26
+[root@V12 ~]# ls  /proc/sys/net/ipv4/conf/lo/ |wc  -l
+26
+
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/all/arp_ignore 
+0
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/all/arp_announce 
+0
+   
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/lo/arp_ignore 
+0
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/lo/arp_announce 
+0
+
+[root@V12 ~]# sysctl  -a |egrep  "(lo|all).arp(_ignore|_announce)"
+net.ipv4.conf.all.arp_announce = 0
+net.ipv4.conf.all.arp_ignore = 0
+net.ipv4.conf.lo.arp_announce = 0
+net.ipv4.conf.lo.arp_ignore = 0
+
+arp_ignore参数的作用是控制系统在收到外部的arp请求时，是否要返回arp响应。
+　　arp_ignore参数常用的取值主要有0，1，2，3~8较少用到：
+0：响应任意网卡上接收到的对本机IP地址（包括环回网卡上的地址）的arp请求，
+而不管该目的IP是否在接收网卡上。
+
+1：只响应目的IP地址为接收网卡上的本地地址的arp请求
+
+/********
+这里因为web1--V12 也配置与代理V11 一样的VIP地址,
+默认肯定会出现地址冲突;
+sysctl.conf文件写入这下面四行的主要目的
+就是访问192.168.0.21 的数据包,
+只有调度器会响应,
+其他主机都不做任何响应,
+这样防止地址冲突的问题。
+-------------------- #手动写入如下4行内容
+[root@V12 ~]# vim  /etc/sysctl.conf 
+[root@V12 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V12 ~]# sysctl  -p   /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+#当有arp广播问谁是192.168.0.21时,
+本机忽略该ARP广播,
+不做任何回应
+#本机不要向外宣告自己的lo回环地址是192.168.0.21
+
+Linux主机有这么一个特性，
+假设我们的主机上有两块网卡，比如eth0,eth1 
+当arp请求eth0的mac地址的时候，eth0会答复，
+但是eth1也会“好心”的帮eth0回答这个arp请求； 
+要防止这样的话，就需要更改下一些内核参数：
+  net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+
+all 是指所有设备的interface
+
+[root@V12 ~]# route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+............
+另外一个linux的特性就是，
+对于一个从realserver lo:0 发出的arp请求，其源IP是VIP，
+而出口不会是lo，
+这里假设是eth0，
+那么这个arp请求包里里面，源IP就是lo:0 -- VIP，
+源MAC是eth0的mac，
+目的IP是网关，
+
+那么路由器在接收到这个请求的时候，
+会将将自己的相应接口的硬件地址
+放在 arp 响应包 中，
+
+同时将 请求包 中的 源IP及MAC放在arp高速缓存中，
+那么就会使真正的调度器VIP -- eth0:0 得不到正确的请求回应了
+
+正常的情况下，
+arp的请求中 源IP是出去的所在接口的地址，
+mac也是出去的接口的mac，
+
+但linux在默认情况下却不是这样的，
+如果一个接口 lo:0 发出的 arp 请求 须 经 另一个出口eth0 出去的时候，
+源IP 就 不是 所出去接口 lo:0 的 VIP，
+
+将内核参数设置为 2 相应的解决了这个问题。
+源IP 就 是 所出去接口 lo:0 的 VIP
+
+  net.ipv4.conf.lo.arp_announce = 2
+  net.ipv4.conf.all.arp_announce = 2
+
+ARP协议是“Address Resolution Protocol”（地址解析协议）的缩写
+“地址解析”就是
+主机在发送帧 前 将 目标IP地址 转换成 目标MAC地址 的过程。
+ARP协议的基本功能就是
+通过目标设备的IP地址，查询目标设备的MAC地址，
+以保证通信的顺利进行。
+
+
+arp_ignore参数的作用是
+控制系统在收到外部的arp请求时，是否要返回arp响应
+0：响应任意网卡上接收到的
+对本机IP地址（包括环回网卡上的地址）的arp请求，
+而不管该目的IP
+是否在接收网卡上。
+
+1：只响应目的IP地址为接收网卡上的本地地址的arp请求。
+-------------
+
+　arp_announce的作用是
+控制系统在对外  发送 arp请求时，
+如何选择arp请求数据包的 源IP地址。
+
+arp请求的源IP是可以选择的，
+控制这个地址如何选择就是arp_announce的作用
+
+arp_announce参数常用的取值有0，1，2。
+0：允许使用任意网卡上的IP地址
+作为arp请求的源IP，通常就是使用数据包的源IP。
+
+1：尽量避免使用不属于
+该发送网卡 子网 的本地地址 作为
+发送arp请求的源IP地址。
+
+2：忽略IP数据包的源IP地址，
+选择该发送网卡上 最合适的本地地址 
+作为arp请求的源IP地址。
+　　sysctl.conf中包含all和eth/lo（具体网卡）的arp_ignore参数，
+取其中较大的值生效。
+
+IP包 目的地址CIP(192.168.0.10) 根据 路由表 查询 
+判断需要从eth0 网卡发出,
+该arp请求的 源MAC自然是eth0 网卡的MAC地址,
+ lo:0 网卡发起arp请求时，源IP地址会选择 lo:0 网卡自身的VIP地址(192.168.0.21)
+
+将内核参数设置为 2 相应的解决了这个问题。
+源IP 就 是 所出去接口 lo:0 的 VIP
+  net.ipv4.conf.lo.arp_announce = 2
+  net.ipv4.conf.all.arp_announce = 2
+
+
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/{all,lo}/arp_ignore
+1
+1
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/{all,lo}/arp_announce
+2
+2
+
+[root@V12 ~]# systemctl  restart  network
+[root@V12 ~]# ifdown   eth1
+[root@V12 ~]# ifdown   eth2
+[root@V12 ~]# ifconfig  |grep -A1 flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.12  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+--
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 192.168.0.21  netmask 255.255.255.255
+...........
+
+[root@V12 ~]#  elinks  -dump  192.168.0.12
+   web1 V12 192.168.1.12
+
+在每台安装有TCP/IP协议的电脑里都有一个ARP缓存表，
+表里的IP地址与MAC地址是一一对应的
+输入“arp -a”就可以查看ARP缓存表中的内容了
+
+[root@V12 ~]# arp  -a
+V10 (192.168.0.10) at 52:54:00:95:62:08 [ether] on eth0
+V11 (192.168.0.11) at 52:54:00:88:e9:49 [ether] on eth0
+gateway (192.168.0.254) at 52:54:00:0b:e1:46 [ether] on eth0
+
+[root@V11 ~]# arp  -a
+? (192.168.0.12) at 52:54:00:da:62:1e [ether] on eth0
+gateway (192.168.0.254) at 52:54:00:0b:e1:46 [ether] on eth0
+? (192.168.0.13) at 52:54:00:6b:28:ef [ether] on eth0
+? (192.168.0.14) at 52:54:00:f2:3b:0a [ether] on eth0
+V10 (192.168.0.10) at 52:54:00:95:62:08 [ether] on eth0
+
+[root@V10 ~]# arp  -a
+gateway (192.168.0.254) at 52:54:00:0b:e1:46 [ether] on eth0
+? (192.168.0.14) at 52:54:00:f2:3b:0a [ether] on eth0
+? (192.168.0.13) at 52:54:00:6b:28:ef [ether] on eth0
+V11 (192.168.0.11) at 52:54:00:88:e9:49 [ether] on eth0
+? (192.168.0.12) at 52:54:00:da:62:1e [ether] on eth0
+? (192.168.0.21) at 52:54:00:88:e9:49 [ether] on eth0
+
+[root@V11 ~]# ifconfig eth0 |grep  'ether'
+        ether 52:54:00:88:e9:49  txqueuelen 1000  (Ethernet)
+
+[root@V12 ~]# ifconfig eth0 |grep  'ether'
+        ether 52:54:00:da:62:1e  txqueuelen 1000  (Ethernet)
+
+[root@V13 ~]# ifconfig eth0 |grep  'ether'
+        ether 52:54:00:6b:28:ef  txqueuelen 1000  (Ethernet)
+
+用“arp -d”命令可以删除ARP表中某一行的内容
+用“arp -s”可以手动在ARP表中指定IP地址与MAC地址的对应
+
+
+
+
+
+gateway  192.168.0.254
+[root@V13 ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+
+[root@V13 ~]# ll  /etc/rc.d/rc.local 
+-rwxr-xr-x. 1 root root 492 3月  12 13:47 /etc/rc.d/rc.local
+[root@V13 ~]# ll  /etc/rc.local 
+lrwxrwxrwx. 1 root root 13 1月  30 2018 /etc/rc.local -> rc.d/rc.local
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V13 ~]# vim   /etc/rc.local
+[root@V13 ~]# tail  -2  /etc/rc.local
+LANG="en_US.UTF-8"
+ifconfig  lo:0   192.168.0.21/32  up
+
+[root@V13 ~]# .  /etc/rc.local
+[root@V13 ~]# ifconfig  lo:0  down
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V13 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-lo{,:0}
+[root@V13 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-lo:0
+[root@V13 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo:0
+DEVICE=lo:0
+IPADDR=192.168.0.21
+NETMASK=255.255.255.255
+NETWORK=192.168.0.21
+BROADCAST=192.168.0.21
+ONBOOT=yes
+NAME=lo:0
+
+[root@V13 ~]# systemctl  restart  network
+[root@V13 ~]# ifdown  eth1
+[root@V13 ~]# ifdown  eth2
+
+[root@V13 ~]# ifconfig |grep  'inet '
+        inet 192.168.0.13  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet 192.168.0.21  netmask 255.255.255.255
+........
+
+[root@V13 ~]# sysctl  -a |egrep  "(lo|all).arp(_ignore|_announce)"
+net.ipv4.conf.all.arp_announce = 0
+net.ipv4.conf.all.arp_ignore = 0
+net.ipv4.conf.lo.arp_announce = 0
+net.ipv4.conf.lo.arp_ignore = 0
+................
+
+[root@V13 ~]# vim  /etc/sysctl.conf 
+
+[root@V13 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+#当有arp广播问谁是192.168.0.21时,
+本机忽略该ARP广播,
+不做任何回应
+#本机不要向外宣告自己的lo回环地址是192.168.0.21
+
+[root@V13 ~]# sysctl  -p  /etc/sysctl.conf
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+
+[root@V13 ~]# sysctl  -a |egrep  "(lo|all).arp(_ignore|_announce)"
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+...........
+[root@V13 ~]# ifconfig |grep  'inet '
+        inet 192.168.0.13  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet 192.168.0.21  netmask 255.255.255.255
+
+[root@V13 ~]#  elinks  -dump  192.168.0.13
+   web2 V13 192.168.1.13
+
+
+
+
+
+
+
+
+[root@V14 ~]# ifdown  eth1
+[root@V14 ~]# ifdown  eth2
+[root@V14 ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+
+[root@V14 ~]# ll  /etc/rc.local 
+lrwxrwxrwx. 1 root root 13 1月  30 2018 /etc/rc.local -> rc.d/rc.local
+
+[root@V14 ~]# vim  /etc/rc.local
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V14 ~]# tail  -2  /etc/rc.local
+
+LANG="en_US.UTF-8"
+ifconfig  lo:0  192.168.0.21/32  up
+
+[root@V14 ~]# . /etc/rc.local
+[root@V14 ~]# ifconfig  eth0 |grep 'inet ';ifconfig  lo:0 |grep 'inet '
+        inet 192.168.0.14  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet 192.168.0.21  netmask 0.0.0.0
+
+[root@V14 ~]# vim  /etc/sysctl.conf 
+
+[root@V14 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+#当有arp广播问谁是192.168.0.21时,
+本机忽略该ARP广播,
+不做任何回应
+#本机不要向外宣告自己的lo回环地址是192.168.0.21
+
+[root@V14 ~]# sysctl  -p
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V14 ~]# ifconfig |grep  'inet '
+        inet 192.168.0.14  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet 192.168.0.21  netmask 0.0.0.0
+        inet 192.168.122.1  netmask 255.255.255.0  broadcast 192.168.122.255
+
+[root@V14 ~]# rpm -q  httpd elinks
+httpd-2.4.6-67.el7.x86_64
+elinks-0.12-0.36.pre6.el7.x86_64
+
+[root@V14 ~]# systemctl  restart  httpd  && systemctl  enable  httpd
+.............
+[root@V14 ~]# echo  "V14  192.168.0.14" > /var/www/html/index.html
+
+[root@V14 ~]# elinks  -dump  192.168.0.14
+   V14 192.168.0.14
+
+[root@V14 ~]# 
+
+
+
+
+
+
