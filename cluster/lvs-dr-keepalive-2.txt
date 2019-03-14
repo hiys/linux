@@ -1,0 +1,986 @@
+
+
+/*************
+export LANG=en_US.UTF-8
+echo  1 |passwd  --stdin  root
+
+# systemctl  stop   NetworkManager
+# yum  -y   remove  NetworkManager-*  firewalld-*  python-firewall 
+# sed  -i  "7c SELINUX=disabled"  /etc/selinux/config
+# systemctl   restart  network
+*****/
+ 
+cip,dip,vip  全部是公网, 运营收费额较高
+
+DIP是调度器与后端服务器通信的IP地址(VIP必须配置在虚拟接口)
+DR(直接路由)
+
+  eth0   --- CIP:  192.168.0.10
+
+  eth0   --- DIP:  192.168.0.11
+ 服务器VIP eth0:0 --- VIP:  192.168.0.21/24
+
+  eth0   --- DIP:  192.168.0.15
+ 服务器VIP eth0:0 --- VIP:  192.168.0.21/24
+
+  eth0   --- RIP1: 192.168.0.12
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP2: 192.168.0.13
+  lo:0   --- VIP:  192.168.0.21/32
+
+  eth0   --- RIP3: 192.168.0.14
+  lo:0   --- VIP:  192.168.0.21/32
+
+
+[root@room9pc01 ~]# ssh  -o StrictHostKeyChecking=no  192.168.0.15
+............
+[root@V15 ~]# vim  /etc/yum.repos.d/local.repo 
+[root@V15 ~]# cat  /etc/yum.repos.d/local.repo
+[rhel7.4]
+name=rhel-server-7.4-x86_64-dvd.iso
+baseurl=ftp://192.168.0.254/rhel7
+enabled=1
+gpgcheck=0
+[root@V15 ~]# yum clean  all >/dev/null && yum repolist |tail -3
+源标识                    源名称                                           状态
+rhel7.4                   rhel-server-7.4-x86_64-dvd.iso                   4,986
+repolist: 4,986
+
+[root@V15 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+
+************  配置proxy2 主机backup 的网络参数(不配置VIP,由keepalived自动配置) **********
+
+[root@V15 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+NAME="eth0"
+DEVICE="eth0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.15"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+
+------------ 首先在调度器 LVS1---V11 和LVS2 --V15 上开启路由转发的功能
+-----------------  确认调度器的路由转发功能 ------
+[root@V15 ~]#   cat  /proc/sys/net/ipv4/ip_forward
+1
+
+[root@V11 ~]# sysctl  -a |grep net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+.........
+
+[root@V15 ~]# systemctl  restart  network
+
+[root@V15 ~]# ifconfig  eth1  down
+[root@V15 ~]# ifdown    eth2
+[root@V15 ~]# ifconfig  |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.15  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+--
+......
+
+[root@V15 ~]# yum  -y  install  keepalived   nmap |tail  -3
+..........
+[root@V15 ~]# rpm  -qa |egrep "keepalived|nmap"
+keepalived-1.3.5-1.el7.x86_64
+nmap-6.40-7.el7.x86_64
+nmap-ncat-6.40-7.el7.x86_64
+
+
+[root@V15 ~]# yum  -y install  ipvsadm |tail -2
+
+完毕！
+[root@V15 ~]# vim  /etc/sysconfig/ipvsadm-config 
+[root@V15 ~]# egrep  -nv "^#|^$"  /etc/sysconfig/ipvsadm-config
+6:IPVS_MODULES_UNLOAD="yes"
+12:IPVS_SAVE_ON_STOP="yes"
+18:IPVS_SAVE_ON_RESTART="yes"
+23:IPVS_STATUS_NUMERIC="yes"
+
+[root@V15 ~]# touch  /etc/sysconfig/ipvsadm
+[root@V15 ~]# ll /etc/sysconfig/ipvsadm
+-rw-r--r-- 1 root root 0 3月  13 20:43 /etc/sysconfig/ipvsadm
+
+[root@V15 ~]# systemctl  start   ipvsadm  && systemctl  enable  ipvsadm
+
+[root@V15 ~]# cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+
+[root@V15 ~]# systemctl  enable  keepalived.service 
+
+Created symlink from /etc/systemd/system/multi-user.target.wants/keepalived.service to /usr/lib/systemd/system/keepalived.service.
+
+[root@V15 ~]# vim   /etc/keepalived/keepalived.conf
+
+[root@V15 ~]# cat  -n  /etc/keepalived/keepalived.conf
+     1	! Configuration File for keepalived
+     2	
+     3	global_defs {
+     4	   notification_email {
+     5	     acassen@firewall.loc
+     6	     failover@firewall.loc
+     7	     sysadmin@firewall.loc
+     8	            }
+     9	   notification_email_from Alexandre.Cassen@firewall.loc
+    10	   smtp_server 192.168.200.1
+    11	   smtp_connect_timeout 30
+    12	   router_id LVS_V15
+    13	   vrrp_skip_check_adv_addr
+    14	#   vrrp_strict
+    15	   vrrp_garp_interval 0
+    16	   vrrp_gna_interval 0
+    17	        }
+    18	vrrp_sync_group vg_1 {   # vrrp 同步组，组成员是vrrp实例的名字
+    19	    group {
+    20	        LVSha
+    21	              }
+    22	        }
+    23	vrrp_instance LVSha  {
+    24	    state BACKUP
+    25	    interface eth0
+    26	    virtual_router_id 51
+    27	    priority 100
+    28	    advert_int 1
+    29	    authentication {
+    30	        auth_type PASS
+    31	        auth_pass 1111
+    32	             }
+    33	    virtual_ipaddress {
+    34	                 192.168.0.21     #也可以这样写 192.168.0.21/32  dev  eth0
+    35	              }
+    36	         }
+    37	
+    38	virtual_server 192.168.0.21 80 {
+    39	    delay_loop 6
+    40	    lb_algo rr
+    41	    lb_kind DR
+    42	#    persistence_timeout 50
+    43	    protocol TCP
+    44	
+    45	    real_server 192.168.0.12  80 {
+    46	        weight 1
+    47	        HTTP_GET {
+    48	            url {
+    49	              path    /
+    50	              digest c2e7b1048523a6fc9a1a78d5fd783605
+    51	                      } 
+    52	           connect_timeout 3    # 连接超时时间
+    53	           connect_port  80    #连接的端口
+    54	           nb_get_retry  3     # 表示重试次数
+    55	           delay_before_retry 3   # 表示重试间隔
+    56	                  }
+    57	             }
+    58	    real_server 192.168.0.13  80 {
+    59	        weight 1
+    60	        HTTP_GET {
+    61	            url {
+    62	              path    /
+    63	              digest  e7b87c254505fecdedd3545af2160950
+    64	                       }
+    65	           connect_timeout 3
+    66	           connect_port  80
+    67	           nb_get_retry  3
+    68	           delay_before_retry 3
+    69	                 }
+    70	             }
+    71	    real_server 192.168.0.14  80 {
+    72	        weight 1
+    73	        HTTP_GET {
+    74	            url {
+    75	              path    /
+    76	              digest  09c990685febab223b6dafd74de1f7ec
+    77	                      }
+    78	           connect_timeout 3
+    79	           connect_port  80
+    80	           nb_get_retry  3
+    81	           delay_before_retry 3
+    82	                 }
+    83	          }
+    84	}    
+
+----------------------   用genhash来获取web服务 url的校验码  ---------------
+
+[root@V15 ~]# genhash  -s  192.168.0.12  -p 80  -u  /
+MD5SUM = c2e7b1048523a6fc9a1a78d5fd783605
+
+[root@V15 ~]# genhash  -s  192.168.0.13  -p 80  -u  /
+MD5SUM = e7b87c254505fecdedd3545af2160950
+
+[root@V15 ~]# genhash  -s  192.168.0.14  -p 80  -u  /
+MD5SUM = 09c990685febab223b6dafd74de1f7ec
+
+[root@V15 ~]# > /var/log/messages 
+[root@V15 ~]# cat  /var/log/messages
+
+[root@V15 ~]# systemctl restart keepalived
+[root@V15 ~]# echo  $?
+0
+[root@V15 ~]# systemctl  is-enabled  keepalived
+enabled
+
+[root@V15 ~]#  grep -n Keepalived_healthcheckers  /var/log/messages
+23:Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Opening file '/etc/keepalived/keepalived.conf'.
+24:Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Activating healthchecker for service [192.168.0.21]:80
+25:Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Activating healthchecker for service [192.168.0.21]:80
+26:Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Activating healthchecker for service [192.168.0.21]:80
+
+[root@V15 ~]# grep -n  "VIP"  /var/log/messages
+27:Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) removing protocol VIPs.
+
+[root@V15 ~]# grep -n  "BACKUP STATE"  /var/log/messages 
+30:Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering BACKUP STATE
+
+[root@V15 ~]# grep -n  "MASTER STATE"  /var/log/messages 
+
+[root@V15 ~]# ifconfig |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.15  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+
+
+[root@V11 ~]# ifconfig |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.11  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+..................
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web2 V13 192.168.1.13
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web2 V13 192.168.1.13
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+
+
+[root@V11 ~]# systemctl  stop  keepalived
+
+
+[root@V15 ~]# grep -n  "MASTER STATE"  /var/log/messages  #角色 由备份转为 主调度器master
+
+38:Mar 14 21:03:03 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Transition to MASTER STATE
+39:Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering MASTER STATE
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web2 V13 192.168.1.13
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+
+[root@V15 ~]# cat  -n  /var/log/messages
+     1	Mar 14 20:01:01 V15 systemd: Started Session 82 of user root.
+........................................
+    10	Mar 14 20:40:01 V15 systemd: Starting Session 86 of user root.
+    11	Mar 14 20:43:42 V15 systemd: [/usr/lib/systemd/system/firstboot-graphical.service:14] Support for option SysVStartPriority= has been removed and it is ignored
+    12	Mar 14 20:43:44 V15 systemd: Starting LVS and VRRP High Availability Monitor...
+    13	Mar 14 20:43:44 V15 Keepalived[8414]: Starting Keepalived v1.3.5 (03/19,2017), git commit v1.3.5-6-g6fa32f2
+    14	Mar 14 20:43:44 V15 Keepalived[8414]: Unable to resolve default script username 'keepalived_script' - ignoring
+    15	Mar 14 20:43:44 V15 Keepalived[8414]: Opening file '/etc/keepalived/keepalived.conf'.
+    16	Mar 14 20:43:44 V15 Keepalived[8415]: Starting Healthcheck child process, pid=8416
+    17	Mar 14 20:43:44 V15 systemd: Started LVS and VRRP High Availability Monitor.
+    18	Mar 14 20:43:44 V15 Keepalived[8415]: Starting VRRP child process, pid=8417
+    19	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: Registering Kernel netlink reflector
+    20	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: Registering Kernel netlink command channel
+    21	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: Registering gratuitous ARP shared channel
+    22	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: Opening file '/etc/keepalived/keepalived.conf'.
+    23	Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Opening file '/etc/keepalived/keepalived.conf'.
+    24	Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Activating healthchecker for service [192.168.0.21]:80
+    25	Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Activating healthchecker for service [192.168.0.21]:80
+    26	Mar 14 20:43:44 V15 Keepalived_healthcheckers[8416]: Activating healthchecker for service [192.168.0.21]:80
+    27	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) removing protocol VIPs.
+    28	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: Sync group vg_1 has only 1 virtual router(s) - removing
+    29	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: Using LinkWatch kernel netlink reflector...
+    30	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering BACKUP STATE
+    31	Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: VRRP sockpool: [ifindex(2), proto(112), unicast(0), fd(10,11)]
+    32	Mar 14 20:50:01 V15 systemd: Started Session 87 of user root.
+    33	Mar 14 20:50:01 V15 systemd: Starting Session 87 of user root.
+    34	Mar 14 21:00:01 V15 systemd: Started Session 88 of user root.
+    35	Mar 14 21:00:01 V15 systemd: Starting Session 88 of user root.
+    36	Mar 14 21:01:01 V15 systemd: Started Session 89 of user root.
+    37	Mar 14 21:01:01 V15 systemd: Starting Session 89 of user root.
+    38	Mar 14 21:03:03 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Transition to MASTER STATE
+    39	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering MASTER STATE
+    40	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) setting protocol VIPs.
+    41	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    42	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Sending/queueing gratuitous ARPs on eth0 for 192.168.0.21
+    43	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    44	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    45	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    46	Mar 14 21:03:04 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    47	Mar 14 21:03:04 V15 avahi-daemon[677]: Registering new address record for 192.168.0.21 on eth0.IPv4.
+    48	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    49	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Sending/queueing gratuitous ARPs on eth0 for 192.168.0.21
+    50	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    51	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    52	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    53	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+
+[root@V11 ~]# systemctl   start  keepalived.service 
+
+       # vrrp 实例VRRP(virtual router redundant protocol 虚拟路由器冗余协议)
+ 19 vrrp_instance LVSha {   #vrrp设置名称 LVSha
+ 20     state MASTER      #master状态 主服务器为MASTER
+ 21     interface eth0        //定义网络接口
+ 22     virtual_router_id 51   # master和backup的id一致,主辅VRID号必须一致
+ 23     priority 150           # 服务器优先级150
+
+[root@V11 ~]# grep -n  "BACKUP STATE"  /var/log/messages  #因为优先级150,再次开机重新成为lvs主调度器master
+
+[root@V15 ~]# grep -n  "BACKUP STATE"  /var/log/messages  #因为优先级100<150,再次开机重新成为lvs备份调度器
+
+30:Mar 14 20:43:44 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering BACKUP STATE
+57:Mar 14 21:12:01 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering BACKUP STATE
+
+    19	vrrp_instance LVSha  {    # vrrp 实例(虚拟路由器冗余协议)
+    20	    state BACKUP      #从服务器为BACKUP
+    21	    interface eth0    #定义网络接口
+    22	    virtual_router_id 51   ## master和backup的id一致
+    23	    priority 100      ##优先级比master 低些<150
+
+[root@V15 ~]# cat  -n  /var/log/messages  |tail
+    50	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    51	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    52	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    53	Mar 14 21:03:09 V15 Keepalived_vrrp[8417]: Sending gratuitous ARP on eth0 for 192.168.0.21
+    54	Mar 14 21:10:01 V15 systemd: Started Session 90 of user root.
+    55	Mar 14 21:10:01 V15 systemd: Starting Session 90 of user root.
+    56	Mar 14 21:12:01 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Received advert with higher priority 150, ours 100
+    57	Mar 14 21:12:01 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) Entering BACKUP STATE
+    58	Mar 14 21:12:01 V15 Keepalived_vrrp[8417]: VRRP_Instance(LVSha) removing protocol VIPs.
+    59	Mar 14 21:12:01 V15 avahi-daemon[677]: Withdrawing address record for 192.168.0.21 on eth0.
+[root@V15 ~]# 
+
+
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web2 V13 192.168.1.13
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   web1 V12 192.168.1.12
+[root@V10 ~]# elinks  -dump  192.168.0.21
+   V14 192.168.0.14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+***********  配置proxy1 主机 master 的网络参数(不配置VIP,由keepalived自动配置) **********
+
+[root@V11 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+NAME="eth0"
+DEVICE="eth0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.11"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+
+[root@V11 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+------------ 首先在调度器 LVS1---V11 和LVS2 --V15 上开启路由转发的功能
+-----------------  确认调度器的路由转发功能 ------
+[root@V11 ~]#  cat  /proc/sys/net/ipv4/ip_forward
+1
+[root@V11 ~]# sysctl  -a |grep net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+.........
+
+[root@V11 ~]# yum  -y  install  keepalived |tail  -3
+  net-snmp-agent-libs.x86_64 1:5.7.2-28.el7                                     
+
+完毕！
+[root@V11 ~]# yum  -y  install  nmap |tail  -3
+  nmap.x86_64 2:6.40-7.el7                                                      
+
+完毕！
+[root@V11 ~]#  rpm  -qa |egrep "keepalived|nmap"
+nmap-6.40-7.el7.x86_64
+keepalived-1.3.5-1.el7.x86_64
+nmap-ncat-6.40-7.el7.x86_64
+
+------------- 需要先安装yum install libnl* popt* -y ----
+[root@V11 ~]# rpm  -qa |egrep  "libnl|popt"
+libnl3-3.2.28-4.el7.x86_64
+popt-1.13-16.el7.x86_64
+libnl3-cli-3.2.28-4.el7.x86_64
+libnl-1.1.4-3.el7.x86_64
+
+[root@V11 ~]# rpm  -q  ipvsadm 
+ipvsadm-1.27-7.el7.x86_64
+
+[root@V11 ~]# man      ipvsadm
+
+[root@V11 ~]# grep  -Env  "^#|^$"   /etc/sysconfig/ipvsadm-config 
+6:IPVS_MODULES_UNLOAD="yes"     # 模块卸载
+12:IPVS_SAVE_ON_STOP="yes"      #  在 ...停止时保存
+18:IPVS_SAVE_ON_RESTART="yes"   #  IPVS_重新启动时保存
+23:IPVS_STATUS_NUMERIC="yes"    #  数字状态
+
+
+[root@V11 ~]# ls  /etc/sysconfig/ipvsadm*
+/etc/sysconfig/ipvsadm  /etc/sysconfig/ipvsadm-config
+
+[root@V11 ~]# ipvsadm   -Z
+
+[root@V11 ~]# ipvsadm   -Ln  --stats
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+  -> RemoteAddress:Port
+TCP  192.168.0.21:80                     0        0        0        0        0
+  -> 192.168.0.12:80                     0        0        0        0        0
+  -> 192.168.0.13:80                     0        0        0        0        0
+  -> 192.168.0.14:80                     0        0        0        0        0
+
+[root@V11 ~]# ipvsadm  -C
+
+[root@V11 ~]# ipvsadm-save  -n >  /etc/sysconfig/ipvsadm
+
+[root@V11 ~]# cat  /etc/sysconfig/ipvsadm
+
+[root@V11 ~]# ipvsadm   -Ln 
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+
+
+[root@V11 ~]# systemctl  restart  network
+
+[root@V11 ~]#  ifconfig  eth1  down
+[root@V11 ~]#  ifconfig  eth2  down
+
+[root@V11 ~]# ifconfig  |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.11  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+
+
+[root@V11 ~]# cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+
+[root@V11 ~]# systemctl  enable  keepalived
+
+[root@V11 ~]# type genhash
+genhash 是 /usr/bin/genhash
+   -------------------------           用genhash来获取web服务 url的校验码
+[root@V11 ~]# genhash  -s  192.168.0.12  -p 80  -u  /
+MD5SUM = c2e7b1048523a6fc9a1a78d5fd783605
+
+
+[root@V11 ~]# vim   /etc/keepalived/keepalived.conf
+
+[root@V11 ~]# cat  -n   /etc/keepalived/keepalived.conf
+ 
+     1	! Configuration File for keepalived
+     2	
+     3	global_defs {
+     4	   notification_email {
+     5	     acassen@firewall.loc
+     6	     failover@firewall.loc
+     7	     sysadmin@firewall.loc
+     8	           }
+     9	   notification_email_from Alexandre.Cassen@firewall.loc
+    10	   smtp_server 192.168.200.1
+    11	   smtp_connect_timeout 30
+    12	   router_id LVS_V11
+    13	   vrrp_skip_check_adv_addr
+    14	#   vrrp_strict
+    15	   vrrp_garp_interval 0
+    16	   vrrp_gna_interval 0
+    17	}
+    18	vrrp_sync_group vg_1 {
+    19	     group {
+    20	           LVSha
+    21	               }
+    22	        }
+    23	vrrp_instance LVSha {
+    24	    state MASTER
+    25	    interface eth0
+    26	    virtual_router_id 51
+    27	    priority 150
+    28	    advert_int 1
+    29	    authentication {
+    30	        auth_type PASS
+    31	        auth_pass 1111
+    32	            }
+    33	    virtual_ipaddress {
+    34	                 192.168.0.21     #也可以这样写 192.168.0.21/32  dev  eth0
+    35	             }
+    36	       }
+    37	
+    38	virtual_server 192.168.0.21 80 {
+    39	    delay_loop 6
+    40	    lb_algo rr
+    41	    lb_kind DR
+    42	#    persistence_timeout 50
+    43	    protocol TCP
+    44	
+    45	    real_server 192.168.0.12  80 {
+    46	        weight 1
+    47	        HTTP_GET {
+    48	            url {
+    49	              path    /
+    50	              digest c2e7b1048523a6fc9a1a78d5fd783605
+    51	                        }
+    52	           connect_timeout 3
+    53	           nb_get_retry    3
+    54	           connect_port   80
+    55	           delay_before_retry 3
+    56	                 }
+    57	            }
+    58	    real_server 192.168.0.13  80 {
+    59	        weight 1
+    60	        HTTP_GET {
+    61	            url {
+    62	              path    /
+    63	              digest  e7b87c254505fecdedd3545af2160950
+    64	                        }
+    65	           connect_timeout 3
+    66	           nb_get_retry    3
+    67	           connect_port   80
+    68	           delay_before_retry 3
+    69	                   }
+    70	            }
+    71	    real_server 192.168.0.14  80 {
+    72	        weight 1
+    73	        HTTP_GET {
+    74	            url {
+    75	              path    /
+    76	              digest  09c990685febab223b6dafd74de1f7ec
+    77	                      }
+    78	           connect_timeout 3
+    79	           nb_get_retry    3
+    80	           connect_port   80
+    81	           delay_before_retry 3
+    82	                  }
+    83	            }
+    84	   }
+[root@V11 ~]# 
+  ----------------------   用genhash来获取web服务 url的校验码  ---------------
+
+[root@V11 ~]# genhash  -s  192.168.0.12  -p 80  -u  /
+MD5SUM = c2e7b1048523a6fc9a1a78d5fd783605
+
+[root@V11 ~]# genhash  -s  192.168.0.13  -p 80  -u  /
+MD5SUM = e7b87c254505fecdedd3545af2160950
+
+[root@V11 ~]# genhash  -s  192.168.0.14  -p 80  -u  /
+MD5SUM = 09c990685febab223b6dafd74de1f7ec
+
+[root@V11 ~]# egrep -n  "{|}"   /etc/keepalived/keepalived.conf
+3:global_defs {
+4:   notification_email {
+8:   }
+17:}
+18:vrrp_sync_group vg_1 {
+19:     group {
+21:     }
+22:}
+23:vrrp_instance LVSha {
+29:    authentication {
+32:    }
+33:    virtual_ipaddress {
+35:    }
+36:}
+38:virtual_server 192.168.0.21 80 {
+45:    real_server 192.168.0.12  80 {
+47:        HTTP_GET {
+48:            url {
+51:            }
+56:        }
+57:    }
+58:    real_server 192.168.0.13  80 {
+60:        HTTP_GET {
+61:            url {
+64:            }
+69:         }
+70:    }
+71:    real_server 192.168.0.14  80 {
+73:        HTTP_GET {
+74:            url {
+77:            }
+82:         }
+83:    }
+84:}
+[root@V11 ~]#  > /var/log/messages 
+[root@V11 ~]# cat   /var/log/messages
+
+[root@V11 ~]#   在master服务器上启动  --------------------------
+
+[root@V11 ~]# systemctl restart keepalived
+[root@V11 ~]# echo  $?
+0
+
+[root@V11 ~]# systemctl  is-enabled  keepalived
+enabled
+
+------------   # 查看keepalived的日志，确保服务启动正常  -----------
+
+[root@V11 ~]#  grep -n  Keepalived_healthcheckers  /var/log/messages 
+15:Mar 14 20:43:21 V11 Keepalived_healthcheckers[15246]: Opening file '/etc/keepalived/keepalived.conf'.
+16:Mar 14 20:43:21 V11 Keepalived_healthcheckers[15246]: Activating healthchecker for service [192.168.0.21]:80     # 后端real-server校验成功，可以提供服务
+17:Mar 14 20:43:21 V11 Keepalived_healthcheckers[15246]: Activating healthchecker for service [192.168.0.21]:80      # 后端real-server校验成功，可以提供服务
+18:Mar 14 20:43:21 V11 Keepalived_healthcheckers[15246]: Activating healthchecker for service [192.168.0.21]:80      # 后端real-server校验成功，可以提供服务
+
+
+[root@V11 ~]# grep -n  "MASTER STATE"  /var/log/messages 
+23:Mar 14 20:43:22 V11 Keepalived_vrrp[15247]: VRRP_Instance(LVSha) Transition to MASTER STATE             # 设置本机为master角色
+24:Mar 14 20:43:23 V11 Keepalived_vrrp[15247]: VRRP_Instance(LVSha) Entering MASTER STATE
+
+[root@V11 ~]# grep -n  "VIP"  /var/log/messages 
+19:Mar 14 20:43:21 V11 Keepalived_vrrp[15247]: VRRP_Instance(LVSha) removing protocol VIPs.
+25:Mar 14 20:43:23 V11 Keepalived_vrrp[15247]: VRRP_Instance(LVSha) setting protocol VIPs.     #设置VIP到本机上
+
+[root@V11 ~]# ifconfig  |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.11  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+...............
+
+
+
+
+
+
+
+
+
+
+
+
+
+[root@V12 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+NAME="eth0"
+DEVICE="eth0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.12"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+
+[root@V12 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+DR模式下要求 real server 的 arp_ignore参数要求配置为1
+  net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+
+[root@V12 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-lo{,:0}
+[root@V12 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-lo:0
+[root@V12 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo:0
+DEVICE=lo:0
+IPADDR=192.168.0.21
+NETMASK=255.255.255.255
+NETWORK=192.168.0.21
+BROADCAST=192.168.0.21
+ONBOOT=yes
+NAME=lo:0
+
+[root@V12 ~]# systemctl  restart   network
+
+[root@V12 ~]# ifdown  eth1
+[root@V12 ~]# ifdown  eth2
+
+[root@V12 ~]# ifconfig  lo:0  |head  -2
+lo:0: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 192.168.0.21  netmask 255.255.255.255
+
+[root@V12 ~]# ifconfig  eth0  |grep  'inet '
+        inet 192.168.0.12  netmask 255.255.255.0  broadcast 192.168.0.255
+
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/all/arp_ignore 
+0
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/all/arp_announce 
+0
+   
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/lo/arp_ignore 
+0
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/lo/arp_announce 
+0
+
+[root@V12 ~]# sysctl  -a |egrep  "(lo|all).arp(_ignore|_announce)"
+net.ipv4.conf.all.arp_announce = 0
+net.ipv4.conf.all.arp_ignore = 0
+net.ipv4.conf.lo.arp_announce = 0
+net.ipv4.conf.lo.arp_ignore = 0
+
+[root@V12 ~]# vim  /etc/sysctl.conf 
+[root@V12 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V12 ~]# sysctl  -p   /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+1：只响应 目的IP地址 为 接收网卡 eth0 上的本地地址 192.168.0.1{2,3,4}的arp请求
+环回网卡 lo:0 上的 ip地址 
+则不响应,或者说lo:0 绑定的vip(192.168.0.21) 不回答arp请求
+ net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+--------------------------------------------------------------------
+将内核参数设置为 2  
+  net.ipv4.conf.lo.arp_announce = 2
+  net.ipv4.conf.all.arp_announce = 2
+
+arp_announce的作用是
+控制系统在对外  发送 arp请求时，
+arp请求的源IP是可以选择的，
+控制这个地址如何选择就是arp_announce的作用
+
+IP包 目的地址CIP(192.168.0.10) 根据 路由表 查询 
+判断需要从eth0 网卡发出,
+该arp请求的 源MAC自然是eth0 网卡的MAC地址,
+ lo:0 网卡发起arp请求时，源IP地址会选择 lo:0 网卡自身的VIP地址(192.168.0.21)
+源IP 就 是 所出去接口 lo:0 的 VIP
+
+
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/{all,lo}/arp_ignore
+1
+1
+[root@V12 ~]# cat  /proc/sys/net/ipv4/conf/{all,lo}/arp_announce
+2
+2
+[root@V12 ~]# systemctl  restart httpd 
+[root@V12 ~]# systemctl  enable   httpd
+[root@V12 ~]#  elinks  -dump   192.168.0.12
+   web1 V12 192.168.1.12
+
+
+
+
+
+
+
+[root@V13 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+NAME="eth0"
+DEVICE="eth0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.13"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+
+
+[root@V13 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V13 ~]# cp   /etc/sysconfig/network-scripts/ifcfg-lo{,:0}
+[root@V13 ~]# vim  /etc/sysconfig/network-scripts/ifcfg-lo:0
+[root@V13 ~]# cat  /etc/sysconfig/network-scripts/ifcfg-lo:0
+DEVICE=lo:0
+IPADDR=192.168.0.21
+NETMASK=255.255.255.255
+NETWORK=192.168.0.21
+BROADCAST=192.168.0.21
+ONBOOT=yes
+NAME=lo:0
+
+[root@V13 ~]# systemctl  restart  network
+[root@V13 ~]# ifdown  eth1
+[root@V13 ~]# ifdown  eth2
+
+[root@V13 ~]# vim  /etc/sysctl.conf 
+
+[root@V13 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+#当有arp广播问谁是192.168.0.21时,
+本机忽略该ARP广播,不做任何回应
+#本机不要向外宣告自己的lo回环地址是192.168.0.21
+ net.ipv4.conf.lo.arp_ignore = 1
+  net.ipv4.conf.all.arp_ignore = 1
+
+[root@V13 ~]# sysctl  -p  /etc/sysctl.conf
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V13 ~]#  elinks  -dump  192.168.0.13
+   web2 V13 192.168.1.13
+
+
+
+
+
+
+
+
+
+
+
+[root@V14 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+NAME="eth0"
+DEVICE="eth0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.14"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+
+[root@V14 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+[root@V14 ~]# ifdown  eth1
+[root@V14 ~]# ifdown  eth2
+
+[root@V14 ~]# ll  /etc/rc.local 
+lrwxrwxrwx. 1 root root 13 1月  30 2018 /etc/rc.local -> rc.d/rc.local
+
+[root@V14 ~]# vim  /etc/rc.local
+
+-------------  配置 vip  l0:0  192.168.0.21  此时绑定的网络接口l0:0不进行对外通信 ------ 
+
+[root@V14 ~]# tail  -2  /etc/rc.local
+
+LANG="en_US.UTF-8"
+ifconfig  lo:0  192.168.0.21/32  up
+
+[root@V14 ~]# . /etc/rc.local
+[root@V14 ~]# ifconfig  eth0 |grep 'inet ';ifconfig  lo:0 |grep 'inet '
+        inet 192.168.0.14  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet 192.168.0.21  netmask 0.0.0.0
+
+[root@V14 ~]# vim  /etc/sysctl.conf 
+
+[root@V14 ~]# tail  -4  /etc/sysctl.conf
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V14 ~]# sysctl  -p
+
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.lo.arp_ignore = 1
+
+[root@V14 ~]# rpm -q  httpd elinks
+httpd-2.4.6-67.el7.x86_64
+elinks-0.12-0.36.pre6.el7.x86_64
+
+[root@V14 ~]# systemctl  restart  httpd  && systemctl  enable  httpd
+.............
+[root@V14 ~]# echo  "V14  192.168.0.14" > /var/www/html/index.html
+
+[root@V14 ~]# elinks  -dump  192.168.0.14
+   V14 192.168.0.14
+
+
+
+
+
+
+
+
+[root@V10 ~]#  route  -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
+................
+[root@V10 ~]# cat   /etc/sysconfig/network-scripts/ifcfg-eth0
+NAME="eth0"
+DEVICE="eth0"
+ONBOOT=yes
+NM_CONTROLLED="no"
+TYPE=Ethernet
+IPV6INIT=no
+IPV4_FAILURE_FATAL="no"
+BOOTPROTO="static"
+IPADDR="192.168.0.10"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.0.254"
+
+
+
+
+
+
+
+
+
+
+
+
+
+

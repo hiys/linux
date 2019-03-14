@@ -1,5 +1,6 @@
 
 
+18500777133@sina.cn
 
 /*************
 export LANG=en_US.UTF-8
@@ -52,6 +53,16 @@ Kernel IP routing table
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
 ................
+
+------------ 首先在调度器 LVS1---V11 和LVS2 --V15 上开启路由转发的功能
+-----------------  确认调度器的路由转发功能 ------
+[root@V15 ~]#   cat  /proc/sys/net/ipv4/ip_forward
+1
+
+[root@V11 ~]# sysctl  -a |grep net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+.........
+
 [root@V15 ~]# yum  -y  install  keepalived   nmap |tail  -3
 ..........
 [root@V15 ~]# rpm  -qa |egrep "keepalived|nmap"
@@ -111,39 +122,143 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
 
 Created symlink from /etc/systemd/system/multi-user.target.wants/keepalived.service to /usr/lib/systemd/system/keepalived.service.
 
-[root@V11 ~]# vim   /etc/keepalived/keepalived.conf
+[root@V15 ~]# vim   /etc/keepalived/keepalived.conf
+[root@V15 ~]# cat  -n  /etc/keepalived/keepalived.conf
+     1	! Configuration File for keepalived
+     2	
+     3	global_defs {     # 全局设置
+     4	   notification_email {    # 设置报警邮件地址
+     5	     acassen@firewall.loc
+     6	     failover@firewall.loc
+     7	     sysadmin@firewall.loc
+     8	   }
+     9	   notification_email_from Alexandre.Cassen@firewall.loc  #设置发件人
+    10	   smtp_server 192.168.200.1   #定义邮件服务器
+    11	   smtp_connect_timeout 30
+    12	   router_id LVS_V15      # 设置路由ID号,表示该台服务的ID
+    13	   vrrp_skip_check_adv_addr
+    14	#   vrrp_strict        #这里如果不注释,会报错
+    15	   vrrp_garp_interval 0
+    16	   vrrp_gna_interval 0
+    17	}
+    18	
+    19	vrrp_instance LVSha  {    # vrrp 实例(虚拟路由器冗余协议)
+    20	    state BACKUP      #从服务器为BACKUP
+    21	    interface eth0    #定义网络接口
+    22	    virtual_router_id 51   ## master和backup的id一致
+    23	    priority 100      ##优先级比master 低些<150
+    24	    advert_int 1    # # master和backup之间的检测时间
+    25	    authentication {
+    26	        auth_type PASS
+    27	        auth_pass 1111   #主辅服务器密码必须一致
+    28	    }
+    29	    virtual_ipaddress {
+    30	        192.168.0.21      # 设置虚拟VIP
+    31	    }
+    32	}
+    33	
+    34	virtual_server 192.168.0.21 80 { # 设置虚拟服务器，ip端口
+    35	    delay_loop 6     # 设置运行情况检查时间，单位是秒
+    36	    lb_algo rr      # 负载算法，这里是rr表示轮询
+    37	    lb_kind DR          # LVS工作机制，这里是DR模式
+    38	#    persistence_timeout 50   #会话保持时间，单位是秒，对动态网页有帮助
+    39	    protocol TCP
+    40	    connect_timeout 3   # 连接超时时间
+    41	    nb_get_retry 3       # 表示重试次数
+    42	    delay_before_retry 3  # 表示重试间隔
+    43	    real_server 192.168.0.12  80 {  #设定真实服务器地址以及端口
+    44	        weight 1    # 设置权重，数字越低，调度的比例越小
+    45	        HTTP_GET {
+    46	            url {
+    47	              path    /    # 检测的网页路径 
+    48	              digest c2e7b1048523a6fc9a1a78d5fd783605
+                                   # 采用genhash命令获取web服务url的校验码
+                                 ##http://192.168.0.12/ 的digest值
+    49	            }          
+    50	        }
+    51	    }
+    52	    real_server 192.168.0.13  80 {
+    53	        weight 1
+    54	        HTTP_GET {
+    55	            url {
+    56	              path    /
+    57	              digest  e7b87c254505fecdedd3545af2160950
+    58	            }
+    59	         }
+    60	    }
+    61	    real_server 192.168.0.14  80 {
+    62	        weight 1
+    63	        HTTP_GET {
+    64	            url {
+    65	              path    /
+    66	              digest  09c990685febab223b6dafd74de1f7ec
+    67	            }
+    68	         }
+    69	    }
+    70	}    
+[root@V15 ~]# genhash  -s  192.168.0.12  -p 80  -u  /
+MD5SUM = c2e7b1048523a6fc9a1a78d5fd783605
 
- 12    router_id LVS_V11    # 设置路由ID号,表示该台服务的ID
- 14 #   vrrp_strict      #这里如果不注释,会报错
+[root@V15 ~]# genhash  -s  192.168.0.13  -p 80  -u  /
+MD5SUM = e7b87c254505fecdedd3545af2160950
 
- 19 vrrp_instance VI_1 {    # vrrp 实例
- 20     state MASTER      #master状态 主服务器为MASTER
- 21     interface eth0        //定义网络接口
- 22     virtual_router_id 51   # master和backup的id一致,主辅VRID号必须一致
- 23     priority 150        # 服务器优先级150
+[root@V15 ~]# genhash  -s  192.168.0.14  -p 80  -u  /
+MD5SUM = 09c990685febab223b6dafd74de1f7ec
 
- 25     authentication {
- 26         auth_type PASS
- 27         auth_pass 1111   #主辅服务器密码必须一致
- 28     }
- 29     virtual_ipaddress {
- 30         192.168.0.21     # 配置VIP
- 31       #  192.168.200.17
- 32       #  192.168.200.18
+[root@V15 ~]# systemctl restart keepalived
+[root@V15 ~]# echo  $?
+0
+[root@V15 ~]# systemctl  is-enabled  keepalived
+enabled
+
+[root@V15 ~]# grep -n Keepalived_healthcheckers  /var/log/messages 
+6579:Mar 14 18:52:00 V15 Keepalived_healthcheckers[7312]: Opening file '/etc/keepalived/keepalived.conf'.
+6580:Mar 14 18:52:00 V15 Keepalived_healthcheckers[7312]: Unknown keyword 'connect_timeout'
 
 
-https://www.cnblogs.com/liaojiafa/p/6087276.html
-用genhash来获取web服务 url的校验码：
+[root@V15 ~]# grep -n  "VIP"  /var/log/messages 
+6594:Mar 14 18:52:00 V15 Keepalived_vrrp[7313]: VRRP_Instance(LVSha) removing protocol VIPs.
 
-[root@localhost ~]# genhash -s 192.168.45.128 -p 80 -u /
-MD5SUM = e3eb0a1df437f3f97a64aca5952c8ea0         # 把这个校验码放在keepalived的配置文件即可。
-real_server 192.168.1.6 80 {
-        weight 1
-        HTTP_GET {
-            url {
-              path /
-              digest e3eb0a1df437f3f97a64aca5952c8ea0
-            }
+
+[root@V15 ~]# grep -n  "BACKUP STATE"  /var/log/messages 
+6596:Mar 14 18:52:00 V15 Keepalived_vrrp[7313]: VRRP_Instance(LVSha) Entering BACKUP STATE
+
+[root@V15 ~]# ifconfig |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.15  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+
+
+
+[root@V11 ~]# ifconfig |grep  -A1  flags=
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.11  netmask 255.255.255.0  broadcast 192.168.0.255
+--
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+..................
+[root@V11 ~]# systemctl  stop  keepalived
+
+
+
+[root@V15 ~]# grep -n  "MASTER STATE"  /var/log/messages 
+6602:Mar 14 19:06:13 V15 Keepalived_vrrp[7313]: VRRP_Instance(LVSha) Transition to MASTER STATE
+6603:Mar 14 19:06:14 V15 Keepalived_vrrp[7313]: VRRP_Instance(LVSha) Entering MASTER STATE
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -156,6 +271,14 @@ Kernel IP routing table
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 0.0.0.0         192.168.0.254   0.0.0.0         UG    0      0        0 eth0
 ................
+------------ 首先在调度器 LVS1---V11 和LVS2 --V15 上开启路由转发的功能
+-----------------  确认调度器的路由转发功能 ------
+[root@V11 ~]#  cat  /proc/sys/net/ipv4/ip_forward
+1
+[root@V11 ~]# sysctl  -a |grep net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+.........
+
 [root@V11 ~]# yum  -y  install  keepalived |tail  -3
   net-snmp-agent-libs.x86_64 1:5.7.2-28.el7                                     
 
@@ -259,41 +382,184 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
 
 [root@V11 ~]# systemctl  enable  keepalived
 
+[root@V11 ~]# type genhash
+genhash 是 /usr/bin/genhash
+   -------------------------           用genhash来获取web服务 url的校验码
+[root@V11 ~]# genhash  -s  192.168.0.12  -p 80  -u  /
+MD5SUM = c2e7b1048523a6fc9a1a78d5fd783605
 
 
+[root@V11 ~]# vim   /etc/keepalived/keepalived.conf
+
+ 12    router_id LVS_V11    # 设置路由ID号,表示该台服务的ID
+ 14 #   vrrp_strict      #这里如果不注释,会报错
+
+       # vrrp 实例VRRP(virtual router redundant protocol 虚拟路由器冗余协议)
+ 19 vrrp_instance LVSha {   #vrrp设置名称 LVSha
+ 20     state MASTER      #master状态 主服务器为MASTER
+ 21     interface eth0        //定义网络接口
+ 22     virtual_router_id 51   # master和backup的id一致,主辅VRID号必须一致
+ 23     priority 150           # 服务器优先级150
+ 24     advert_int 1     # # master和backup之间的检测时间
+ 25     authentication {
+ 26         auth_type PASS
+ 27         auth_pass 1111   #主辅服务器密码必须一致
+ 28     }
+ 29     virtual_ipaddress {
+ 30         192.168.0.21        # 设置虚拟VIP
+ 31     }
+ 32 }
+ 33     
+ 34 virtual_server 192.168.0.21 80 {  # 设置虚拟服务器，ip端口
+ 35     delay_loop 6       # 设置运行情况检查时间，单位是秒
+ 36     lb_algo rr        # 负载算法，这里是rr表示轮询
+ 37     lb_kind DR          # LVS工作机制，这里是DR模式
+ 38 #    persistence_timeout 50   # 会话保持时间，单位是秒，这个选项对动态网页非常有帮助，
+                                       为集群系统中的session共享提供了一个很好的解决方案，
+              有了这个会话保持功能，用户的请求会被一直分发到某个服务节点，直到超过这个会话的保持时间，
+              需要注意的是，
+                 这个会话保持时间是最大无响应的超时时间，或者说,
+                 用户在动态页面50秒以内没有执行任何操作，那么接下来的操作会重新调度到另一个节点上。
+                 如果一直在操作则不会影响
+ 39     protocol TCP 
+ 40     connect_timeout 3     # 连接超时时间
+ 41     nb_get_retry 3        # 表示重试次数
+ 42     delay_before_retry 3   # 表示重试间隔
+ 43     real_server 192.168.0.12  80 {   #设定真实服务器地址以及端口
+ 44         weight 1    # 设置权重，数字越低，调度的比例越小
+ 45         HTTP_GET {    #以http模式检查该服务器监控状态keepalived健康检查 
+ 46             url {
+ 47               path   /     # 检测的网页路径              
+ 48               digest c2e7b1048523a6fc9a1a78d5fd783605  # 采用genhash命令获取web服务url的校验码
+                            ##http://192.168.0.12/ 的digest值
+ 49             }
+ 50         }
+ 51     }
+ 52     real_server 192.168.0.13  80 {
+ 53         weight 1
+ 54         HTTP_GET {
+ 55             url {
+ 56               path    /
+ 57               digest  e7b87c254505fecdedd3545af2160950  #获取web服务url的校验码
+                                    ##http://192.168.0.13/ 的digest值
+ 58             }
+ 59          }
+ 60     }
+ 61     real_server 192.168.0.14  80 {
+ 62         weight 1
+ 63         HTTP_GET {
+ 64             url {
+ 65               path    /
+ 66               digest  09c990685febab223b6dafd74de1f7ec  #获取web服务url的校验码
+                                 ##http://192.168.0.14/ 的digest值
+ 67             }
+ 68          }
+ 69     }
+ 70 }
+
+[root@V11 ~]# genhash  -s  192.168.0.12  -p 80  -u  /
+MD5SUM = c2e7b1048523a6fc9a1a78d5fd783605
+
+[root@V11 ~]# genhash  -s  192.168.0.13  -p 80  -u  /
+MD5SUM = e7b87c254505fecdedd3545af2160950
+
+[root@V11 ~]# genhash  -s  192.168.0.14  -p 80  -u  /
+MD5SUM = 09c990685febab223b6dafd74de1f7ec
+
+[root@V11 ~]# cat  -n   /etc/keepalived/keepalived.conf
+     1	! Configuration File for keepalived
+     2	
+     3	global_defs {     # 全局设置
+     4	   notification_email {    # 设置报警邮件地址
+     5	     acassen@firewall.loc
+     6	     failover@firewall.loc
+     7	     sysadmin@firewall.loc
+     8	   }                                              # 设置邮件的发送地址
+     9	   notification_email_from Alexandre.Cassen@firewall.loc
+    10	   smtp_server 192.168.200.1
+    11	   smtp_connect_timeout 30
+    12	   router_id LVS_V11
+    13	   vrrp_skip_check_adv_addr
+    14	#   vrrp_strict
+    15	   vrrp_garp_interval 0
+    16	   vrrp_gna_interval 0
+    17	}
+    18	
+    19	vrrp_instance LVSha {    # vrrp 实例(虚拟路由器冗余协议)
+    20	    state MASTER
+    21	    interface eth0
+    22	    virtual_router_id 51
+    23	    priority 150
+    24	    advert_int 1
+    25	    authentication {
+    26	        auth_type PASS
+    27	        auth_pass 1111
+    28	    }
+    29	    virtual_ipaddress {
+    30	        192.168.0.21
+    31	    }
+    32	}
+    33	
+    34	virtual_server 192.168.0.21 80 {
+    35	    delay_loop 6
+    36	    lb_algo rr
+    37	    lb_kind DR
+    38	#    persistence_timeout 50
+    39	    protocol TCP
+    40	    connect_timeout 3
+    41	    nb_get_retry 3
+    42	    delay_before_retry 3
+    43	    real_server 192.168.0.12  80 {
+    44	        weight 1
+    45	        HTTP_GET {
+    46	            url {
+    47	              path    /
+    48	              digest c2e7b1048523a6fc9a1a78d5fd783605
+    49	            }          
+    50	        }
+    51	    }
+    52	    real_server 192.168.0.13  80 {
+    53	        weight 1
+    54	        HTTP_GET {
+    55	            url {
+    56	              path    /
+    57	              digest  e7b87c254505fecdedd3545af2160950
+    58	            }
+    59	         }
+    60	    }
+    61	    real_server 192.168.0.14  80 {
+    62	        weight 1
+    63	        HTTP_GET {
+    64	            url {
+    65	              path    /
+    66	              digest  09c990685febab223b6dafd74de1f7ec
+    67	            }
+    68	         }
+    69	    }
+    70	}
+[root@V11 ~]#   在master服务器上启动  --------------------------
+
+[root@V11 ~]# systemctl restart keepalived
+[root@V11 ~]# systemctl  is-enabled  keepalived
+enabled
+
+[root@V11 ~]# grep -n Keepalived_healthcheckers  /var/log/messages 
+6895:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Opening file '/etc/keepalived/keepalived.conf'.
+6896:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Unknown keyword 'connect_timeout'
+6897:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Unknown keyword 'nb_get_retry'
+6898:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Unknown keyword 'delay_before_retry'
+6904:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Activating healthchecker for service [192.168.0.21]:80
+6905:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Activating healthchecker for service [192.168.0.21]:80
+6906:Mar 14 18:35:50 V11 Keepalived_healthcheckers[7861]: Activating healthchecker for service [192.168.0.21]:80
 
 
+[root@V11 ~]# grep -n  "MASTER STATE"  /var/log/messages 
+6912:Mar 14 18:35:51 V11 Keepalived_vrrp[7862]: VRRP_Instance(LVSha) Transition to MASTER STATE
+6913:Mar 14 18:35:52 V11 Keepalived_vrrp[7862]: VRRP_Instance(LVSha) Entering MASTER STATE
 
-
-
-
-
-
-
-
-
-[root@V11 ~]# ipvsadm  --set  800 100 260   #设置tcp tcpfin udp超时时间
-
-[root@V11 ~]# ipvsadm  -l  --timeout    #查看 超时时间
-Timeout (tcp tcpfin udp): 800 100 260
-
-创建LVS虚拟集群服务器(算法为加权轮询:wrr)
-
-  eth0   --- DIP:  192.168.0.11
-  eth0:0 --- VIP:  192.168.0.21/24
-
-[root@V11 ~]# ipvsadm  -A  -t  192.168.0.21:80 -s  wrr
-
----------------------------  添加realserver  eth0:0 --- VIP:  192.168.0.21/24  ------
-
-[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.12:80  -g -w 2
-
-[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.13:80  -g
-
-[root@V11 ~]# ipvsadm  -a  -t  192.168.0.21:80  -r 192.168.0.14:80  -g
-
-[root@V11 ~]# ipvsadm  -ln  --stats
-
+[root@V11 ~]# grep -n  "VIP"  /var/log/messages 
+6909:Mar 14 18:35:50 V11 Keepalived_vrrp[7862]: VRRP_Instance(LVSha) removing protocol VIPs.
+6914:Mar 14 18:35:52 V11 Keepalived_vrrp[7862]: VRRP_Instance(LVSha) setting protocol VIPs.
 
 
 
@@ -394,7 +660,7 @@ IP包 目的地址CIP(192.168.0.10) 根据 路由表 查询
 2
 [root@V12 ~]# systemctl  restart httpd 
 [root@V12 ~]# systemctl  enable   httpd
-[root@V12 ~]# elinks  -dump   http://V12
+[root@V12 ~]#  elinks  -dump   192.168.0.12
    web1 V12 192.168.1.12
 
 
